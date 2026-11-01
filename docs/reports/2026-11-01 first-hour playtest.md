@@ -297,3 +297,42 @@ third of the way, 51% two-thirds of the way and 28% at the finish (a typical riv
 two-thirds of the way and 4% at the finish). Steady On still had 28% left at the line: energy to
 spare."*
 
+
+## 9. Follow-up: chapter 1 without a wall of losses, and a shorter Live wait (2026-11-01)
+
+**Probe.** `apps/web/src/server/storyProbe.ts` (run by `tools/season-harness/storyCurve.harness.ts`,
+seeded, in-memory): 40 brand-new stables each run the first race from the starters screen, then
+Story chapter races the way the game suggests (the suggested race, the suggested horse, its own
+riding plan; after a loss, Wilf's one change from the replay; a fresh horse first; three starts a
+day), care once a day, until chapter 1 is done, then three County races. Two rest policies: wait
+for a rested horse ("rested"), or run the game's own pick even when tired ("game's pick").
+
+| 40 stables | Rested, before | Rested, after | Game's pick, before | Game's pick, after |
+|---|---|---|---|---|
+| Chapter races to finish chapter 1: median / p90 | 8 / 12 | **6 / 9** | 9 / 22 (1 not done in 30) | **8 / 11** |
+| Longest losing run: median / p90 | 3 / 7 | **2 / 4** | 5 / 12 | **3 / 6** |
+| First County race won | 18 % | **30 %** | 8 % | **28 %** |
+| Club Championship won (other Club races) | 30 % (32-41 %) | 50 % of 6 runs | 24 % (20-33 %) | **25 %** (32-50 %) |
+| Minutes to finish chapter 1: median (at the races) | 2,781 (21) | 1,577 (17) | 386 (24) | **22** (22) |
+| Stables that had to wait for a rested horse | 95 % | 95 % | 55 % | 43 % |
+
+Rest dominates the clock: with three starters and a race adding 300-400 fatigue, a stable that
+never runs a tired horse waits hours after its third race. Racing tired (the game's own pick)
+was the real wall: losses compound (9 / 22 races, losing runs of 12).
+
+**What changed (we choose the field, never the result).** game-core `storyField`: chapter 1 is
+pitched from the runner's own level (`STORY_CLUB_BELOW` below its mean stat; the Championship
+`STORY_CLUB_FINAL_BELOW`, a step up); chapter 2 starts `STORY_COUNTY_BELOW` below the runner and
+closes `STORY_COUNTY_RAMP_PER_WIN` a win, never past its published strength; after two or more
+losses in a row the field eases (`STORY_EASE_PER_LOSS`, up to `STORY_EASE_MAX`: "Harrowgate House
+rests its best horse today" on the race card), after two or more wins it stiffens. Fixed before
+the race from the stable's records, stored in `conditions.story.field`. Open Story races in chapter
+1 keep the first race's real-ability window (`storyOpenFloor`). "Try again" after a chapter race
+stays in the chapter, and the suggested chapter race is the best fit (not the Championship until
+it is the last one left). Rewards and caps unchanged. Test: `apps/web/src/server/storyCurve.test.ts`.
+
+**The Live wait.** Quick Pick and the wait card point a stable's first Live entry at the soonest
+race (waiting costs `LIVE_FIRST_WAIT_POINTS` fit points per 15 minutes); the wait card shows the
+other stables entered so far, "Watch the 10:15 at Bellmont now", up to three things to do
+meanwhile (only what is available) and the bell rings 10 minutes before the off (`race_soon`,
+respecting the Races & results switch).

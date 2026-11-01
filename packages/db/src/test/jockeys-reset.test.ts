@@ -23,7 +23,7 @@ const all = (v: number) => ({ gate: v, pace: v, finish: v, handling: v });
 
 describe("the grade-E reset", () => {
   it("drops every active jockey into the starting range, keeps lower skills, potential and records, and leaves the retired alone", async () => {
-    const rows = [];
+    const rows: Awaited<ReturnType<typeof createJockeyTx>>[] = [];
     for (let i = 0; i < 12; i++) rows.push(await createJockeyTx(h.db, { seed: gc.seedFrom("reset", i), stableId: null, now: T0, startingPool: true }));
     // grades A..C, one already low, one retired A
     const set = [800, 650, 500, 200, 820];

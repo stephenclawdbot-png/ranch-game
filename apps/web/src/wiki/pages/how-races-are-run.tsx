@@ -176,7 +176,7 @@ export default function HowRacesAreRunPage() {
       />
       <Callout tone="rule" title="We choose the field, never the result">
         <p>
-          The Club fills empty gates with its own horses, and in Story races the rival stables are set to the chapter&rsquo;s strength. Those horses are honest: plain stat lines, no hidden
+          The Club fills empty gates with its own horses, and in Story races the rival stables are set to a strength chosen before the race (see <WikiLink slug="race-types" />). Those horses are honest: plain stat lines, no hidden
           modifiers. Once the field is set, only the engine and the seed decide the race.
         </p>
       </Callout>

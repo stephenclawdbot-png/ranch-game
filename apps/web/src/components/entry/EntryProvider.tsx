@@ -355,7 +355,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
       <div className="grid gap-3" data-testid="live-entered">
         <SheetHeader eyebrow="Entered · Live" title={race.name} onClose={onClose} />
         <p className="text-cream">{entered} is in.</p>
-        <LiveWait postTimeMs={race.postTimeMs} entered />
+        <LiveWait postTimeMs={race.postTimeMs} entered raceId={raceId} />
         <div className="grid gap-2 sm:grid-cols-2">
           <Link href={`/race/${raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
             <PixelIcon name="play" className="h-4 w-4" /> Go to the race
@@ -502,7 +502,7 @@ function LivePickCard({
           </p>
         </div>
       </div>
-      <LiveWait postTimeMs={r.postTimeMs} entered />
+      <LiveWait postTimeMs={r.postTimeMs} entered raceId={r.raceId} />
       <div className="grid gap-2 sm:grid-cols-2">
         <Link href={`/race/${r.raceId}`} className="btn btn-brass btn-lg" onClick={onClose} data-testid="go-to-race">
           <PixelIcon name="play" className="h-4 w-4" /> Go to the race

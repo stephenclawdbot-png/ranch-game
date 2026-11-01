@@ -428,3 +428,118 @@ export function storyRivalRunner(race: Pick<StoryRaceDef, "key" | "strength" | "
   const runner = clubRunner(`story|${race.key}|${raceSeedLabel}`, { id: horseId, strength: race.strength - 15 + spread, spread: 50, distanceM: race.distanceM, surface: race.surface, style });
   return rival ? { ...runner, ownerId: rival.id, appearance: { ...runner.appearance, silks: rival.silks } } : runner;
 }
+
+// ---------------------------------------------------------------------------
+// Choosing a chapter race's field for a stable (first-hour follow-up, 2026-11-01)
+// ---------------------------------------------------------------------------
+
+/**
+ * Chapter 1 (the Club) is pitched from the runner's own level, not the published strength: a
+ * new horse's stats vary a lot, and a fixed field was a wall of losses for the weaker starters
+ * (Story curve probe, apps/web/src/server/storyProbe.ts). The field's mean stat sits this far
+ * below the runner's own mean stat (its stats as the stable shows them, before race-day condition).
+ */
+export const STORY_CLUB_BELOW = 80;
+/** The Club Championship (the chapter's last race) is a step up: its field sits only this far below. */
+export const STORY_CLUB_FINAL_BELOW = 45;
+/**
+ * Chapter 2 (the County) ramps in: its first race is pitched this far below the runner, and each
+ * County win closes the gap by STORY_COUNTY_RAMP_PER_WIN, never past the published strength.
+ */
+export const STORY_COUNTY_BELOW = 45;
+export const STORY_COUNTY_RAMP_PER_WIN = 15;
+/**
+ * After two or more chapter-race losses in a row, the field eases by this much per loss beyond the
+ * first ("Harrowgate House rests its best horse today"), up to STORY_EASE_MAX. Chapters 1 and 2 only.
+ */
+export const STORY_EASE_PER_LOSS = 20;
+export const STORY_EASE_MAX = 60;
+/** After two or more wins in a row the field stiffens by this much per win beyond the first, up to STORY_STIFFEN_MAX. */
+export const STORY_STIFFEN_PER_WIN = 8;
+export const STORY_STIFFEN_MAX = 16;
+/** A field never drops below this mean stat (a floor for a very weak runner). */
+export const STORY_STRENGTH_FLOOR = 150;
+
+export interface StoryFieldInput {
+  race: Pick<StoryRaceDef, "chapter" | "order" | "strength" | "rivals">;
+  /** Mean stat of the stable's runner (game-core meanStat of its own stats). */
+  runnerLevel: number;
+  /** The stable's earlier chapter-race results in this race's chapter, newest first (true = won). */
+  recent: readonly boolean[];
+}
+
+export interface StoryField {
+  /** The field's target mean stat (storyRivalRunner's `strength`). */
+  strength: number;
+  /** Before the streak adjustment. */
+  base: number;
+  /** Streak adjustment: negative eased (after losses), positive stiffened (after wins). */
+  adjust: number;
+  /** What the race card says about it, or null. */
+  note: string | null;
+}
+
+/** Results equal to `won` in a row at the head of `recent`. */
+function runOf(recent: readonly boolean[], won: boolean): number {
+  let n = 0;
+  while (n < recent.length && recent[n] === won) n++;
+  return n;
+}
+
+/** The streak adjustment in steps: -k after k+1 losses in a row, +k after k+1 wins in a row (capped). */
+function streakSteps(recent: readonly boolean[]): number {
+  const losses = runOf(recent, false);
+  if (losses >= 2) return -Math.min(Math.floor(STORY_EASE_MAX / STORY_EASE_PER_LOSS), losses - 1);
+  const wins = runOf(recent, true);
+  if (wins >= 2) return Math.min(Math.floor(STORY_STIFFEN_MAX / STORY_STIFFEN_PER_WIN), wins - 1);
+  return 0;
+}
+
+/**
+ * The field of a chapter race for this stable's runner. We choose the field, never the result:
+ * the strength is fixed before the race from the stable's own records (deterministic, stored with
+ * the race), and the race itself is an honest simulation that can be won or lost.
+ *   - Chapter 1: the runner's level less STORY_CLUB_BELOW (the Championship: STORY_CLUB_FINAL_BELOW).
+ *   - Chapter 2: the published strength, or the runner's level less STORY_COUNTY_BELOW plus
+ *     STORY_COUNTY_RAMP_PER_WIN a County win so far, whichever is lower.
+ *   - Later chapters: the published strength.
+ *   - Chapters 1 and 2: eased after losses in a row, stiffened after wins in a row.
+ */
+export function storyField(i: StoryFieldInput): StoryField {
+  const { race } = i;
+  const level = Math.max(0, Math.trunc(i.runnerLevel));
+  let base = race.strength;
+  if (race.chapter === "club") {
+    base = level - (race.order === chapterDef("club").races.length ? STORY_CLUB_FINAL_BELOW : STORY_CLUB_BELOW);
+  } else if (race.chapter === "county") {
+    const wins = i.recent.filter(Boolean).length;
+    base = Math.min(race.strength, level - STORY_COUNTY_BELOW + wins * STORY_COUNTY_RAMP_PER_WIN);
+  }
+  let adjust = 0;
+  if (race.chapter === "club" || race.chapter === "county") {
+    const steps = streakSteps(i.recent);
+    adjust = steps < 0 ? steps * STORY_EASE_PER_LOSS : steps * STORY_STIFFEN_PER_WIN;
+  }
+  const strength = Math.max(STORY_STRENGTH_FLOOR, base + adjust);
+  return { strength, base, adjust, note: storyFieldNote(rivalById(race.rivals[0] ?? ""), adjust) };
+}
+
+/** The race card's line for an eased or stiffened field (the headline rival stable), or null. */
+export function storyFieldNote(rival: Pick<RivalStable, "name"> | undefined, adjust: number): string | null {
+  if (!rival || adjust === 0) return null;
+  return adjust < 0 ? `${rival.name} rests its best horse today.` : `${rival.name} sends its best horse: they've noticed you.`;
+}
+
+/**
+ * Open Story races (Quick Pick, "race again") while a stable is still in chapter 1: the Club window
+ * starts this many marks below the horse's real ability mark (the first race's rule), eased or
+ * stiffened by the same streaks, STORY_OPEN_MARKS_PER_STEP marks a step.
+ */
+export const STORY_OPEN_BELOW = 8;
+export const STORY_OPEN_MARKS_PER_STEP = 2;
+
+/** An open Story race's Club window floor for a chapter-1 stable (a Story window spans clubFill's CLUB_ABOVE_MEDIAN_SPAN up from it). */
+export function storyOpenFloor(mark: number, recent: readonly boolean[]): { minRating: number; adjust: number } {
+  const adjust = streakSteps(recent) * STORY_OPEN_MARKS_PER_STEP;
+  return { minRating: Math.max(0, Math.trunc(mark) - STORY_OPEN_BELOW + adjust), adjust };
+}

@@ -12,7 +12,8 @@
  */
 import nodeCrypto from "node:crypto";
 import { syncBuiltinESMExports } from "node:module";
-import { Rng, seedFrom } from "@thoroughbred/game-core";
+// A relative path (the same file the harness alias points at), so apps/web tests can use this too.
+import { Rng, seedFrom } from "../../../packages/game-core/src/index";
 
 let installed = false;
 /** The current stream; each install (one per run) starts it afresh from the run's seed. */

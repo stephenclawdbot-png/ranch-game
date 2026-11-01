@@ -30,6 +30,7 @@ import { ShareReplay } from "./ShareReplay";
 import { ShareClip } from "./ShareClip";
 import { WhatIfButton } from "../whatIf/WhatIfButton";
 import { PickBlock } from "../picks/PickBlock";
+import { LiveWait } from "./LiveWait";
 import { CourseStrip } from "./CourseMap";
 import { courseByName } from "@thoroughbred/game-core";
 import { sealCopy, sealState } from "@/lib/seal";
@@ -314,6 +315,13 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
         {phase === "result" && replay && <ShareClip replay={replay} course={courseByName(card.track)} courseName={card.track} siteHost={siteHost} highlightHorseId={highlightHorseId} mineHorseIds={mineIds} connections={connections} />}
       </div>
 
+      {/* Story: an eased or stiffened field says so (we choose the field, never the result). */}
+      {card.story?.note && (
+        <p className="text-sm font-bold text-cream-dim" data-testid="story-field-note">
+          {card.story.note}
+        </p>
+      )}
+
       {phase !== "result" && (
         <>
           <PlainNote>{plainRace(config, card.kind === "live")}</PlainNote>
@@ -361,6 +369,8 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
                     {mine.gate ? `Gate ${mine.gate}` : "Gate drawn when entries close"} · riding as a {STYLE_LABEL[mine.tactic].toLowerCase()}
                   </p>
                   <FitList fits={fitCheck(mine.horse, mine.tactic, config)} showDetail />
+                  {/* The Live wait: when it runs, who else is in so far, a race to watch now, what to do meanwhile. */}
+                  {card.kind === "live" && phase === "pre" && <LiveWait postTimeMs={config.postTimeMs} entered raceId={card.id} className="mt-3 border-t border-line pt-3" />}
                 </section>
               )}
               {phase !== "live" && (

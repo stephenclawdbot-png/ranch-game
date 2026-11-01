@@ -30,7 +30,7 @@ import { StableSteps } from "../onboarding/StableSteps";
 import { WelcomeBack } from "../onboarding/WelcomeBack";
 import { usePlain } from "../onboarding/guide";
 import { Term } from "../onboarding/Term";
-import { LiveWait, LocalPostTime, WhileYouWait } from "../race/LiveWait";
+import { LiveWait, LocalPostTime } from "../race/LiveWait";
 import { MEETINGS_LINE } from "@/lib/meetings";
 
 interface ClubProps {
@@ -233,7 +233,7 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
             </Link>
           </Hero>
         )}
-        {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} />}
+        {next && <NextRaceCard next={next} live={live} entries={state.entries.balance} wait={!firstWeek} />}
       </EstateStage>
 
       {ob?.welcomeBack && (
@@ -359,7 +359,7 @@ function Hero({
 }
 
 /** The next race on the shared card: name, conditions, a broadcast countdown, Enter and Watch. */
-function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSummary | null; entries: number }) {
+function NextRaceCard({ next, live, entries, wait }: { next: RaceSummary; live: RaceSummary | null; entries: number; /** The wait line (the first-week list carries it while it shows). */ wait: boolean }) {
   const entry = useEntry();
   return (
     <section className="surface p-4" data-testid="next-race" aria-labelledby="next-race-h">
@@ -402,7 +402,7 @@ function NextRaceCard({ next, live, entries }: { next: RaceSummary; live: RaceSu
           Watch
         </Link>
       </div>
-      <WhileYouWait className="mt-2" />
+      {wait && <LiveWait postTimeMs={next.postTimeMs} entered={false} watch={false} className="mt-2" />}
     </section>
   );
 }
@@ -472,7 +472,7 @@ function YourRace({ race, now, appearance }: { race: ActiveEntry; now: number; a
       title={`${race.horseName} is in the ${race.raceName}`}
       body={race.kind === "live" ? "A Live race at Kestrel Downs: everyone watches the same finish." : "A Story race against the Club."}
     >
-      {race.kind === "live" && startsIn > 0 && <LiveWait postTimeMs={race.postTimeMs} entered />}
+      {race.kind === "live" && startsIn > 0 && <LiveWait postTimeMs={race.postTimeMs} entered raceId={race.raceId} />}
       <ActionBar>
         <Link href={`/race/${race.raceId}`} className="btn btn-brass btn-lg" data-testid="watch-mine">
           <PixelIcon name="stopwatch" size={32} className="-my-2" /> Watch {race.horseName}

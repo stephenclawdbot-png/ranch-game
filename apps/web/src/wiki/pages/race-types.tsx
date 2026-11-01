@@ -2,7 +2,7 @@ import * as gc from "@thoroughbred/game-core";
 import { PLATE_AFTER_SLOTS, RULES, SPONSORSHIP, bps, defaultCardSlot, entryCostFor, sponsoredRaceName, sponsorshipPrice, type RaceConditions } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
 import { raceTier } from "@/server/horseView";
-import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Table, WikiLink, count } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, H3, Lead, List, P, Table, WikiLink, count } from "../kit";
 
 const MIN = 60_000;
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
@@ -277,12 +277,35 @@ export default function RaceTypesPage() {
       <H2 id="quick">Quick races and Story chapters</H2>
       <P>
         Under &ldquo;Race the Club now&rdquo; on the race card, <b>Quick Pick</b> finds your best-suited fresh horse and runs it straight away in a solo Story race against the rival stables of
-        your current chapter. You can also pick the horse and plan yourself. The race secretary usually finds a trip and surface that suit your horse, and the field is matched to its rating.
+        your current chapter. You can also pick the horse and plan yourself. The race secretary usually finds a trip and surface that suit your horse. Until you finish chapter 1 the Club&rsquo;s
+        horses are drawn from {gc.STORY_OPEN_BELOW} marks below your horse&rsquo;s real ability upwards (not its official rating, which starts above a new horse&rsquo;s ability); after that the
+        field is matched to its rating.
       </P>
       <P>
         <GameLink href="/story">Story mode</GameLink> is a campaign of {gc.STORY_CHAPTER_DEFS.length} chapters, each with {gc.STORY_CHAPTER_DEFS[0]!.races.length} fixed races against named
         rivals. Win {gc.STORY_CHAPTER_DEFS[0]!.winsToComplete} different races of a chapter to complete it and earn the next licence.
       </P>
+      <H3>How a Story field is chosen</H3>
+      <P>
+        We choose the field, never the result. Before each chapter race the rival stables&rsquo; strength is fixed from your runner and your recent Story results, and stored with the race:
+      </P>
+      <List
+        items={[
+          <>
+            <b>Chapter 1, the Club:</b> the rivals&rsquo; average stat sits {gc.STORY_CLUB_BELOW} points below your runner&rsquo;s own (its stats as your stable shows them). The Club Championship is a
+            step up: only {gc.STORY_CLUB_FINAL_BELOW} below.
+          </>,
+          <>
+            <b>Chapter 2, the County:</b> the first races start {gc.STORY_COUNTY_BELOW} below your runner, and each County win closes the gap by {gc.STORY_COUNTY_RAMP_PER_WIN}, up to the
+            chapter&rsquo;s own strength. Chapters 3 and 4 are run at their own strength.
+          </>,
+          <>
+            <b>After two or more defeats in a row</b> (chapters 1 and 2) the field eases by {gc.STORY_EASE_PER_LOSS} for each one after the first, up to {gc.STORY_EASE_MAX}: the race card says a
+            rival rests its best horse today. <b>After two or more wins in a row</b> it stiffens by {gc.STORY_STIFFEN_PER_WIN} a win, up to {gc.STORY_STIFFEN_MAX}.
+          </>,
+          <>Rewards don&rsquo;t change: a first win pays once, replays pay the small reward, up to the chapter&rsquo;s cap.</>,
+        ]}
+      />
       <Table
         head={["Chapter", "Runners", "First win pays", "Replays pay", "Chapter pays at most"]}
         rows={gc.STORY_CHAPTER_DEFS.map((c) => [

@@ -4,7 +4,8 @@
  * and horseView.ts (no imports back from them).
  *
  * A story race row carries `conditions.story`:
- *   { chapter, rivals: [rival stable ids], raceKey?: chapter race key, strength?: number }
+ *   { chapter, rivals: [rival stable ids], raceKey?: chapter race key, strength?: number,
+ *     field?: { level, base, adjust, note } (how the field was chosen: game-core storyField) }
  * - `rivals`: the named AI stables in the field. Each house runner is assigned one of them
  *   deterministically from its id (game-core `rivalFor`), so cards, silks and results agree.
  * - `raceKey` + `strength` (chapter races): at the field lock the house runners race as that
@@ -22,17 +23,20 @@ export interface StoryMeta {
   rivals: string[];
   raceKey?: string;
   strength?: number;
+  /** The line the race card shows about an eased or stiffened field (game-core storyFieldNote), if any. */
+  note?: string;
 }
 
 export function storyMetaOf(race: Pick<PublicRace, "kind" | "conditions">): StoryMeta | null {
   if (race.kind !== "quick") return null;
-  const s = ((race.conditions ?? {}) as { story?: Partial<StoryMeta> }).story;
+  const s = ((race.conditions ?? {}) as { story?: Partial<StoryMeta> & { field?: { note?: unknown } } }).story;
   if (!s) return null;
   return {
     chapter: gc.isStoryChapter(s.chapter) ? s.chapter : "club",
     rivals: Array.isArray(s.rivals) ? s.rivals.filter((x): x is string => typeof x === "string") : [],
     raceKey: typeof s.raceKey === "string" && gc.storyRaceByKey(s.raceKey) ? s.raceKey : undefined,
     strength: typeof s.strength === "number" ? s.strength : undefined,
+    note: typeof s.field?.note === "string" ? s.field.note : undefined,
   };
 }
 
