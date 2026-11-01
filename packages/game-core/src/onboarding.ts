@@ -439,8 +439,12 @@ export const MENTOR = { name: "Wilf Ashby", role: "Head lad" } as const;
 // Welcome back
 // ---------------------------------------------------------------------------
 
-/** Away at least this long and Home opens with a "welcome back" card. Never a penalty, just a catch-up. */
-export const WELCOME_BACK_AFTER_MS = 24 * 3_600_000;
+/**
+ * Away at least this long and Home opens with a "while you were away" card. Never a penalty, just
+ * a catch-up. Six hours (was a day): beta testers came back the next evening, under a day later,
+ * and found nothing waiting to tell them what had happened.
+ */
+export const WELCOME_BACK_AFTER_MS = 6 * 3_600_000;
 /** The card stays until dismissed, or this long after the visit that raised it. */
 export const WELCOME_BACK_SHOW_MS = 6 * 3_600_000;
 

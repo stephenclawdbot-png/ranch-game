@@ -72,3 +72,4 @@ export * from "./services/quickRaces";
 export * from "./services/notifications";
 export * from "./services/notificationEvents";
 export * from "./services/commentary";
+export * from "./services/engagement";
