@@ -1221,7 +1221,13 @@ export function RaceViewer(props: RaceViewerProps) {
     >
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
         <div className="rv-canvas" ref={canvasHostRef} />
-        {!ready && <div className="rv-loading">{failed ? "3D view unavailable on this device" : "Loading race…"}</div>}
+        {!ready && (
+          <div className={failed ? "rv-loading rv-failed" : "rv-loading"}>
+            {failed
+              ? "The race picture couldn't start in this browser. Close every Post Time tab and restart the browser; if it still happens, turn on graphics (hardware) acceleration in the browser's settings. The race and its result are safe either way."
+              : "Loading race…"}
+          </div>
+        )}
         {h && !finaleRunning && !preHud && (
           <TopHud
             race={info.race}

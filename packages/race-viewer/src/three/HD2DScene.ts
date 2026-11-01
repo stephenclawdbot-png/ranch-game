@@ -33,8 +33,8 @@ import { crowdCheering, crowdFrame, fxStripCanvas, judgeBoxCanvas, plateCanvas, 
 import { TRACK_POST, TRACK_PRE, groundSpan, hd2dInventory, hd2dPlan, laneZ as stageLaneZ, type Hd2dPlan } from "./stagePlan";
 import type { FxPalette, StripSet, TracksideArt } from "../trackside/art";
 import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "../trackside/strips";
-import { RunnerShape, shapeUniforms } from "../trackside/shape";
-import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
+import { RunnerShape, gpuBodyShape, shapeUniforms } from "../trackside/shape";
+import { HORSE_FRAG, QUAD_VERT, horseFrag } from "../trackside/shaders";
 import { clothOffByUrl } from "../cloth";
 import { CloseUpFinish, PHONE_PX } from "../phone";
 import { GATE_SHOT, JUDGE_SHOT } from "./shots";
@@ -907,7 +907,7 @@ export class HD2DScene {
         mat = this.own(
           new T.ShaderMaterial({
             vertexShader: QUAD_VERT,
-            fragmentShader: HORSE_FRAG_3D,
+            fragmentShader: horseFrag(HORSE_FRAG_3D, gpuBodyShape()),
             transparent: true,
             premultipliedAlpha: true,
             depthWrite: true,

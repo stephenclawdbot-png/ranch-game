@@ -8,6 +8,7 @@ export const VIEWER_CSS = `
 .rv-canvas{position:absolute;inset:0}
 .rv-canvas canvas{display:block;width:100%!important;height:100%!important}
 .rv-loading{position:absolute;inset:0;display:grid;place-items:center;font:12px var(--rv-f-pixel);letter-spacing:.08em;text-transform:uppercase;color:rgba(243,231,201,.7)}
+.rv-loading.rv-failed{padding:24px;text-align:center;text-transform:none;letter-spacing:0;font:14px/1.5 var(--rv-f-body,system-ui);color:rgba(243,231,201,.9);max-width:560px;margin:auto}
 .rv-hud{position:absolute;left:0;right:0;top:0;padding:10px 12px 18px;display:flex;flex-direction:column;gap:6px;pointer-events:none;background:linear-gradient(rgba(8,21,14,.7),rgba(8,21,14,.3) 70%,rgba(8,21,14,0))}
 .rv-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .rv-title{min-width:0}

@@ -38,7 +38,7 @@ import { lookFor, type TracksideLook } from "./looks";
 import { finishTilt, sceneryFor } from "./scenery";
 import { LUT_W, PATTERN_ID, buildKeyInfo, buildLut, clothNumberShown, frameOrigin, runnerCloths } from "./strips";
 import * as S from "./shaders";
-import { RunnerShape, shapeUniforms } from "./shape";
+import { RunnerShape, gpuBodyShape, shapeUniforms } from "./shape";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { CourseInfo } from "../course/geometry";
 import { buildRaceStage, type RaceStage, type StageInventory } from "../stage/buildRaceStage";
@@ -630,7 +630,7 @@ export class TracksideScene {
     const l0 = g.lods[0]!;
     const lt = this.lodTex.get(g)![0]!;
     this.data.horses.forEach((h, i) => {
-      const mat = this.mat(S.HORSE_FRAG, {
+      const mat = this.mat(S.horseFrag(S.HORSE_FRAG, gpuBodyShape()), {
         uIdx: { value: lt.idx },
         uNrm: { value: lt.nrm ?? lt.idx },
         uLut: { value: this.lut },

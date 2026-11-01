@@ -360,6 +360,10 @@ float wCls(vec2 q) {
   float dn = q.y > uWarpC.y - 1.5 ? 0.0 : byteOf(texture2D(uMsk, (uMskOrigin + q + vec2(0.5, 1.5)) / uMskSize).r);
   return (abs(up - 6.0) > 0.5 && abs(dn - 6.0) > 0.5) ? 5.0 : 4.0;
 }
+// The body build warp (bodyBuild.ts) is compiled in only with BODY_SHAPE: unrolled on
+// Windows' Direct3D shader compiler it was heavy enough to reset the graphics driver, after
+// which the browser blocks WebGL for the site (2026-11-01). Off in race views until it is cheap.
+#ifdef BODY_SHAPE
 float jsRound(float v) {
   return floor(v + 0.5);
 }
@@ -472,14 +476,17 @@ vec2 warpSrc(vec2 p) {
   if (cb > 1.5 && cb < 2.5) return vec2(x, yb);
   return vec2(-1.0);
 }
+#endif
 vec4 texelSrc(vec2 t, vec4 flags, vec3 markW);
 vec4 texelAt(vec2 t, vec4 flags, vec3 markW) {
+#ifdef BODY_SHAPE
   if (uBuild.w > 0.5) {
     if (t.x < 0.0 || t.y < 0.0 || t.x >= uFrame.z || t.y >= uFrame.w) return vec4(0.0);
     vec2 s = warpSrc(floor((t + 0.5) * uLodS));
     if (s.x < 0.0) return vec4(0.0);
     t = floor((s + 0.5) / uLodS);
   }
+#endif
   return texelSrc(t, flags, markW);
 }
 vec4 texelSrc(vec2 t, vec4 flags, vec3 markW) {
@@ -701,3 +708,8 @@ void main() {
   gl_FragColor = vec4(uColor * vA, vA);
 }
 `;
+
+/** The horse shader with the body-build warp compiled in (only on request: shape.ts gpuBodyShape). */
+export function horseFrag(src: string, shaped: boolean): string {
+  return shaped ? `#define BODY_SHAPE\n${src}` : src;
+}

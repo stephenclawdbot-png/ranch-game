@@ -9,6 +9,16 @@ import type { HorseAppearance } from "@thoroughbred/shared";
 import { bodyBuildOf, buildTexels, hairLevels, hairStyleOf, isFlat, type BuildTexels } from "@thoroughbred/art-pipeline";
 import type { StripSet } from "./art";
 
+/**
+ * Whether race views warp bodies on the GPU (shaders.ts BODY_SHAPE). Off by default: the warp
+ * shader reset Windows graphics drivers (Direct3D) and the browser then blocked WebGL for the
+ * site. `?build=gpu` turns it on for testing. Builds still show in every CPU-painted view.
+ */
+export function gpuBodyShape(): boolean {
+  const loc = (globalThis as { location?: { search?: string } }).location;
+  return /[?&]build=gpu(&|$)/.test(loc?.search ?? "");
+}
+
 /** Uniform defaults (no build, no hair style): the strip as painted. */
 export function shapeUniforms(three: typeof THREE, a: HorseAppearance): Record<string, THREE.IUniform> {
   const h = hairStyleOf(a);
