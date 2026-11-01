@@ -169,6 +169,15 @@ describe("credit notes", () => {
     expect((await listNotifications(h.db, { accountId: p.accountId, now: NOW, all: true })).find((x) => x.kind === "credits")?.muted).toBe(true);
   });
 
+  it("a note with two prizes keeps the unwatched one's place out, and keeps a horse's name in capitals", () => {
+    const purse = (horseName: string, place: number, watched: boolean, label: string) => ({ transactionId: label, kind: "purse", amount: 300, at: 0, memo: null, horseName, race: { id: label, label, place, watched } });
+    const moves = [purse("Willow Ember", 1, true, "07:51 Ashcombe Handicap"), purse("Midnight Tempest", 2, false, "12:51 Kestrel Downs Maiden")];
+    expect(creditNoteTitle(moves, 1_000)).toBe("+600 credits: Willow Ember 1st in the 07:51 Ashcombe Handicap and Midnight Tempest 2nd in the 12:51 Kestrel Downs Maiden · balance 1,000");
+    const safe = creditNoteTitle(moves, 1_000, true);
+    expect(safe).toBe("+600 credits: Willow Ember 1st in the 07:51 Ashcombe Handicap and prize from the 12:51 Kestrel Downs Maiden (watch the finish) · balance 1,000");
+    expect(safe).not.toMatch(/Midnight|2nd/);
+  });
+
   it("titles a sale, a release and a refund the way a player reads them", () => {
     const m = (kind: string, amount: number, memo: string | null = null) => ({ transactionId: "t", kind, amount, at: 0, memo, horseName: "Lucky Penny" });
     expect(creditNoteTitle([m("market_sale", 1_200)], 4_000)).toBe("+1,200 credits: Lucky Penny sold · balance 4,000");

@@ -163,6 +163,9 @@ const COUNTED: Record<string, [string, string]> = {
 };
 
 /**
+ * `safe`: the title for the bell while a race in it is still to watch (a prize from a race not yet
+ * watched names no place; a watched race's prize still does).
+ *
  * One note's title from one action's movements: "+400 credits: Velvet Falcon 2nd in the 10:15
  * Bellmont Handicap · balance 3,465", "+50 credits from 2 daily goals · balance 3,515".
  */
@@ -179,8 +182,10 @@ export function creditNoteTitle(moves: readonly CreditMove[], balance: number, s
   const shared = moves.length > 1 && !!horse && moves.every((m) => m.horseName === horse && m.kind !== "purse");
   const reasons: string[] = [];
   for (const m of [...moves].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))) {
-    const r = creditReason(shared ? { ...m, horseName: null } : m, safe);
-    const lower = reasons.length ? `${r.charAt(0).toLowerCase()}${r.slice(1)}` : r;
+    const r = creditReason(shared ? { ...m, horseName: null } : m, safe && !!m.race && !m.race.watched);
+    // Later reasons run on in lower case, except a horse's name ("…, Willow Ember 1st in …").
+    const named = !shared && !!m.horseName && r.startsWith(m.horseName);
+    const lower = reasons.length && !named ? `${r.charAt(0).toLowerCase()}${r.slice(1)}` : r;
     if (!reasons.some((x) => x.toLowerCase() === lower.toLowerCase())) reasons.push(lower);
   }
   const words = reasons.length <= 3 ? reasons.join(", ").replace(/, ([^,]*)$/, " and $1") : `${reasons.slice(0, 2).join(", ")} and ${reasons.length - 2} more`;
@@ -312,7 +317,8 @@ export async function syncCreditNotes(ex: Executor, input: { accountId: string; 
     const net = group.reduce((s, m) => s + m.amount, 0);
     if (net === 0) continue; // a hold and its release in one action: nothing moved
     const balance = group[group.length - 1]!.balanceAfter;
-    const race = group.find((m) => m.race)?.race ?? null;
+    // The race the note waits on: one still to watch, if any (its place stays out until then).
+    const race = group.find((m) => m.race && !m.race.watched)?.race ?? group.find((m) => m.race)?.race ?? null;
     const category = noteCategory(group);
     const id = await notify(ex, {
       accountId,
