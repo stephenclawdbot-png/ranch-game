@@ -919,6 +919,7 @@ export function RaceViewer(props: RaceViewerProps) {
           flash: fr.flash,
           director: directorRef.current,
           closeFinish: !fin.running && closeFinishRef.current,
+          finale: fin.running,
         });
         const view = finaleViewRef.current;
         const nextKind = cur.step?.kind ?? null;

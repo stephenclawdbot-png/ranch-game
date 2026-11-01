@@ -38,6 +38,12 @@ import { clothOffByUrl } from "../cloth";
 import { CloseUpFinish, PHONE_PX } from "../phone";
 import { GATE_SHOT, JUDGE_SHOT } from "./shots";
 import { GROUP_MARGIN } from "../trackside/layout";
+import { keepInSafeArea, safeArea, SOFT_STEP_M } from "./safeFrame";
+
+/** From this far out (the leader, m) until the finale the winner and its company stay whole on screen. */
+export const FINISH_KEEP_FROM_M = 25;
+/** ...every runner within a length of the winner (m). */
+export const FINISH_KEEP_WITHIN_M = 2.4;
 
 /**
  * Race data the scene renders. A finished `RaceReplay` satisfies it; a live broadcast
@@ -68,6 +74,8 @@ export interface SceneFrame {
   flash: number;
   /** The viewer's one director (shared by both views, so a switch keeps the shot's subject). */
   director?: Director;
+  /** The finale runs over the scene (its replay, slides): the finish keep-whole guard stands down. */
+  finale?: boolean;
   /**
    * Phones, "Close-up finish" on (V-02): in the final 400 m the camera frames the leaders and
    * your horse (within six lengths) instead of the whole field, back to the whole field after the
@@ -262,6 +270,8 @@ export class HD2DScene {
   /** Phones, "Close-up finish" (V-02): who the final-400 m framing holds. */
   private closeUp = new CloseUpFinish();
   private vGroup: THREE.Vector3 | null = null;
+  private vFrom: THREE.Vector3 | null = null;
+  private vLookFrom: THREE.Vector3 | null = null;
   private dirEventScan = 0;
   private shotType: ShotType = "gate";
   private shotSubject: string | null = null;
@@ -1319,32 +1329,22 @@ export class HD2DScene {
     }
     // The close-up finish never cuts a horse it frames: while the eased camera would leave one
     // outside the safe area, it catches up faster (more of the same ease), then takes the shot.
-    if (group && !f.frozen && !this.groupInFrame(group)) {
-      // pan to centre the group and dolly back until it fits the safe area, from where the
-      // camera is (no jump to another angle); the springs carry on from the corrected camera
+    // Runners the shot must keep whole on screen (three/safeFrame.ts): the phone close-up's group,
+    // and from the last strides until the finale the winner and every horse within a length of it
+    // (the line shot hands over to following the winner: the horses must not run out of frame
+    // while the camera turns to follow). The camera moves the least needed, every frame (no jump).
+    const keep = mode === "director" && !f.finale ? this.keepWhole(group, raceT, lead) : null;
+    if (keep && !f.frozen) {
       const look = this.v2;
-      const right = this.v3;
-      const up = this.v4;
-      for (let i = 0; i < 8; i++) {
-        const e = this.groupExtents(group);
-        if (e.ok) break;
-        cam.updateMatrixWorld();
-        right.setFromMatrixColumn(cam.matrixWorld, 0);
-        up.setFromMatrixColumn(cam.matrixWorld, 1);
-        const dist = Math.max(1, cam.position.distanceTo(look));
-        const halfH = dist * Math.tan((cam.fov * Math.PI) / 360);
-        const halfW = halfH * cam.aspect;
-        const dx = ((e.x0 + e.x1) / 2) * halfW;
-        const dy = ((e.y0 + e.y1) / 2 - (e.top + e.bottom) / 2) * halfH;
-        cam.position.addScaledVector(right, dx).addScaledVector(up, dy);
-        look.addScaledVector(right, dx).addScaledVector(up, dy);
-        const need = Math.max((e.x1 - e.x0) / (2 * e.mx), (e.y1 - e.y0) / (e.top - e.bottom)) * 1.03;
-        if (need > 1) cam.position.sub(look).multiplyScalar(need).add(look);
-        cam.lookAt(look);
+      const area = safeArea(this.W, this.H);
+      const scratch = { v: (this.vGroup ??= new this.T.Vector3()), right: this.v3, up: this.v4, from: (this.vFrom ??= new this.T.Vector3()), lookFrom: (this.vLookFrom ??= new this.T.Vector3()) };
+      // runners about to need it are brought in gently first, then the kept ones in full
+      const soft = keepInSafeArea(cam, look, this.runners.filter((r) => keep.soft.includes(r.horseId)), area, scratch, SOFT_STEP_M);
+      const hard = keepInSafeArea(cam, look, this.runners.filter((r) => keep.hard.includes(r.horseId)), area, scratch);
+      if (soft || hard) {
+        this.camPos.snap(cam.position);
+        this.camLook.snap(look);
       }
-      cam.updateMatrixWorld();
-      this.camPos.snap(cam.position);
-      this.camLook.snap(look);
     }
     // Whole pixels: move the camera in its own plane so the focal plane lands on the pixel
     // grid (no sub-pixel shimmer on the rails, poles and turf while tracking).
@@ -1932,32 +1932,24 @@ export class HD2DScene {
    * Are all of `ids` wholly inside the safe area with the camera as set: 8 % of the width each side
    * (layout GROUP_MARGIN), below the HUD row and above the transport bar?
    */
-  private groupInFrame(ids: readonly string[]): boolean {
-    return this.groupExtents(ids).ok;
-  }
-
-  /** The group's screen box (NDC) with the camera as set, and the safe area it must sit in. */
-  private groupExtents(ids: readonly string[]): { x0: number; x1: number; y0: number; y1: number; mx: number; top: number; bottom: number; ok: boolean } {
-    const cam = this.camera;
-    cam.updateMatrixWorld();
-    const mx = 1 - 2 * GROUP_MARGIN;
-    const top = 1 - (2 * 50) / Math.max(1, this.H);
-    const bottom = -1 + (2 * 46) / Math.max(1, this.H);
-    const v = (this.vGroup ??= new this.T.Vector3());
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-    for (const r of this.runners) {
-      if (!ids.includes(r.horseId)) continue;
-      for (const x of [r.x - 2.7, r.x + 0.3])
-        for (const y of [r.y, r.y + 2.6]) {
-          v.set(x, y, r.z).project(cam);
-          x0 = Math.min(x0, v.x);
-          x1 = Math.max(x1, v.x);
-          y0 = Math.min(y0, v.y);
-          y1 = Math.max(y1, v.y);
-        }
+  /**
+   * Who must stay whole on screen this frame (see render): the close-up's group, plus from 25 m
+   * out (the leader) until the finale the winner and every runner within a length of it.
+   */
+  private keepWhole(group: readonly string[] | null, raceT: number, lead: Runner): { hard: string[]; soft: string[] } | null {
+    const hard = new Set(group ?? []);
+    const soft = new Set([...hard, ...(group ? this.closeUp.preview : [])]);
+    const w = this.motion.winner();
+    if (w >= 0 && (this.L - lead.x <= FINISH_KEEP_FROM_M + FINISH_KEEP_WITHIN_M * 2 || raceT >= this.winnerTime)) {
+      const wr = this.runners[w]!;
+      const near = this.L - lead.x <= FINISH_KEEP_FROM_M || raceT >= this.winnerTime;
+      for (const r of this.runners) {
+        const d = Math.abs(r.x - wr.x);
+        if (near && d <= FINISH_KEEP_WITHIN_M) hard.add(r.horseId);
+        if (d <= FINISH_KEEP_WITHIN_M * 2) soft.add(r.horseId);
+      }
     }
-    const ok = x0 > x1 || (x0 >= -mx && x1 <= mx && y1 <= top && y0 >= bottom);
-    return { x0, x1, y0, y1, mx, top, bottom, ok };
+    return hard.size || soft.size ? { hard: [...hard], soft: [...soft] } : null;
   }
 
   /** Vertical FOV that keeps a 16:9 frame's horizontal field of view on narrow screens. */
