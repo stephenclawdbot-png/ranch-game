@@ -512,6 +512,12 @@ export default function CoatsAndMarkingsPage() {
           <>The hair is drawn in {HAIR_SHADES.length} shades of the horse&rsquo;s own mane colour, so a flaxen or silver mane stays flaxen or silver.</>,
         ]}
       />
+      <P>
+        <b id="horse-detail">Horse detail.</b> Builds and manes are painted on your own device, once per horse, then kept. Profile &gt; Display &amp; motion &gt; <b>Horse detail</b> sets how:{" "}
+        <b>Auto</b> (the default) draws them where the device can handle it and switches to Lite on a slower one (little memory, few processor cores, Data Saver on, or painting measured too slow),
+        telling you once; <b>Full</b> always draws them; <b>Lite</b> shows the painted body, mane and tail instead (coats, markings and a feathered horse&rsquo;s long hair stay) and keeps fewer
+        horses roaming the Ranch. It changes nothing but the pictures. For now the race views draw the painted body on every device (the mane and tail follow the setting).
+      </P>
 
       <H2 id="genetics-panel">Reading the Genetics panel</H2>
       <P>

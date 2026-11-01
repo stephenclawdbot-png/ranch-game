@@ -24,6 +24,7 @@ import { StorageNote } from "@/components/ui/StorageNote";
 import { ErrorNote } from "@/components/ui/ErrorNote";
 import { ApiFailure, api, refreshPlayer, signOut, updateProfile, type PlayerState } from "@/lib/player";
 import { saveSettings, useSettings, type MotionPref, type TextSize } from "@/lib/settings";
+import { setHorseDetail, useTier, type HorseDetail } from "@/lib/deviceTier";
 
 const TEXT_SIZES: { v: TextSize; label: string }[] = [
   { v: "90", label: "Small" },
@@ -134,7 +135,7 @@ function Profile({ state }: { state: PlayerState }) {
 
       <StablePhotoCard state={state} />
 
-      <section className="surface grid gap-5 p-4" aria-labelledby="access-h">
+      <section className="surface grid gap-5 p-4" aria-labelledby="access-h" id="display">
         <h2 id="access-h" className="t-h2">
           Display &amp; motion
         </h2>
@@ -163,6 +164,7 @@ function Profile({ state }: { state: PlayerState }) {
             ))}
           </div>
         </div>
+        <HorseDetailSetting />
       </section>
 
       <NotificationSettings />
@@ -476,4 +478,33 @@ function StartOver() {
 
 export default function MePage() {
   return <PlayerGate>{(state) => <Profile state={state} />}</PlayerGate>;
+}
+
+const DETAIL: { v: HorseDetail; label: string }[] = [
+  { v: "auto", label: "Auto" },
+  { v: "full", label: "Full" },
+  { v: "lite", label: "Lite" },
+];
+
+/** Horse detail (lib/deviceTier.ts), per device: Auto picks from the device; Lite hides builds and long hair. */
+function HorseDetailSetting() {
+  const t = useTier();
+  return (
+    <div data-testid="horse-detail">
+      <p className="font-extrabold" id="detail-l">
+        Horse detail
+      </p>
+      <p className="t-meta mb-1">
+        Full draws each horse&rsquo;s body build and long mane and tail. Lite hides them to keep slower devices smooth. Auto picks for this device
+        {t.detail === "auto" ? ` (now ${t.tier === "full" ? "Full" : "Lite"})` : ""}. New pictures use it.
+      </p>
+      <div className="segmented" role="group" aria-labelledby="detail-l">
+        {DETAIL.map((d) => (
+          <button key={d.v} type="button" aria-pressed={t.detail === d.v} onClick={() => setHorseDetail(d.v)}>
+            {d.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

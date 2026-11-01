@@ -356,7 +356,8 @@ const NON_LEDGER_KINDS = new Set([
   "plan_reminder",
   // the practice T-USDG sale note (an inbox kind, usdgPractice.ts)
   "usdg_sale",
-  // notification kinds (inbox items, notificationEvents.ts)
+  // notification kinds (inbox items, notificationEvents.ts; startEarly.ts's race_moved)
+  "race_moved",
   "back_in_race",
   "training_ready",
   "race_suits",

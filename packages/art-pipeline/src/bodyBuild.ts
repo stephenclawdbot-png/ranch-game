@@ -29,22 +29,51 @@ export type HairStyle = NonNullable<HorseAppearance["hair"]>;
 // ---------------------------------------------------------------------------
 
 let switchOverride: boolean | null = null;
-/** Force builds on or off (tests, harnesses); null = from the page URL (`?build=0` turns them off). */
+/** Force builds on or off (tests, harnesses, a paint worker told what its page draws); null = from the page. */
 export function setBuildSwitch(on: boolean | null): void {
   switchOverride = on;
 }
+/** Run `fn` with builds forced on or off (a paint job for a known device tier), then restore the switch. */
+export function withBuildSwitch<T>(on: boolean, fn: () => T): T {
+  const prev = switchOverride;
+  switchOverride = on;
+  try {
+    return fn();
+  } finally {
+    switchOverride = prev;
+  }
+}
+
+let deviceBuilds: (() => boolean) | null = null;
 /**
- * Whether builds and per-horse hair are drawn. In a browser they are OFF unless the page URL has
- * `?build=1` (or `?build=gpu`): painting them on the main thread froze pages for seconds (the
- * Stable ranch 5 s on a laptop, 26 s on a budget phone; 2026-11-01) until the painting moves off
- * the main thread. Outside a browser (tests, tools) they stay on.
+ * The app's device tier (apps/web lib/deviceTier.ts) registers here at start: "full" devices draw
+ * builds and per-horse hair, "lite" devices don't. A function, so a tier that changes later
+ * (a slow device dropped to lite, the player's Horse detail setting) is read at paint time.
+ */
+export function setDeviceBuilds(on: (() => boolean) | null): void {
+  deviceBuilds = on;
+}
+
+/**
+ * Whether builds and per-horse hair are drawn. Order: a forced switch (tests, workers); the page
+ * URL (`?build=0` off, `?build=1` / `?build=gpu` on); the device tier the app registered; and in a
+ * browser without one, OFF (painting them on the main thread once froze pages for seconds, so a
+ * page that never set a tier stays safe). Outside a browser (tests, tools) they are on.
  */
 export function buildsOn(): boolean {
   if (switchOverride !== null) return switchOverride;
   try {
-    const loc = (globalThis as { location?: { search?: string } }).location;
+    const g = globalThis as { location?: { search?: string }; document?: unknown };
+    const loc = g.location;
     if (!loc) return true;
-    return /[?&]build=(1|gpu)(&|$)/.test(loc.search ?? "");
+    // a worker's location is its script's URL: only a page's URL carries the switch
+    if (g.document) {
+      const q = loc.search ?? "";
+      if (/[?&]build=0(&|$)/.test(q)) return false;
+      if (/[?&]build=(1|gpu)(&|$)/.test(q)) return true;
+    }
+    if (deviceBuilds) return deviceBuilds();
+    return false;
   } catch {
     return true;
   }
@@ -369,16 +398,26 @@ export function warpStrip(rgba: Uint8ClampedArray, width: number, frameW: number
     return out;
   }
   const { fw, fh, H } = geo;
+  // every source texel's class, once per frame (warpSource asks for a texel's class several
+  // times); a column with nothing in it stays empty whatever the build (the warp moves texels
+  // within their column only)
+  const grid = new Uint8Array(fw * fh);
+  const filled = new Uint8Array(fw);
   for (let f = 0; f < geo.frames; f++) {
     const fr = anchors.frames[f]!;
-    const cls = (x: number, y: number) => {
-      if (x < 0 || y < 0 || x >= fw || y >= fh) return WARP_CLASS.empty;
-      const o = (y * width + f * frameW + x) * 4;
-      return cpuWarpClass(geo, fr, f, x, y, rgba[o + 3]! >= 128, hair?.[(f * fh + y) * fw + x] ?? 0);
-    };
+    filled.fill(0);
+    for (let y = 0; y < fh; y++)
+      for (let x = 0; x < fw; x++) {
+        const o = (y * width + f * frameW + x) * 4;
+        const c = cpuWarpClass(geo, fr, f, x, y, rgba[o + 3]! >= 128, hair?.[(f * fh + y) * fw + x] ?? 0);
+        grid[y * fw + x] = c;
+        if (c) filled[x] = 1;
+      }
+    const cls = (x: number, y: number) => (x < 0 || y < 0 || x >= fw || y >= fh ? WARP_CLASS.empty : grid[y * fw + x]!);
     const from = new Int32Array(fw * fh).fill(-1);
     for (let y = 0; y < fh; y++)
       for (let x = 0; x < fw; x++) {
+        if (!filled[x]) continue;
         const s = warpSource(x, y, fr, t, H, cls);
         if (!s) continue;
         const si = (s[1] * width + f * frameW + s[0]) * 4;
@@ -398,16 +437,20 @@ export function warpStrip(rgba: Uint8ClampedArray, width: number, frameW: number
 function components(rgba: ArrayLike<number>, width: number, frameW: number, f: number, fw: number, fh: number): { label: Int32Array; main: number; size: number[] } {
   const label = new Int32Array(fw * fh);
   const size: number[] = [0];
-  const stack: number[] = [];
-  const opaque = (i: number) => rgba[(((i / fw) | 0) * width + f * frameW + (i % fw)) * 4 + 3]! >= 128;
+  // each texel is pushed at most once
+  const stack = new Int32Array(fw * fh);
+  const solid = new Uint8Array(fw * fh);
+  for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) solid[y * fw + x] = rgba[(y * width + f * frameW + x) * 4 + 3]! >= 128 ? 1 : 0;
+  const opaque = (i: number) => solid[i] === 1;
   let n = 0;
   for (let i = 0; i < fw * fh; i++) {
     if (label[i] || !opaque(i)) continue;
     label[i] = ++n;
     let s = 0;
-    stack.push(i);
-    while (stack.length) {
-      const p = stack.pop()!;
+    let top = 0;
+    stack[top++] = i;
+    while (top) {
+      const p = stack[--top]!;
       s++;
       const px = p % fw;
       const py = (p / fw) | 0;
@@ -419,7 +462,7 @@ function components(rgba: ArrayLike<number>, width: number, frameW: number, f: n
           const q = qy * fw + qx;
           if (label[q] || !opaque(q)) continue;
           label[q] = n;
-          stack.push(q);
+          stack[top++] = q;
         }
     }
     size.push(s);

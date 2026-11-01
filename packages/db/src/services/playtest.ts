@@ -831,6 +831,12 @@ export async function testerBetaProgress(ex: Executor, input: { testerId: string
 // Reset
 // ---------------------------------------------------------------------------
 
+/** Admin support: a tester's live account and stable name (null when they have none). */
+export async function testerAccount(ex: Executor, testerId: string): Promise<{ accountId: string; stableName: string | null } | null> {
+  const [t] = await ex.select({ accountId: testers.accountId, stableName: testers.stableName }).from(testers).where(eq(testers.id, testerId));
+  return t?.accountId ? { accountId: t.accountId, stableName: t.stableName } : null;
+}
+
 /**
  * Every game-progress table. The playtest tables (invite_codes, testers, tester_rewards,
  * feedback, telemetry_events, beta_reward_rules, beta_rewards), economy_config, seasons and

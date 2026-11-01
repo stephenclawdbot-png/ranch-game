@@ -502,28 +502,52 @@ export function hairField(grid: RoleGrid, geo: CoatGeometry, speed: number): Hai
  */
 function keepJoined(grid: RoleGrid, geo: CoatGeometry, out: Uint8Array): void {
   const { frames, fw, fh } = geo;
-  const seen = new Uint8Array(fw * fh);
-  const stack: number[] = [];
+  const n = fw * fh;
+  const seen = new Uint8Array(n);
+  const horse = new Uint8Array(n);
+  // each texel is pushed at most once per flood
+  const stack = new Int32Array(n);
   const styles: HairLevels[] = [];
   for (const mane of MANE_LEVEL.slice(1)) for (const tail of TAIL_LEVEL.slice(1)) for (const thick of [false, true]) styles.push({ mane, tail, thick });
   for (let f = 0; f < frames; f++) {
-    const base = f * fw * fh;
+    const base = f * n;
+    // the painted horse (and rider), and the hair texels, once per frame (the floods only ever
+    // walk hair: seeding them from the hair next to the horse reaches what seeding from every
+    // horse texel did)
+    for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) horse[y * fw + x] = grid.role(f, x, y) === 0 ? 0 : 1;
+    const hairList: number[] = [];
+    for (let i = 0; i < n; i++) if (out[base + i] !== 0 && !horse[i]) hairList.push(i);
+    if (!hairList.length) continue;
     for (let pass = 0; pass < 8; pass++) {
       let changed = false;
       for (const lv of styles) {
-        seen.fill(0);
+        seen.set(horse);
         const shows = (i: number) => {
           const b = out[base + i]!;
           return b !== 0 && hairShows(b, lv);
         };
         // flood from the painted horse (and rider) through the hair this style shows
-        for (let i = 0; i < fw * fh; i++) {
-          if (grid.role(f, i % fw, (i / fw) | 0) === 0) continue;
+        let top = 0;
+        for (const i of hairList) {
+          if (seen[i] || !shows(i)) continue;
+          const px = i % fw;
+          const py = (i / fw) | 0;
+          let touches = false;
+          for (let dy = -1; dy <= 1 && !touches; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const qx = px + dx;
+              const qy = py + dy;
+              if ((dx || dy) && qx >= 0 && qy >= 0 && qx < fw && qy < fh && horse[qy * fw + qx]) {
+                touches = true;
+                break;
+              }
+            }
+          if (!touches) continue;
           seen[i] = 1;
-          stack.push(i);
+          stack[top++] = i;
         }
-        while (stack.length) {
-          const p = stack.pop()!;
+        while (top) {
+          const p = stack[--top]!;
           const px = p % fw;
           const py = (p / fw) | 0;
           for (let dy = -1; dy <= 1; dy++)
@@ -534,10 +558,10 @@ function keepJoined(grid: RoleGrid, geo: CoatGeometry, out: Uint8Array): void {
               const q = qy * fw + qx;
               if (seen[q] || !shows(q)) continue;
               seen[q] = 1;
-              stack.push(q);
+              stack[top++] = q;
             }
         }
-        for (let i = 0; i < fw * fh; i++) {
+        for (const i of hairList) {
           if (seen[i] || !shows(i)) continue;
           const b = out[base + i]!;
           const tail = (b & 128) !== 0;

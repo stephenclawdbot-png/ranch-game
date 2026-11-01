@@ -15,6 +15,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { computeFrame } from "./frame";
 import { SCENES, type DioramaSceneId, type SceneDef } from "./scenes";
 import type { DioramaEngine, EngineStats } from "./engine";
+import { reportFrameMedian } from "@/lib/deviceTier";
 
 export interface DioramaProps {
   scene: DioramaSceneId;
@@ -132,15 +133,25 @@ export function Diorama({ scene, className, style, aspect = "21 / 9", motion = "
         .then(async (mod) => {
           if (disposed) return;
           if (!mod.dioramaSupported()) throw new Error("canvas unsupported");
-          const e = new mod.DioramaEngine(canvas, def, { reducedMotion: still, quality });
+          // the Ranch measures this device's frame budget (lib/deviceTier.ts: a slow "full" device drops to lite)
+          const e = new mod.DioramaEngine(canvas, def, { reducedMotion: still, quality, onFrameBudget: def.id === "pasture" ? reportFrameMedian : undefined });
           await e.load();
           if (disposed) {
             e.destroy();
             return;
           }
-          engine = e;
           const r = el.getBoundingClientRect();
           e.resize(r.width, r.height, window.devicePixelRatio || 1);
+          // the horses are painted in a worker: show the scene once each has at least its quick paint
+          await e.ready();
+          if (disposed) {
+            e.destroy();
+            return;
+          }
+          engine = e;
+          // the box may have changed size while the horses were painting
+          const r2 = el.getBoundingClientRect();
+          if (r2.width !== r.width || r2.height !== r.height) e.resize(r2.width, r2.height, window.devicePixelRatio || 1);
           if (still) e.renderStill();
           setState(still ? "still" : "live");
           registry.add(e);
