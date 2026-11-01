@@ -40,6 +40,11 @@ function urlParam(k: string): string | null {
 export const CLOSE_UP_MINE_M = (6 * HORSE_LENGTH_MM) / 1000;
 /** The runner-up joins a clear leader when within this (three lengths, m): the race for the line, not the field. */
 export const CLOSE_UP_RIVAL_M = (3 * HORSE_LENGTH_MM) / 1000;
+/**
+ * The camera starts taking in a runner this far (m, two lengths) before it joins the group, so it
+ * is already in the shot when the close-up must hold it (no sudden widening when it joins).
+ */
+export const CLOSE_UP_PREVIEW_M = (2 * HORSE_LENGTH_MM) / 1000;
 /** A runner already in the group leaves it only past this (hysteresis, m): no zoom pumping at the edge. */
 const LEAVE_PAD_M = (0.75 * HORSE_LENGTH_MM) / 1000;
 /** The close-up holds this long past the winner's line (s), then the whole field returns for the run-out. */
@@ -81,10 +86,20 @@ export interface CloseUpInput {
  */
 export class CloseUpFinish {
   private members = new Set<string>();
+  /**
+   * After `group`: runners about to join it (within two lengths of a rule), which the camera
+   * already fits (the group itself is what it must never cut).
+   */
+  preview: string[] = [];
 
   /** Is a group framed now? */
   get active(): boolean {
     return this.members.size > 0;
+  }
+
+  /** The runners framed now (dev hook, framing checks). */
+  get framed(): string[] {
+    return [...this.members];
   }
 
   group(inp: CloseUpInput): string[] | null {
@@ -92,11 +107,14 @@ export class CloseUpFinish {
     for (const r of inp.runners) if (!leader || r.x > leader.x) leader = r;
     if (!leader || inp.t < 1 || inp.t > inp.winnerTime + CLOSE_UP_AFTER_S || inp.trackLengthM - leader.x >= CLOSING_M) {
       this.members.clear();
+      this.preview = [];
       return null;
     }
     const lx = leader.x;
     const was = this.members;
-    const inside = (r: CloseUpRunner, m: number) => lx - r.x <= m + (was.has(r.id) ? LEAVE_PAD_M : 0);
+    // past the line nobody new joins (the shot is about to widen to the whole field anyway)
+    const closed = inp.t >= inp.winnerTime;
+    const inside = (r: CloseUpRunner, m: number) => (!closed || was.has(r.id) || r.id === leader!.id) && lx - r.x <= m + (was.has(r.id) ? LEAVE_PAD_M : 0);
     const next = new Set<string>([leader.id]);
     for (const r of inp.runners) if (inside(r, KEEP_WITH_LEADER_M)) next.add(r.id);
     let second: CloseUpRunner | null = null;
@@ -104,11 +122,14 @@ export class CloseUpFinish {
     if (second && inside(second, CLOSE_UP_RIVAL_M)) next.add(second.id);
     const me = inp.highlightId ? inp.runners.find((r) => r.id === inp.highlightId) : undefined;
     if (me && inside(me, CLOSE_UP_MINE_M)) next.add(me.id);
+    const soon = (r: CloseUpRunner | null | undefined, m: number) => !!r && !next.has(r.id) && lx - r.x <= m + CLOSE_UP_PREVIEW_M;
+    this.preview = inp.runners.filter((r) => soon(r, KEEP_WITH_LEADER_M) || (r === second && soon(r, CLOSE_UP_RIVAL_M)) || (r === me && soon(r, CLOSE_UP_MINE_M))).map((r) => r.id);
     this.members = next;
     return inp.runners.filter((r) => next.has(r.id)).map((r) => r.id);
   }
 
   reset(): void {
     this.members.clear();
+    this.preview = [];
   }
 }

@@ -893,6 +893,7 @@ export class TracksideScene {
         runners: this.runners.map((r) => ({ x: r.x, lane: r.lane, speed: r.speed * camV })),
         followIndex: followOn ? followIdx : null,
         groupIndices: group,
+        previewIndices: group ? this.closeUpPreview() : null,
       },
       // the close-up finish has no whole-field squeeze to fall back on: on a slow phone (under
       // 10 fps) its camera steps the real frame time, so the group never drifts out of frame
@@ -911,6 +912,7 @@ export class TracksideScene {
       headroomM: this.highlight >= 0 ? 0.5 : 0.25,
       follow: followOn ? followIdx : null,
       free: this.freeBlend,
+      framed: group,
     });
     this.layout = lay;
     const dcx = snap || Number.isNaN(this.prevCx) ? 0 : lay.cx - this.prevCx;
@@ -958,9 +960,15 @@ export class TracksideScene {
     return this.runners.filter((r) => ids.includes(r.horseId)).map((r) => r.index);
   }
 
-  /** The close-up finish is framing a group right now (tests, telemetry). */
-  get closeUpActive(): boolean {
-    return this.closeUp.active;
+  /** Runners about to join the close-up's group (the camera already takes them in). */
+  private closeUpPreview(): number[] {
+    const ids = this.closeUp.preview;
+    return ids.length ? this.runners.filter((r) => ids.includes(r.horseId)).map((r) => r.index) : [];
+  }
+
+  /** The runners the close-up finish frames right now (dev hook, framing checks). */
+  get closeUpFramed(): string[] {
+    return this.closeUp.framed;
   }
 
   private dirScan = 0;

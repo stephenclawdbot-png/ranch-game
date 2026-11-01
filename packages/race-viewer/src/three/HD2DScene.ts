@@ -37,6 +37,7 @@ import { HORSE_FRAG, QUAD_VERT } from "../trackside/shaders";
 import { clothOffByUrl } from "../cloth";
 import { CloseUpFinish, PHONE_PX } from "../phone";
 import { GATE_SHOT, JUDGE_SHOT } from "./shots";
+import { GROUP_MARGIN } from "../trackside/layout";
 
 /**
  * Race data the scene renders. A finished `RaceReplay` satisfies it; a live broadcast
@@ -260,6 +261,7 @@ export class HD2DScene {
   private dirInput: DirectorInput = { t: 0, runners: [], trackLengthM: 0, winnerTime: Infinity, photoFinish: false, newEvents: [], highlightId: null, winnerId: null };
   /** Phones, "Close-up finish" (V-02): who the final-400 m framing holds. */
   private closeUp = new CloseUpFinish();
+  private vGroup: THREE.Vector3 | null = null;
   private dirEventScan = 0;
   private shotType: ShotType = "gate";
   private shotSubject: string | null = null;
@@ -1081,6 +1083,11 @@ export class HD2DScene {
     return this.samples;
   }
 
+  /** The runners the close-up finish frames right now (dev hook, framing checks). */
+  get closeUpFramed(): string[] {
+    return this.closeUp.framed;
+  }
+
   get cameraInfo(): { x: number; zoom: number; shot: string } {
     return { x: this.camera.position.x, zoom: 34 / this.camera.fov, shot: this.shotSubject ? `${this.shotType}:${this.shotSubject}` : this.shotType };
   }
@@ -1276,14 +1283,15 @@ export class HD2DScene {
     if (group) {
       shotType = "close";
       subjectId = null;
-      must = group;
+      // the camera also takes in the runners about to join, so nobody is cut when they do
+      must = [...group, ...this.closeUp.preview];
     }
     this.shotType = shotType;
     this.shotSubject = subjectId;
     const subject = (subjectId ? this.runners.find((r) => r.horseId === subjectId) : null) ?? lead;
     const pos = this.v1;
     const at = this.v2;
-    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, must);
+    const sc = this.shotCamera(shotType, subject, byX, raceT, pos, at, must, !!group);
     if (this.firstFrame || seek || cut) {
       this.camPos.snap(pos);
       this.camLook.snap(at);
@@ -1308,6 +1316,35 @@ export class HD2DScene {
     if (Math.abs(cam.fov - vfov) > 1e-3) {
       cam.fov = vfov;
       cam.updateProjectionMatrix();
+    }
+    // The close-up finish never cuts a horse it frames: while the eased camera would leave one
+    // outside the safe area, it catches up faster (more of the same ease), then takes the shot.
+    if (group && !f.frozen && !this.groupInFrame(group)) {
+      // pan to centre the group and dolly back until it fits the safe area, from where the
+      // camera is (no jump to another angle); the springs carry on from the corrected camera
+      const look = this.v2;
+      const right = this.v3;
+      const up = this.v4;
+      for (let i = 0; i < 8; i++) {
+        const e = this.groupExtents(group);
+        if (e.ok) break;
+        cam.updateMatrixWorld();
+        right.setFromMatrixColumn(cam.matrixWorld, 0);
+        up.setFromMatrixColumn(cam.matrixWorld, 1);
+        const dist = Math.max(1, cam.position.distanceTo(look));
+        const halfH = dist * Math.tan((cam.fov * Math.PI) / 360);
+        const halfW = halfH * cam.aspect;
+        const dx = ((e.x0 + e.x1) / 2) * halfW;
+        const dy = ((e.y0 + e.y1) / 2 - (e.top + e.bottom) / 2) * halfH;
+        cam.position.addScaledVector(right, dx).addScaledVector(up, dy);
+        look.addScaledVector(right, dx).addScaledVector(up, dy);
+        const need = Math.max((e.x1 - e.x0) / (2 * e.mx), (e.y1 - e.y0) / (e.top - e.bottom)) * 1.03;
+        if (need > 1) cam.position.sub(look).multiplyScalar(need).add(look);
+        cam.lookAt(look);
+      }
+      cam.updateMatrixWorld();
+      this.camPos.snap(cam.position);
+      this.camLook.snap(look);
     }
     // Whole pixels: move the camera in its own plane so the focal plane lands on the pixel
     // grid (no sub-pixel shimmer on the rails, poles and turf while tracking).
@@ -1673,7 +1710,7 @@ export class HD2DScene {
    * Camera for one shot type around `sub`: writes the target position/aim into `pos` /
    * `at` and returns the lens, tracking velocity and the framed box.
    */
-  private shotCamera(type: ShotType, sub: Runner, byX: Runner[], raceT: number, pos: THREE.Vector3, at: THREE.Vector3, must: readonly string[] = NO_IDS) {
+  private shotCamera(type: ShotType, sub: Runner, byX: Runner[], raceT: number, pos: THREE.Vector3, at: THREE.Vector3, must: readonly string[] = NO_IDS, safe = false) {
     const L = this.L;
     let group: Runner[] = [sub];
     let elev = 8;
@@ -1810,6 +1847,11 @@ export class HD2DScene {
         leadPad = 1.5;
         break;
     }
+    // The close-up finish (phones) frames its group inside the safe margins (8 % each side).
+    if (safe) {
+      fillX = Math.min(fillX, 1 - 2 * GROUP_MARGIN - 0.04);
+      fillY = Math.min(fillY, 0.56);
+    }
     // The director's framing rules (final furlong: everything within two lengths of the
     // leader; your horse when the shot was chosen to show it) widen the group as needed.
     let mustSpan = 0;
@@ -1884,6 +1926,38 @@ export class HD2DScene {
     // Aim above the group so it sits in the HUD-free band, horizon in the upper third.
     at.y += (composeShift * D * Math.tan((this.vfovFor(fov) * Math.PI) / 360)) / Math.cos(e);
     return { fov, vel, x0, x1, z0, z1 };
+  }
+
+  /**
+   * Are all of `ids` wholly inside the safe area with the camera as set: 8 % of the width each side
+   * (layout GROUP_MARGIN), below the HUD row and above the transport bar?
+   */
+  private groupInFrame(ids: readonly string[]): boolean {
+    return this.groupExtents(ids).ok;
+  }
+
+  /** The group's screen box (NDC) with the camera as set, and the safe area it must sit in. */
+  private groupExtents(ids: readonly string[]): { x0: number; x1: number; y0: number; y1: number; mx: number; top: number; bottom: number; ok: boolean } {
+    const cam = this.camera;
+    cam.updateMatrixWorld();
+    const mx = 1 - 2 * GROUP_MARGIN;
+    const top = 1 - (2 * 50) / Math.max(1, this.H);
+    const bottom = -1 + (2 * 46) / Math.max(1, this.H);
+    const v = (this.vGroup ??= new this.T.Vector3());
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const r of this.runners) {
+      if (!ids.includes(r.horseId)) continue;
+      for (const x of [r.x - 2.7, r.x + 0.3])
+        for (const y of [r.y, r.y + 2.6]) {
+          v.set(x, y, r.z).project(cam);
+          x0 = Math.min(x0, v.x);
+          x1 = Math.max(x1, v.x);
+          y0 = Math.min(y0, v.y);
+          y1 = Math.max(y1, v.y);
+        }
+    }
+    const ok = x0 > x1 || (x0 >= -mx && x1 <= mx && y1 <= top && y0 >= bottom);
+    return { x0, x1, y0, y1, mx, top, bottom, ok };
   }
 
   /** Vertical FOV that keeps a 16:9 frame's horizontal field of view on narrow screens. */
