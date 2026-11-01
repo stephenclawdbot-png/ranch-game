@@ -16,10 +16,13 @@ export function Lead({ children }: { children: ReactNode }) {
   return <p className="wiki-lead">{children}</p>;
 }
 
+/** The pixel display face draws its fi/fl ligatures as a broken glyph ("Your Arst week"): headings keep the letters apart. */
+const NO_LIGATURES = { fontVariantLigatures: "no-common-ligatures" } as const;
+
 /** A section heading with an anchor (the contents list links to it). */
 export function H2({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <h2 id={id} className="wiki-h2">
+    <h2 id={id} className="wiki-h2" style={NO_LIGATURES}>
       <a href={`#${id}`} className="wiki-anchor" aria-hidden tabIndex={-1}>
         #
       </a>
@@ -29,7 +32,11 @@ export function H2({ id, children }: { id: string; children: ReactNode }) {
 }
 
 export function H3({ children }: { children: ReactNode }) {
-  return <h3 className="wiki-h3">{children}</h3>;
+  return (
+    <h3 className="wiki-h3" style={NO_LIGATURES}>
+      {children}
+    </h3>
+  );
 }
 
 /** Body paragraph. */

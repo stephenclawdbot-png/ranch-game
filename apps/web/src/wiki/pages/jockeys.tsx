@@ -70,7 +70,7 @@ export default function JockeysPage() {
         rows={gc.JOCKEY_GRADE_FLOORS.map(([g, floor], i) => [g, i === 0 ? `${floor}+` : `${floor}-${gc.JOCKEY_GRADE_FLOORS[i - 1]![1] - 1}`])}
       />
 
-      <H2 id="start-at-e">Every jockey starts at E</H2>
+      <H2 id="start-at-e">Every jockey starts at grade E</H2>
       <P>
         No jockey arrives ready-made. Every new rider, your own first apprentice and the Club&rsquo;s freelancers included, starts with no rides and skills of at most{" "}
         {gc.JOCKEY_START_SKILL_MAX}, below the D floor of {gc.JOCKEY_GRADE_FLOORS.find(([g]) => g === "D")![1]}: grade E. What they become depends on the hidden potential and on the
@@ -86,7 +86,7 @@ export default function JockeysPage() {
 
       <H2 id="growth">Growing and ageing</H2>
       <P>
-        Every ride on a player&rsquo;s horse teaches:{gc.JOCKEY_XP_BASE} experience, plus up to {gc.JOCKEY_XP_FIELD_MAX} more for a strong field and up to {gc.JOCKEY_XP_PURSE_MAX} more for a rich race. Each skill
+        Every ride on a player&rsquo;s horse teaches: {gc.JOCKEY_XP_BASE} experience, plus up to {gc.JOCKEY_XP_FIELD_MAX} more for a strong field and up to {gc.JOCKEY_XP_PURSE_MAX} more for a rich race. Each skill
         then moves towards its potential, quickly at first and more slowly near the ceiling. Veterans slowly lose their gate, finishing drive and handling; pace judgement holds.
       </P>
       <List

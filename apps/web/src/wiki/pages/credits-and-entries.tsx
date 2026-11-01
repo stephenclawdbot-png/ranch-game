@@ -5,6 +5,8 @@ import { Callout, Facts, GameLink, H2, H3, Icon, Lead, List, P, Table, WikiLink,
 
 /** An example purse for the split table (an odd amount, so the rounding shows). */
 const SPLIT_EXAMPLE_PURSE = 2_555;
+/** A full field and one smaller than the paid places. */
+const SPLIT_EXAMPLE_FIELDS = [PURSE_SPLIT_PCT.length + 4, PURSE_SPLIT_PCT.length - 2];
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 
 /** A real entry bank over a few days, run through game-core's grant and spend rules. */
@@ -78,12 +80,16 @@ export default function CreditsAndEntriesPage() {
         replay shows it.
       </P>
       <Table
-        head={["Runners", ...PURSE_SPLIT_PCT.map((_, i) => ordinal(i + 1))]}
-        rows={[PURSE_SPLIT_PCT.length + 4, PURSE_SPLIT_PCT.length - 2].map((n) => {
-          const shares = purseShares(SPLIT_EXAMPLE_PURSE, n);
-          return [n, ...PURSE_SPLIT_PCT.map((_, i) => (shares[i] === undefined ? "–" : formatCredits(shares[i]!)))];
-        })}
-        caption={`A ${formatCredits(SPLIT_EXAMPLE_PURSE)}-credit purse, in credits, for a full field and a small one.`}
+        head={["Place", "Share", ...SPLIT_EXAMPLE_FIELDS.map((n) => `${n} runners`)]}
+        rows={PURSE_SPLIT_PCT.map((p, i) => [
+          ordinal(i + 1),
+          `${p}%`,
+          ...SPLIT_EXAMPLE_FIELDS.map((n) => {
+            const share = purseShares(SPLIT_EXAMPLE_PURSE, n)[i];
+            return share === undefined ? "–" : formatCredits(share);
+          }),
+        ])}
+        caption={`What a ${formatCredits(SPLIT_EXAMPLE_PURSE)}-credit purse pays, in credits, in a full field and a small one.`}
       />
       <H3>Story rewards by chapter</H3>
       <P>Story rewards are capped per chapter, so they get you started but can&rsquo;t be farmed forever.</P>

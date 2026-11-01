@@ -52,11 +52,28 @@ describe("wiki", () => {
     expect(qs).toContain(`${STABLE_NAME_MIN} to ${STABLE_NAME_MAX} characters`);
     expect(qs).not.toMatch(/suggests a stable name/);
     // Jockeys start at E; career tables never run past the last start.
-    expect(text("jockeys")).toContain("Every jockey starts at E");
+    expect(text("jockeys")).toContain("Every jockey starts at grade E");
     const career = html.get("racing-career")!;
     for (const m of career.matchAll(/<th scope="row">(\d+)<\/th>/g)) expect(Number(m[1])).toBeLessThanOrEqual(gc.CAREER_MAX_STARTS);
     // Prize money: the winner gets what rounding and empty places leave.
     expect(text("credits-and-entries")).toContain("How a purse is split");
+  });
+
+  it("practice mode: T-USDG needs no wallet (you trade as your stable)", () => {
+    const before = process.env.USDG_MODE;
+    process.env.USDG_MODE = "practice";
+    try {
+      const page = (slug: string) => renderToStaticMarkup(React.createElement(WIKI_CONTENT[slug]!)).replace(/<[^>]+>/g, "").replace(/&#x27;|&rsquo;|’/g, "'");
+      const usdg = page("usdg-market");
+      expect(usdg).toContain("No wallet? You trade as your stable.");
+      expect(usdg).toContain("no wallet needed during the beta");
+      expect(usdg).not.toContain("the first time its wallet signs in");
+      expect(page("tote")).toContain("without one you bet as your stable");
+    } finally {
+      if (before === undefined) delete process.env.USDG_MODE;
+      else process.env.USDG_MODE = before;
+    }
+    expect(html.get("usdg-market")).not.toContain("No wallet? You trade as your stable.");
   });
 
   it("search finds pages by title and keyword", () => {
