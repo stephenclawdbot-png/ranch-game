@@ -15,7 +15,7 @@
  * holds fewer than JOCKEYS_PER_STABLE_MAX, and may release a jockey (who becomes a free agent in
  * the next window). Credits only, never USDG.
  */
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
 import { jockeyEvents, jockeyRides, jockeyWeeks, jockeys, stables, type JockeyRow, type RaceRow } from "../schema";
@@ -659,7 +659,8 @@ export async function settleJockeyRidesTx(tx: Tx, race: RaceRow, positions: Read
     if (pos === undefined) continue;
     const j = await lockJockey(tx, r.jockeyId);
     // Only rides for a player's horse develop a jockey; a Club runner's ride counts in the record only.
-    const gain = r.stableId ? xp : 0;
+    // And only the first JOCKEY_GROWTH_RIDES_PER_DAY such rides of the race's UTC day teach.
+    const gain = r.stableId && (await growingRidesOnDay(tx, j.id, race)) < gc.JOCKEY_GROWTH_RIDES_PER_DAY ? xp : 0;
     const skills = gain > 0 ? gc.growSkills(skillsOf(j), potentialOf(j), gain) : skillsOf(j);
     await tx.update(jockeyRides).set({ position: pos, experience: gain, settledAt: now }).where(eq(jockeyRides.id, r.id));
     await tx
@@ -669,6 +670,25 @@ export async function settleJockeyRidesTx(tx: Tx, race: RaceRow, positions: Read
     await developmentTx(tx, { jockey: j, race, horseStableId: r.stableId, jockeyStableId: r.jockeyStableId, position: pos, now });
   }
   return rides.length;
+}
+
+/** Settled rides that grew this jockey on the UTC day of `race`'s post time (other races only). */
+async function growingRidesOnDay(tx: Tx, jockeyId: string, race: RaceRow): Promise<number> {
+  const day = Math.floor(race.postTime.getTime() / 86_400_000) * 86_400_000;
+  const [row] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(jockeyRides)
+    .where(
+      and(
+        eq(jockeyRides.jockeyId, jockeyId),
+        gte(jockeyRides.postTime, new Date(day)),
+        lt(jockeyRides.postTime, new Date(day + 86_400_000)),
+        isNotNull(jockeyRides.settledAt),
+        gt(jockeyRides.experience, 0),
+        ne(jockeyRides.raceId, race.id),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 /** A race abandoned after its lock: its unsettled rides never happened. */

@@ -135,7 +135,8 @@ Optional paid choices on the Live entry sheet (Extras step). Prices are `max(flo
 | `JOCKEY_RETIREMENT_NOTICE_WEEKS` | 2 | packages/game-core/src/jockeys.ts | Retirement announced this far ahead. | Farewell rides |
 | `APPRENTICE_CLAIMS` | 7 / 5 / 3 lb until 10 / 25 / 50 winners | packages/game-core/src/jockeys.ts | Taken off the handicap weight at the lock (Live handicaps only; extraWeightLb from net weights). | Value of apprentices, handicap balance |
 | `JOCKEY_CLASH_MS` | 10 min | packages/game-core/src/jockeys.ts | A jockey can't ride two races whose post times are closer (and rides one horse per race). | Freelancer availability |
-| `JOCKEY_GROWTH_DIV` | 1,400 | packages/game-core/src/jockeys.ts | Each skill grows floor(gap × xp / 1,400) per ride (at least 1 below potential). | Speed of development |
+| `JOCKEY_GROWTH_DIV` | 3,000 | packages/game-core/src/jockeys.ts | Each skill grows floor(gap × xp / 3,000) per ride (at least 1 below potential). Was 1,400 until 2026-11-01 (owner: jockeys grew too fast). | Speed of development |
+| `JOCKEY_GROWTH_RIDES_PER_DAY` | 3 | packages/game-core/src/jockeys.ts | Only a jockey's first 3 rides on players' horses per UTC day (by post time) teach; later rides that day count in the record only. | Stops a busy freelancer climbing a grade in a day |
 | `JOCKEY_XP_BASE` / `_FIELD_MAX` / `_PURSE_MAX` | 10 / 15 / 15 | packages/game-core/src/jockeys.ts | Experience per ride: base + field strength (mean OR 30→90) + purse (0→6,000). | Development in big races |
 | `JOCKEY_VETERAN_DECLINE` | gate 14, pace 2, finish 12, handling 8 per week | packages/game-core/src/jockeys.ts | Veteran decline (realised and potential); pace judgement holds. | Late-career value |
 | `JOCKEY_SCOUT_RIDES` / `_SPREAD` | 60 rides / 300 points | packages/game-core/src/jockeys.ts | Potential range shown on the page narrows to the true value over 60 rides. | Scouting |

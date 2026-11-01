@@ -86,8 +86,10 @@ export default function JockeysPage() {
 
       <H2 id="growth">Growing and ageing</H2>
       <P>
-        Every ride on a player&rsquo;s horse teaches: {gc.JOCKEY_XP_BASE} experience, plus up to {gc.JOCKEY_XP_FIELD_MAX} more for a strong field and up to {gc.JOCKEY_XP_PURSE_MAX} more for a rich race. Each skill
-        then moves towards its potential, quickly at first and more slowly near the ceiling. Veterans slowly lose their gate, finishing drive and handling; pace judgement holds.
+        A ride on a player&rsquo;s horse teaches: {gc.JOCKEY_XP_BASE} experience, plus up to {gc.JOCKEY_XP_FIELD_MAX} more for a strong field and up to {gc.JOCKEY_XP_PURSE_MAX} more for a rich race. Only a
+        jockey&rsquo;s first {gc.JOCKEY_GROWTH_RIDES_PER_DAY} such rides each day (UTC) teach; more rides that day still count in the record. Each skill then moves towards its potential, quickly at
+        first and more slowly near the ceiling. Growing is slow on purpose: a talented apprentice reaches grade C around the end of the apprenticeship, B in the prime years, and only the
+        real talents reach A, late in their careers. Veterans slowly lose their gate, finishing drive and handling; pace judgement holds.
       </P>
       <List
         items={[

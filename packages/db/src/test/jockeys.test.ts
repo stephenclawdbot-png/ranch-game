@@ -194,6 +194,32 @@ describe("booking", () => {
 });
 
 describe("the lock, weights and settlement", () => {
+  it("only a jockey's first rides of the day on players' horses teach", async () => {
+    await ensureJockeyBackfill(h.db, T0);
+    const p = await newPlayer(h.db, { credits: 50_000 });
+    const [app] = await stableJockeys(h.db, p.stableId);
+    const gains: number[] = [];
+    let last = (await getJockey(h.db, app!.id))!.skills;
+    for (let i = 0; i <= gc.JOCKEY_GROWTH_RIDES_PER_DAY; i++) {
+      const off = (600 + i * 20) * MIN;
+      const r = await race({}, off);
+      const hp = await makeHorse(h.db, p.stableId, { rating: 62 });
+      await enterRace(h.db, { accountId: p.accountId, raceId: r.id, horseId: hp.id, tactic: "stalker", now: at(off) });
+      const field = (await lockField(h.db, r.id, at(off + 9 * MIN)))!;
+      expect(field.runners.find((x) => x.horseId === hp.id)!.jockey!.id).toBe(app!.id);
+      const order = [hp.id, ...field.runners.map((x) => x.horseId).filter((id) => id !== hp.id)];
+      await settleRace(h.db, { raceId: r.id, now: at(off + 12 * MIN), runners: order.map((horseId, k) => ({ horseId, position: k + 1 })), resultHash: "x", result: {} });
+      const [ride] = await h.db.select().from(jockeyRides).where(eq(jockeyRides.raceId, r.id)).then((rows) => rows.filter((x) => x.jockeyId === app!.id));
+      gains.push(ride!.experience ?? 0);
+      const now = (await getJockey(h.db, app!.id))!.skills;
+      if (i < gc.JOCKEY_GROWTH_RIDES_PER_DAY) expect(gc.jockeyOverall(now)).toBeGreaterThan(gc.jockeyOverall(last));
+      else expect(now).toEqual(last);
+      last = now;
+    }
+    expect(gains.slice(0, -1).every((g) => g > 0)).toBe(true);
+    expect(gains.at(-1)).toBe(0);
+  });
+
   it("freezes each runner's jockey and kit into the hashed field; the apprentice claim comes off the weight", async () => {
     await ensureJockeyBackfill(h.db, T0);
     const p = await newPlayer(h.db, { credits: 10_000 });

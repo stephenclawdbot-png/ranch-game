@@ -70,7 +70,14 @@ export const JOCKEY_CLASH_MS = 10 * 60_000;
  * Skill growth per ride: each skill moves floor(gap × xp / JOCKEY_GROWTH_DIV) towards its
  * potential (at least 1 while below it), so growth is fast early and slow near the ceiling.
  */
-export const JOCKEY_GROWTH_DIV = 1_400;
+export const JOCKEY_GROWTH_DIV = 3_000;
+/**
+ * Rides a day (UTC) that can grow a jockey: only the first few rides on players' horses each day
+ * teach, so a freelancer booked by many stables doesn't climb a grade in a day. With
+ * JOCKEY_GROWTH_DIV this puts a talented apprentice at C around the end of the apprenticeship,
+ * B in their prime and A only for real talent late in a career (owner, 2026-11-01: "growing fast").
+ */
+export const JOCKEY_GROWTH_RIDES_PER_DAY = 3;
 /** Experience a ride is worth: base, plus up to this much more for a strong field and a rich race. */
 export const JOCKEY_XP_BASE = 10;
 export const JOCKEY_XP_FIELD_MAX = 15;
