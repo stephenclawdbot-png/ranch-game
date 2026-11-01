@@ -228,7 +228,8 @@ function Yard({ state, next, live }: ClubProps & { state: PlayerState }) {
   return (
     <div>
       {justSignedIn && (
-        <div className="mx-auto mb-3 max-w-5xl">
+        // The estate band below pulls up 16/32 px: clear it.
+        <div className="mx-auto mb-7 max-w-5xl md:mb-11">
           <SignedInBack state={state} onClose={closeSignedIn} />
         </div>
       )}

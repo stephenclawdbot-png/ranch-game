@@ -40,8 +40,8 @@ export function SignedInBack({ state, onClose }: { state: PlayerState; onClose: 
     setNow(Date.now());
     let live = true;
     fetch("/api/home", { cache: "no-store" })
-      .then((r) => (r.ok ? (r.json() as Promise<HomeTiles>) : null))
-      .then((t) => live && setStory(t?.story ?? null))
+      .then((r) => (r.ok ? (r.json() as Promise<{ tiles: HomeTiles }>) : null))
+      .then((d) => live && setStory(d?.tiles?.story ?? null))
       .catch(() => live && setStory(null));
     return () => {
       live = false;
@@ -61,14 +61,19 @@ export function SignedInBack({ state, onClose }: { state: PlayerState; onClose: 
     ready: ready ? { name: ready.horse.name } : null,
   });
   return (
-    <section className="frame-hero flex flex-wrap items-center gap-3 p-3 sm:p-4" aria-labelledby="signed-in-back-h" data-testid="signed-in-back" data-action={action.kind}>
-      <h2 id="signed-in-back-h" className="t-hero min-w-0 flex-1">
-        Welcome back, {state.stableName}
-      </h2>
-      <Link href={action.href} className="btn btn-brass" onClick={onClose} data-testid="signed-in-back-next">
-        <PixelIcon name="flag" size={32} className="-my-2" /> {action.label}
+    <section className="frame-hero grid gap-3 p-3 sm:flex sm:items-center sm:p-4" aria-labelledby="signed-in-back-h" data-testid="signed-in-back" data-action={action.kind}>
+      <div className="flex min-w-0 items-start justify-between gap-2 sm:flex-1">
+        <h2 id="signed-in-back-h" className="t-hero min-w-0 break-words">
+          Welcome back, {state.stableName}
+        </h2>
+        <button type="button" className="btn btn-ghost btn-sm shrink-0 sm:hidden" onClick={onClose} aria-label="Close" data-testid="signed-in-back-close">
+          ✕
+        </button>
+      </div>
+      <Link href={action.href} className="btn btn-brass whitespace-normal text-left sm:shrink-0" onClick={onClose} data-testid="signed-in-back-next">
+        <PixelIcon name="flag" size={32} className="-my-2 shrink-0" /> {action.label}
       </Link>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close" data-testid="signed-in-back-close">
+      <button type="button" className="btn btn-ghost btn-sm max-sm:hidden" onClick={onClose} aria-label="Close">
         ✕
       </button>
     </section>

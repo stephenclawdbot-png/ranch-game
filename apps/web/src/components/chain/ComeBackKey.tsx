@@ -131,9 +131,9 @@ export function ComeBackKey({ stableName, onDone }: { stableName: string; onDone
       </header>
       <div className="frame-hero grid gap-3 p-4 sm:p-5">
         <p className="t-title text-center" data-testid="key-stable">
-          {stableName} ·
+          {stableName}
         </p>
-        <code className="select-all break-all text-center font-mono text-[1.375rem] font-bold leading-8 tracking-wider sm:text-[1.75rem] sm:leading-10" data-testid="key-code">
+        <code className="select-all whitespace-nowrap text-center font-mono text-[1.0625rem] font-bold leading-8 min-[380px]:text-[1.125rem] sm:text-[1.75rem] sm:leading-10 sm:tracking-wider" data-testid="key-code">
           {code}
         </code>
         <div className="grid grid-cols-2 gap-2">

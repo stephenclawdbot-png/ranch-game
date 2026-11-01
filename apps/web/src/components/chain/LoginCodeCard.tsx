@@ -103,7 +103,7 @@ function AfterResultCard({ onDismiss }: { onDismiss: () => void }) {
   return (
     <p className="surface flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm" data-testid="login-code">
       <span className="min-w-0 flex-1">
-        Your key to come back: <code className="select-all break-all font-mono font-bold tracking-wider" data-testid="login-code-value">{code}</code>
+        Your key to come back: <code className="select-all font-mono font-bold tracking-wider" data-testid="login-code-value">{code}</code>
       </span>
       <button
         type="button"

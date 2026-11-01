@@ -106,7 +106,7 @@ export function LinkClient({ testing }: { testing: boolean }) {
             setCode(maskCode(e.target.value));
             setNeedsConfirm(false);
           }}
-          placeholder={testing ? "PT-XXXXX-… or TB-XXXX-XXXX" : "XXXX-XXXX"}
+          placeholder={testing ? "PT-… or TB-…" : "XXXX-XXXX"}
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
