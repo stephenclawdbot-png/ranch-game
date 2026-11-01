@@ -20,6 +20,7 @@ import { localDate, timezoneOf } from "./entries";
 import { resultPublicAt } from "./news";
 import { declaredRivalsOf, rivalTags } from "./rivals";
 import { GIFT_FOAL_DEDUPE } from "./onboarding";
+import { creditsSince } from "./creditNotes";
 
 const DAY = gc.MS_PER_DAY;
 const SEASON_CLOCK = { epochMs: RULES.seasonEpochMs };
@@ -135,7 +136,10 @@ export async function awayFacts(ex: Executor, input: { accountId: string; stable
     rivalWins = news.filter((n) => !(n.raceId && hidden.has(n.raceId)) && !(n.stableIds ?? []).includes(stableId)).slice(0, 1).map((n) => ({ headline: n.headline, href: n.href }));
   }
 
-  return { unwatched: unwatchedFacts, liveToday, foalsBorn, foalsDue: due.map((d) => ({ damName: d.damName })), recovered, fresh, training, ratings, rivalWins };
+  const moved = await creditsSince(ex, { accountId, from, now, hideRaceIds: hidden });
+  const credits = moved.net !== 0 ? { net: moved.net, prizes: moved.prizes, refunds: moved.refunds } : null;
+
+  return { unwatched: unwatchedFacts, liveToday, foalsBorn, foalsDue: due.map((d) => ({ damName: d.damName })), recovered, fresh, training, ratings, rivalWins, credits };
 }
 
 // ---------------------------------------------------------------------------

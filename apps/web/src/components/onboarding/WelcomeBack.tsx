@@ -32,6 +32,7 @@ function ranLine(w: WelcomeBackView): string {
 const ICON: Record<string, IconName> = {
   result: "play",
   live_today: "race-clock",
+  credits: "money-sack",
   gift_foal: "invitation",
   foal_born: "horse-head",
   foal_due: "horse-head",

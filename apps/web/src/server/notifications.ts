@@ -11,6 +11,7 @@ import {
   notificationPrefsOf,
   setNotificationPrefs,
   sweepNotifications,
+  syncCreditNotes,
   unreadNotificationCount,
   type Db,
   type NotificationCategory,
@@ -30,13 +31,33 @@ function view(n: NotificationItem): NotificationView {
 
 export const isCategory = (x: unknown): x is NotificationCategory => typeof x === "string" && (CATEGORY_KEYS as readonly string[]).includes(x);
 
+/** Credit notes are written from the ledger on the player's own reads, at most this often per account and instance. */
+export const CREDIT_SYNC_EVERY_MS = 10_000;
+const C = globalThis as typeof globalThis & { __tbCreditSync?: Map<string, number> };
+const creditSyncAt = (C.__tbCreditSync ??= new Map<string, number>());
+
+/** Brings the player's credit notes up to date (packages/db creditNotes.ts; idempotent). Never throws. */
+export async function syncCredits(db: Db, session: Session, now: Date): Promise<void> {
+  const last = creditSyncAt.get(session.accountId) ?? 0;
+  if (now.getTime() - last < CREDIT_SYNC_EVERY_MS && now.getTime() >= last) return;
+  creditSyncAt.set(session.accountId, now.getTime());
+  if (creditSyncAt.size > 5_000) creditSyncAt.clear();
+  try {
+    await syncCreditNotes(db, { accountId: session.accountId, now });
+  } catch (err) {
+    console.error("[notifications] credit notes failed", err);
+  }
+}
+
 /** The unread count for the bell badge (cheap: one capped read plus the switches). */
 export async function unreadCount(db: Db, session: Session, now: Date): Promise<number> {
+  await syncCredits(db, session, now);
   return unreadNotificationCount(db, { accountId: session.accountId, now });
 }
 
 /** The bell (`all` false: switched-off categories left out) or a page of the full inbox (`all` true). */
 export async function notificationsView(db: Db, session: Session, now: Date, opts: { all?: boolean; before?: number | null; category?: NotificationCategory | null } = {}): Promise<NotificationsView> {
+  await syncCredits(db, session, now);
   const disabled = await notificationPrefsOf(db, session.accountId);
   const limit = opts.all ? INBOX_PAGE : BELL_LIMIT;
   const items = await listNotifications(db, {

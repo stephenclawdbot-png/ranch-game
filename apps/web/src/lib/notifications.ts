@@ -26,6 +26,7 @@ export const CATEGORY_ICON: Record<NotificationCategoryKey, IconName> = {
   jockeys: "saddle-cloth",
   betting: "dice",
   club: "trophy",
+  credits: "money-sack",
 };
 
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;

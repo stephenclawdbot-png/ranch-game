@@ -66,6 +66,14 @@ describe("away summary", () => {
     expect(two[0]).toMatchObject({ text: "You're in 2 Live races today", href: "/race/a", times: [3_000, 9_000] });
   });
 
+  it("says what credits moved, right after the races, linking to Finances (and nothing when nothing moved)", () => {
+    const lines = awaySummary({ ...EMPTY, credits: { net: 640, prizes: 2, refunds: 1 }, unwatched: [{ raceId: "r", horseName: null, live: true }], fresh: [{ horseId: "h", name: "Tansy" }] });
+    expect(lines.map((l) => l.kind)).toEqual(["result", "credits", "fresh"]);
+    expect(lines[1]).toEqual({ kind: "credits", text: "+640 credits while you were away (prizes 2, refunds 1)", href: "/stable/finances" });
+    expect(awaySummary({ ...EMPTY, credits: { net: -1_250, prizes: 0, refunds: 0 } })[0]!.text).toBe("−1,250 credits while you were away");
+    expect(awaySummary({ ...EMPTY, credits: { net: 0, prizes: 0, refunds: 0 } })).toEqual([]);
+  });
+
   it("words a rating move either way, from watched races only (the server passes those)", () => {
     expect(awaySummary({ ...EMPTY, ratings: [{ horseId: "h", name: "Bramble", from: 70, to: 66 }] })[0]!.text).toBe("Bramble's rating went down from 70 to 66");
   });

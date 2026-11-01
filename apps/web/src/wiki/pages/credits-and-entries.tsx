@@ -133,6 +133,19 @@ export default function CreditsAndEntriesPage() {
         Every free Paddock Pack is earned by playing: one for every {gc.FREE_PADDOCK_EVERY_PLAY_DAYS} days you play. See <WikiLink slug="packs" />.
       </P>
 
+      <H3>Checking your credits</H3>
+      <P>
+        Every credit that comes in or goes out leaves a note in the <b>bell</b>: the amount, why, and your balance after it, such as &ldquo;+400 credits: Velvet Falcon 2nd in the 10:15
+        Bellmont Handicap · balance 3,465&rdquo; or &ldquo;−90 credits: Speed work for Lucky Penny · balance 3,375&rdquo;. One action makes one note (&ldquo;+120 credits from 2 daily
+        goals&rdquo;), and a prize from a race you haven&rsquo;t watched yet only says which race it came from until you&rsquo;ve seen the finish. Credits rising while you&rsquo;re away is
+        usually prize money from Live races you entered earlier, or a refund. Tap a note for <GameLink href="/stable/finances">Stable → Finances</GameLink>, which has every category
+        for the week, the season or all time. The notes have their own <b>Credits</b> switch in your profile; they stay in the bell and are never sent to your phone.
+      </P>
+      <P>
+        If a spend would leave you with less than {formatCredits(gc.LOW_CREDITS_LINE)} credits (about a Live entry and a session of training), the button says so once, calmly: Story
+        races are free, and the Daily Cup and daily goals pay.
+      </P>
+
       <H2 id="entries">Stable entries</H2>
       <P>
         Every Live race on the <GameLink href="/races">Race card</GameLink> costs stable entries. Your bank is the <Icon name="flag" size={16} /> number in the top bar.

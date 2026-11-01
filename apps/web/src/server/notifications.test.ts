@@ -33,8 +33,9 @@ const as = (who: { token: string } | null) => {
 beforeAll(async () => {
   h = await dbHandle();
   const now = new Date();
-  const a = await createAccount(h.db, { stableName: "Bell Lodge", silks, now });
-  const b = await createAccount(h.db, { stableName: "Quiet Acres", silks, now });
+  // No starting credits: a grant would add a credit note (its own test below).
+  const a = await createAccount(h.db, { stableName: "Bell Lodge", silks, now, startingCredits: 0 });
+  const b = await createAccount(h.db, { stableName: "Quiet Acres", silks, now, startingCredits: 0 });
   me = { accountId: a.accountId, token: a.token };
   other = { accountId: b.accountId, token: b.token };
   const t = (min: number) => new Date(now.getTime() - min * 60_000);
@@ -78,7 +79,8 @@ describe("notification API", () => {
     const put = await SET_PREFS(req("/api/notifications/prefs", { ...body({ enabled: { market: false } }), method: "PUT" }));
     const prefs = (await put.json()) as NotificationPrefsView;
     expect(prefs.categories.find((c) => c.key === "market")!.enabled).toBe(false);
-    expect(prefs.categories.filter((c) => c.enabled)).toHaveLength(7);
+    expect(prefs.categories.filter((c) => c.enabled)).toHaveLength(prefs.categories.length - 1);
+    expect(prefs.categories.find((c) => c.key === "credits")).toMatchObject({ label: "Credits", enabled: true });
     expect(((await (await PREFS()).json()) as NotificationPrefsView).categories.find((c) => c.key === "market")!.enabled).toBe(false);
 
     const bell = (await (await LIST(req("/api/notifications"))).json()) as NotificationsView;
@@ -110,6 +112,21 @@ describe("notification API", () => {
     expect(await (await READ(req("/api/notifications/read", body({})))).json()).toEqual({ unread: 0 });
     as(other);
     expect(await (await COUNT()).json()).toEqual({ unread: 1 });
+  });
+});
+
+describe("credit notes in the bell", () => {
+  it("a credit movement shows in the bell with the reason and the balance, once however often the bell is read", async () => {
+    const c = await createAccount(h.db, { stableName: "Ledger Farm", silks, now: new Date(), startingCredits: 500 });
+    as(c);
+    const first = (await (await LIST(req("/api/notifications"))).json()) as NotificationsView;
+    const notes = first.items.filter((i) => i.kind === "credits");
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ category: "credits", title: "+500 credits: Starting credits · balance 500", href: "/stable/finances?highlight=story#cat-story" });
+    // read again (and the count): still one note
+    await COUNT();
+    const again = (await (await LIST(req("/api/notifications"))).json()) as NotificationsView;
+    expect(again.items.filter((i) => i.kind === "credits")).toHaveLength(1);
   });
 });
 

@@ -335,7 +335,7 @@ export interface PlayerView {
 }
 
 /** Notification categories a player can switch off (packages/db notifications.ts). */
-export type NotificationCategoryKey = "races" | "health" | "training" | "market" | "breeding" | "jockeys" | "betting" | "club";
+export type NotificationCategoryKey = "races" | "health" | "training" | "market" | "breeding" | "jockeys" | "betting" | "club" | "credits";
 
 /** One notification in the bell or the full inbox. Titles are spoiler-safe (server-side). */
 export interface NotificationView {

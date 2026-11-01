@@ -1,5 +1,6 @@
 "use client";
 
+import { LowCreditHint } from "../ui/LowCreditHint";
 import { CoachMark } from "../onboarding/CoachMark";
 import { useEffect, useState } from "react";
 import type { HorseLifeView, StatKey, WorkoutView } from "@/lib/horseLife";
@@ -176,6 +177,7 @@ export function TrainingPlanner({ view }: { view: HorseLifeView }) {
         )}
         {tired && <p className="text-sm font-bold text-negative">{first} is tired: hard work now gives half the gains and risks a minor injury. Rest or swimming helps.</p>}
         {action.error != null && action.busy === null && <ErrorNote error={action.error} />}
+        {next && <LowCreditHint balance={credits} cost={next.cost ?? 0} />}
         <ActionBar>
           <button
             type="button"

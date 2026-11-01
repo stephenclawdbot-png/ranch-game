@@ -10,6 +10,7 @@
 import { MS_PER_DAY, MS_PER_HOUR } from "./time";
 import { FEATURE_QUALIFY_TOP } from "./seasons";
 import { TIRED_THRESHOLD, fatigueAt } from "./condition";
+import { WORKOUTS } from "./training";
 
 // ---------------------------------------------------------------------------
 // While you were away
@@ -37,9 +38,11 @@ export interface AwayFacts {
   ratings: { horseId: string; name: string; from: number; to: number }[];
   /** Public news about a rival stable's big win since the last visit (never a race you haven't watched). */
   rivalWins: { headline: string; href: string }[];
+  /** Credits moved since the last visit, from the ledger (prizes from races still to watch left out). */
+  credits?: { net: number; prizes: number; refunds: number } | null;
 }
 
-export type AwayKind = "result" | "live_today" | "gift_foal" | "foal_born" | "foal_due" | "recovered" | "fresh" | "rating" | "training" | "rival_win";
+export type AwayKind = "result" | "live_today" | "credits" | "gift_foal" | "foal_born" | "foal_due" | "recovered" | "fresh" | "rating" | "training" | "rival_win";
 
 export interface AwayLine {
   kind: AwayKind;
@@ -50,8 +53,9 @@ export interface AwayLine {
 }
 
 /** The order of importance: a result to watch first, a rival's win last. */
-export const AWAY_ORDER: readonly AwayKind[] = ["result", "live_today", "gift_foal", "foal_born", "foal_due", "recovered", "fresh", "rating", "training", "rival_win"];
+export const AWAY_ORDER: readonly AwayKind[] = ["result", "live_today", "credits", "gift_foal", "foal_born", "foal_due", "recovered", "fresh", "rating", "training", "rival_win"];
 
+const thousands = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** The summary lines: one per kind of news, most important first, at most AWAY_MAX_LINES. */
@@ -70,6 +74,12 @@ export function awaySummary(f: AwayFacts): AwayLine[] {
     out.push({ kind: "live_today", text: `${r.horseName} runs in the ${r.raceName} today`, href: `/race/${r.raceId}`, times: [r.postTimeMs] });
   } else if (today.length > 1) {
     out.push({ kind: "live_today", text: `You're in ${today.length} Live races today`, href: `/race/${today[0]!.raceId}`, times: today.map((r) => r.postTimeMs) });
+  }
+  if (f.credits && f.credits.net !== 0) {
+    const c = f.credits;
+    const why = [c.prizes ? `prizes ${c.prizes}` : "", c.refunds ? `refunds ${c.refunds}` : ""].filter(Boolean).join(", ");
+    const amount = `${c.net > 0 ? "+" : "−"}${thousands(Math.abs(c.net))} credits`;
+    out.push({ kind: "credits", text: `${amount} while you were away${why ? ` (${why})` : ""}`, href: "/stable/finances" });
   }
   const gift = f.foalsBorn.find((b) => b.gift);
   if (gift) out.push({ kind: "gift_foal", text: `The Club's gift foal, ${gift.name}, has arrived`, href: `/horse/${gift.horseId}` });
@@ -150,7 +160,6 @@ export interface TomorrowLine {
   atMs?: number;
 }
 
-const thousands = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const names = (xs: string[]) => (xs.length === 1 ? xs[0]! : xs.length === 2 ? `${xs[0]} and ${xs[1]}` : `${xs[0]}, ${xs[1]} and ${xs.length - 2} more`);
 
 /** What will be new tomorrow, from real state only (each fact is null/0 when there's nothing). */
@@ -275,4 +284,22 @@ export const FEATURE_CARD_AFTER_MS = 3 * MS_PER_HOUR;
 export function featureCardShows(nowMs: number, featurePostMs: number): boolean {
   const thursday = (Math.floor(featurePostMs / MS_PER_DAY) - 2) * MS_PER_DAY;
   return nowMs >= thursday && nowMs < featurePostMs + FEATURE_CARD_AFTER_MS;
+}
+
+// ---------------------------------------------------------------------------
+// A calm word before a spend that leaves little
+// ---------------------------------------------------------------------------
+
+/** The cheapest Live entry fee on the card: a Maiden, 5 % of its 1,000 purse (packages/db card.ts; a db test keeps them equal). */
+export const CHEAPEST_LIVE_ENTRY_FEE = 50;
+/** The cheapest paid training session. */
+export const CHEAPEST_TRAINING_SESSION = Math.min(...Object.values(WORKOUTS).map((w) => w.cost).filter((c) => c > 0));
+/** Below this after a spend, the confirm shows one calm line: about a Live entry and a session of training. */
+export const LOW_CREDITS_LINE = CHEAPEST_LIVE_ENTRY_FEE + CHEAPEST_TRAINING_SESSION;
+
+/** What a spend leaves, when that is under LOW_CREDITS_LINE (null otherwise, or when the spend isn't affordable). */
+export function lowCreditsAfter(balance: number, cost: number): number | null {
+  if (cost <= 0 || cost > balance) return null;
+  const left = balance - cost;
+  return left < LOW_CREDITS_LINE ? left : null;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { LowCreditHint } from "../ui/LowCreditHint";
 import { CoachMark } from "../onboarding/CoachMark";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -448,6 +449,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
             That&rsquo;s {formatCredits(creditCost)} credits and you have {formatCredits(state.credits)}. Drop an extra or the jockey.
           </p>
         )}
+        <LowCreditHint balance={state.credits} cost={creditCost} className="mt-2" />
       </div>
     </div>
   );
