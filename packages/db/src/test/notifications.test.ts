@@ -203,7 +203,7 @@ describe("training session available", () => {
 });
 
 describe("a new race that suits your horse", () => {
-  it("one digest per meeting for races that suit (trip, surface, band); nothing for a horse they don't suit", async () => {
+  it("one digest per 12 hours for races that suit (trip, surface, band); nothing for a horse they don't suit", async () => {
     const p = await newPlayer(h.db);
     const horse = await makeHorse(h.db, p.stableId, { name: "Right Trip" });
     const genome = genomeOf(horse.genome)!;
