@@ -124,10 +124,11 @@ import type {
   RiskView,
   RunView,
   FormLineView,
+  StableHorse,
 } from "@/lib/types";
 import { RaceNotFoundError, TooEarlyError } from "./errors";
 import { houseStableFor } from "./house";
-import { houseOwnerFor, settleStoryRace } from "./storyField";
+import { houseOwnerFor, settleStoryRace, storyMetaOf } from "./storyField";
 import { afterResultWatched, onboardingView } from "./guide";
 import { stableNews } from "./moments";
 import { maybeSweepNotifications, unreadCount } from "./notifications";
@@ -565,6 +566,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     claiming = { rules: CLAIMING_RULES, myClaim: mine ? { horseId: mine.horseId, price: mine.price, status: mine.status as ClaimStatus } : null };
   }
   const replay = now >= race.postTime ? await replayFor(db, race, now) : null;
+  const storyMeta = storyMetaOf(race);
   return {
     id: race.id,
     kind: kindOf(race),
@@ -583,6 +585,7 @@ export async function raceCard(db: Db, id: string, now: Date, viewerStableId: st
     groundTrend: raceGroundTrend(race.conditions as Record<string, unknown>, race.postTime),
     track: raceConds(race).track,
     ...(claiming ? { claiming } : {}),
+    ...(storyMeta ? { story: { chapter: storyMeta.chapter, raceKey: storyMeta.raceKey ?? null, note: storyMeta.note ?? null } } : {}),
   };
 }
 
@@ -1061,15 +1064,36 @@ export interface LivePick {
   rivals: number;
 }
 
+/** Waiting costs this many fit points per LIVE_WAIT_STEP_MS after the soonest open race (Quick Pick's trade-off). */
+export const LIVE_WAIT_POINTS = 4;
+export const LIVE_WAIT_STEP_MS = 15 * 60_000;
+/** A fit within this many points takes the soonest race at once (players in it count towards it). */
+export const LIVE_GOOD_FIT = 25;
 /**
- * Live Quick Pick (§4d): enter the best-fit fresh horse into the next suitable race on the
- * card. Races are tried soonest first; a horse must be eligible (game-core rules + band) and
- * fit the trip and ground well, else the best fit in the next few races. Races with real
- * players in them score better (6 points a stable, up to 4), so quick-join groups players;
- * a race that is already full still wins on score, and the entry lands on its sister course.
+ * Before its first Live race a stable takes the soonest race its horse is eligible for and fits
+ * within this many points (first-hour follow-up: a meeting in progress often still has later races
+ * open, and the first Live race shouldn't be hours away for a slightly better trip).
  */
-export async function quickPickLive(db: Db, session: Session, now: Date): Promise<LivePick> {
-  await driveCard(db, now);
+export const LIVE_FIRST_FIT = 40;
+
+export interface LiveChoice {
+  race: PublicRace;
+  row: HorseRow;
+  horse: Horse;
+  view: StableHorse;
+  loss: number;
+  /** Other player stables already in the race. */
+  rivals: number;
+}
+
+/**
+ * The Live race Quick Pick would enter now, without entering it (null when nothing fits). Races
+ * are tried soonest first; a horse must be eligible (game-core rules + band); fresh horses first.
+ * A good fit (LIVE_GOOD_FIT, or LIVE_FIRST_FIT before the stable's first Live race) takes the
+ * soonest such race; else the best score of fit + waiting (LIVE_WAIT_POINTS per LIVE_WAIT_STEP_MS)
+ * - real players in it (6 points a stable, up to 4), so quick-join groups players.
+ */
+export async function chooseLiveRace(db: Db, session: Session, now: Date): Promise<LiveChoice | null> {
   const silks = parseSilks(session.stable.silks);
   const nowMs = now.getTime();
   const rows = (await listStableHorses(db, session.stable.id)).filter((r) => r.careerStatus === "racing" && !r.lockKind);
@@ -1077,51 +1101,55 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
   const fresh = candidates.filter((c) => c.view.condition !== "tired");
   const pool = fresh.length ? fresh : candidates;
   if (!pool.length) throw new DomainError("NOT_ELIGIBLE", candidates.length ? "your horses are tired" : "none of your horses can race right now");
-  // Other player stables in each race (lazy: the loop usually stops at the first good fit).
-  const rivalStables = new Map<string, number>();
-  const rivalsOf = async (raceId: string): Promise<number> => {
-    let n = rivalStables.get(raceId);
-    if (n === undefined) {
-      n = new Set((await listRaceEntries(db, raceId)).filter((e) => e.stableId && e.stableId !== session.stable.id).map((e) => e.stableId)).size;
-      rivalStables.set(raceId, n);
-    }
-    return n;
-  };
+  const firstLive = !(await listStableRuns(db, session.stable.id, 40)).some((r) => r.kind !== "quick") && !(await listStableEntries(db, session.stable.id)).some(({ race }) => race.kind !== "quick");
+  const good = firstLive ? LIVE_FIRST_FIT : LIVE_GOOD_FIT;
+  const rivalsOf = async (raceId: string) => new Set((await listRaceEntries(db, raceId)).filter((e) => e.stableId && e.stableId !== session.stable.id).map((e) => e.stableId)).size;
   const card = (await listCardRaces(db, { from: new Date(nowMs + 1), to: new Date(nowMs + RULES.cardHorizonMs), stableId: session.stable.id }))
     .filter((r) => r.status === "open" && r.entriesCloseAt.getTime() > nowMs + 5_000 && r.mine === 0 && !isClaimingRace(r)) // a claiming race needs a price the owner sets // full races stay (their sister takes the entry); one horse per stable per race
-    .slice(0, 8);
-  let best: { race: PublicRace; c: (typeof pool)[number]; loss: number; score: number } | null = null;
-  for (const [i, race] of card.entries()) {
+    .sort((x, y) => x.postTime.getTime() - y.postTime.getTime())
+    .slice(0, 12);
+  const firstPost = card[0]?.postTime.getTime() ?? nowMs;
+  let best: (LiveChoice & { score: number }) | null = null;
+  for (const race of card) {
     const open = await Promise.all(pool.map(async (c) => (await entryReasonFull(db, c.row, race, now, session.stable.licenceLevel)) === null));
     const fits = pool.filter((_, j) => open[j]).map((c) => ({ c, loss: fitLoss(c.horse, race) + c.view.ranToday * 15 }));
     fits.sort((a, b) => a.loss - b.loss);
     const top = fits[0];
     if (!top) continue;
-    const bonus = 6 * Math.min(await rivalsOf(race.id), 4);
-    const score = top.loss + i * 4 - bonus; // fit + 4 a slot of waiting - the draw of real players
-    if (top.loss - bonus <= 25) {
-      best = { race, c: top.c, loss: top.loss, score };
-      break; // a good fit wins early, social bonus included
-    }
-    if (!best || score < best.score) best = { race, c: top.c, loss: top.loss, score };
+    const rivals = await rivalsOf(race.id);
+    const bonus = 6 * Math.min(rivals, 4);
+    const wait = LIVE_WAIT_POINTS * Math.floor((race.postTime.getTime() - firstPost) / LIVE_WAIT_STEP_MS);
+    const choice = { race, row: top.c.row, horse: top.c.horse, view: top.c.view, loss: top.loss, rivals, score: top.loss + wait - bonus };
+    if (top.loss - bonus <= good) return choice; // a good fit wins early, social bonus included
+    if (!best || choice.score < best.score) best = choice;
   }
+  return best;
+}
+
+/**
+ * Live Quick Pick (§4d): enter the best-fit fresh horse into the race chooseLiveRace finds (a full
+ * race's entry lands on its sister course).
+ */
+export async function quickPickLive(db: Db, session: Session, now: Date): Promise<LivePick> {
+  await driveCard(db, now);
+  const best = await chooseLiveRace(db, session, now);
   if (!best) throw new DomainError("NOT_ELIGIBLE", "no race on the card suits your horses right now");
-  const { race, c } = best;
-  const plan: RacePlan = { tactic: c.horse.style, intensity: "normal" };
-  const entered = await enterLive(db, session, race.id, c.row.id, plan, now);
+  const { race, row, horse, view } = best;
+  const plan: RacePlan = { tactic: horse.style, intensity: "normal" };
+  const entered = await enterLive(db, session, race.id, row.id, plan, now);
   // A full race's entry lands on its sister course: report the race actually entered.
   const run = entered.raceId === race.id ? race : await loadRace(db, entered.raceId);
   const conds = raceConds(race);
-  const fitWord = best.loss <= 10 ? "a great fit" : best.loss <= 25 ? "a good fit" : "the best fit on the card";
+  const fitWord = best.loss <= 10 ? "a great fit" : best.loss <= LIVE_GOOD_FIT ? "a good fit" : "the best fit on the card";
   return {
     raceId: run.id,
     raceName: run.name,
-    horseId: c.row.id,
-    horseName: c.horse.name,
+    horseId: row.id,
+    horseName: horse.name,
     tactic: plan.tactic,
     postTimeMs: run.postTime.getTime(),
-    rivals: await rivalsOf(run.id),
-    reason: `${c.horse.name}: ${fitWord} at ${conds.distanceM.toLocaleString("en-GB")} m on ${conds.surface}${c.view.condition === "fresh" ? ", and fresh" : ""}`,
+    rivals: run.id === race.id ? best.rivals : new Set((await listRaceEntries(db, run.id)).filter((e) => e.stableId && e.stableId !== session.stable.id).map((e) => e.stableId)).size,
+    reason: `${horse.name}: ${fitWord} at ${conds.distanceM.toLocaleString("en-GB")} m on ${conds.surface}${view.condition === "fresh" ? ", and fresh" : ""}`,
   };
 }
 
@@ -1133,7 +1161,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
 export const STORY_INSTANT_BACKDATE_MS = 10 * 60_000;
 export const STORY_POST_DELAY_MS = 10_000;
 /** The first Story race's Club window starts this far below the horse's real ability mark (and runs gc.CLUB_ABOVE_MEDIAN_SPAN up from there). */
-export const FIRST_STORY_BELOW = 8;
+export const FIRST_STORY_BELOW = gc.STORY_OPEN_BELOW;
 const STORY_TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 /** Open Story races cover every trip a horse can prefer (1,000-3,200 m) on all three surfaces. */
 const STORY_DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
@@ -1283,10 +1311,20 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
   const mark = trueMarkOf(row);
   // Only a floor: with no ceiling a Story window runs CLUB_ABOVE_MEDIAN_SPAN above it (game-core
   // clubWindow), and a ceiling under the horse's band rating would bar the horse itself.
-  const band = firstRace ? { minRating: Math.max(0, mark - FIRST_STORY_BELOW) } : { minRating: Math.max(0, or - 12), maxRating: Math.min(140, or + 12) };
   const st = await storyState(db, session.accountId);
+  // Still in chapter 1 (the Club licence): every open Story race takes the same honest window from
+  // the horse's real ability, eased after losses in a row and stiffened after wins in a row
+  // (game-core storyOpenFloor). Later: the band rating's window, as before.
+  const recent = (await listStableRuns(db, session.stable.id, 30)).filter((r) => r.kind === "quick").map((r) => r.position === 1);
+  const open = !firstRace && st.licenceLevel < gc.chapterDef("club").licenceEarned ? gc.storyOpenFloor(mark, recent) : null;
+  const band = firstRace
+    ? { minRating: Math.max(0, mark - FIRST_STORY_BELOW) }
+    : open
+      ? { minRating: open.minRating }
+      : { minRating: Math.max(0, or - 12), maxRating: Math.min(140, or + 12) };
   const chapter = gc.currentChapter(st.licenceLevel, new Set(st.wonKeys));
   const chapterName = gc.chapterDef(chapter).title.replace(/^The /, "");
+  const note = open ? gc.storyFieldNote(gc.chapterRivals(chapter)[0], open.adjust) : null;
   const created = await runSoloRace(
     db,
     session,
@@ -1295,7 +1333,7 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
     {
       name: `${track} ${chapterName} ${raceClass === "maiden" ? "Maiden" : raceClass === "novice" ? "Novice Stakes" : "Handicap"}`,
       raceClass,
-      conditions: { distanceM, surface, going, weather, track, ...band, story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id) } },
+      conditions: { distanceM, surface, going, weather, track, ...band, story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id), ...(open ? { field: { adjust: open.adjust, note } } : {}) } },
       targetRunners: 8 + rand(3),
     },
     !!req.instant,

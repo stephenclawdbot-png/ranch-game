@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { RaceStory } from "@/lib/raceStory";
 import type { StableHorse } from "@/lib/types";
 import type { RunningStyle } from "@thoroughbred/shared";
-import { enterStoryRace } from "../entry/EntryForm";
+import { enterStoryRace, followUpChapterRace } from "../entry/EntryForm";
 import { PixelIcon } from "../icons";
 import { MentorLine } from "../onboarding/Mentor";
 import { ActionBar } from "../ui/ActionBar";
@@ -22,6 +22,7 @@ export function Verdict({
   tactic,
   fresh,
   live,
+  chapterRaceKey = null,
 }: {
   story: RaceStory;
   /** Your runner in your stable now (null when it has left it). */
@@ -31,6 +32,8 @@ export function Verdict({
   /** The horse the change suggests instead ("fresh_horse"). */
   fresh: StableHorse | null;
   live: boolean;
+  /** A Story chapter race: "Try again" stays in the chapter (followUpChapterRace) instead of an open Story race. */
+  chapterRaceKey?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -45,7 +48,8 @@ export function Verdict({
     setError(null);
     try {
       const plan = { tactic: c.kind === "tactic" && c.tactic ? c.tactic : c.kind === "fresh_horse" ? runner.horse.style : tactic, intensity: "normal" as const };
-      const { raceId } = await enterStoryRace(runner.id, plan, c.kind === "suited" ? { suited: true } : {});
+      const suited = c.kind === "suited";
+      const { raceId } = chapterRaceKey ? await followUpChapterRace(chapterRaceKey, runner.id, plan, { suited }) : await enterStoryRace(runner.id, plan, suited ? { suited: true } : {});
       router.push(`/race/${raceId}`);
     } catch (e) {
       setError(e);
@@ -82,7 +86,15 @@ export function Verdict({
               </button>
             </ActionBar>
           )}
-          <p className="caption">{live ? "A free Story race against the Club, straight away: try the change before your next Live race." : "A free Story race against the Club, straight away."}</p>
+          <p className="caption">
+            {live
+              ? "A free Story race against the Club, straight away: try the change before your next Live race."
+              : chapterRaceKey
+                ? c.kind === "suited"
+                  ? "The chapter race that suits best, straight away: a win counts towards the chapter."
+                  : "The same chapter race until it's won, straight away."
+                : "A free Story race against the Club, straight away."}
+          </p>
         </div>
       )}
       {error !== null && <ErrorNote error={error} />}

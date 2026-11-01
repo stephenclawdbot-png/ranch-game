@@ -76,6 +76,14 @@ export async function enterStoryRace(horseId: string, plan: RacePlan, opts: { in
   return api<{ raceId: string; postTimeMs: number }>("/api/races/quick", { body: { horseId, plan, ...(opts.instant ? { instant: true } : {}), ...(opts.suited ? { suited: true } : {}) } });
 }
 
+/**
+ * "Try again" after a Story chapter race: stays in the chapter (the same race while it isn't won,
+ * else the suggested one; `suited`: the race not yet won that suits the horse best).
+ */
+export async function followUpChapterRace(fromRaceKey: string, horseId: string, plan: RacePlan, opts: { suited?: boolean } = {}): Promise<{ raceId: string; postTimeMs: number }> {
+  return api<{ raceId: string; postTimeMs: number }>("/api/story/race", { body: { raceKey: fromRaceKey, horseId, plan, then: opts.suited ? "suited" : "again" } });
+}
+
 export interface QuickPickResult {
   raceId: string;
   postTimeMs: number;

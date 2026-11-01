@@ -12,7 +12,7 @@ import { tryNext } from "@/lib/tryNext";
 import { raceStory } from "@/lib/raceStory";
 import { readyHorses, usePlayerState } from "@/lib/player";
 import { prefersCalm } from "@/lib/settings";
-import { enterStoryRace } from "../entry/EntryForm";
+import { enterStoryRace, followUpChapterRace } from "../entry/EntryForm";
 import { ErrorNote } from "../ui/ErrorNote";
 import { useEntry } from "../entry/EntryProvider";
 import { PixelIcon } from "../icons";
@@ -192,7 +192,7 @@ export function ResultsSequence({
       {mine && story && at("why") && (
         <div className="fade-up">
           <WhyRead raceId={card.id} enabled>
-            <Verdict story={story} horse={myStable} tactic={mine.tactic} fresh={fresh} live={card.kind === "live"} />
+            <Verdict story={story} horse={myStable} tactic={mine.tactic} fresh={fresh} live={card.kind === "live"} chapterRaceKey={card.story?.raceKey ?? null} />
           </WhyRead>
         </div>
       )}
@@ -303,7 +303,9 @@ export function NextActions({
     setBusy(true);
     setError(null);
     try {
-      const { raceId } = await enterStoryRace(horse.id, { tactic: mine!.tactic, intensity: "normal" });
+      const plan = { tactic: mine!.tactic, intensity: "normal" as const };
+      // A chapter race: race again in the chapter (the same race until it's won), not an open Story race.
+      const { raceId } = card.story?.raceKey ? await followUpChapterRace(card.story.raceKey, horse.id, plan) : await enterStoryRace(horse.id, plan);
       router.push(`/race/${raceId}`);
     } catch (e) {
       setError(e);

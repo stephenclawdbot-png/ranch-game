@@ -110,6 +110,8 @@ export interface RaceCard {
   track?: string;
   /** A claiming race: the rules in one line and the viewer's own claim (if any). */
   claiming?: { rules: string; myClaim: { horseId: string; price: number; status: ClaimStatus } | null };
+  /** Story races: the chapter, the chapter race's key (null for an open Story race) and the line about an eased or stiffened field. */
+  story?: { chapter: string; raceKey: string | null; note: string | null };
 }
 
 /** A race's sponsor as the card shows it ("Sponsor a race"). */

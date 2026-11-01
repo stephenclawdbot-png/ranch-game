@@ -13,6 +13,21 @@ import {
   storyProgress,
   storyRaceByKey,
   storyRivalRunner,
+  storyField,
+  storyFieldNote,
+  storyOpenFloor,
+  rivalById,
+  STORY_CLUB_BELOW,
+  STORY_CLUB_FINAL_BELOW,
+  STORY_COUNTY_BELOW,
+  STORY_COUNTY_RAMP_PER_WIN,
+  STORY_EASE_MAX,
+  STORY_EASE_PER_LOSS,
+  STORY_OPEN_BELOW,
+  STORY_OPEN_MARKS_PER_STEP,
+  STORY_STIFFEN_MAX,
+  STORY_STIFFEN_PER_WIN,
+  STORY_STRENGTH_FLOOR,
 } from "./story";
 import { STORY_CHAPTERS } from "./economy";
 import { createStarterStable } from "./onboarding";
@@ -120,5 +135,60 @@ describe("story chapters", () => {
     expect(wins / runs).toBeGreaterThan(0.15);
     expect(wins / runs).toBeLessThan(0.7);
     expect(top3 / runs).toBeGreaterThan(0.4);
+  });
+});
+
+describe("choosing a chapter race's field (we choose the field, never the result)", () => {
+  const club = (n: number) => storyRaceByKey(`club-${n}`)!;
+  const county = (n: number) => storyRaceByKey(`county-${n}`)!;
+
+  it("is a pure function of the race, the runner's level and the stable's results: the same inputs give the same field", () => {
+    const i = { race: club(2), runnerLevel: 391, recent: [false, false, true] };
+    expect(storyField(i)).toEqual(storyField({ ...i, recent: [...i.recent] }));
+    expect(storyField(i).strength).toBe(391 - STORY_CLUB_BELOW - STORY_EASE_PER_LOSS);
+  });
+
+  it("pitches chapter 1 from the runner's own level, with the Club Championship a step up", () => {
+    expect(storyField({ race: club(1), runnerLevel: 400, recent: [] })).toEqual({ strength: 400 - STORY_CLUB_BELOW, base: 400 - STORY_CLUB_BELOW, adjust: 0, note: null });
+    expect(storyField({ race: club(5), runnerLevel: 330, recent: [] }).strength).toBe(330 - STORY_CLUB_BELOW);
+    expect(storyField({ race: club(6), runnerLevel: 400, recent: [] }).strength).toBe(400 - STORY_CLUB_FINAL_BELOW);
+    expect(STORY_CLUB_FINAL_BELOW).toBeLessThan(STORY_CLUB_BELOW);
+    expect(storyField({ race: club(1), runnerLevel: 100, recent: [] }).strength).toBe(STORY_STRENGTH_FLOOR);
+  });
+
+  it("eases after two or more losses in a row (and says the headline rival rests its best horse), up to the cap", () => {
+    expect(storyField({ race: club(2), runnerLevel: 400, recent: [false] }).adjust).toBe(0);
+    const eased = storyField({ race: club(2), runnerLevel: 400, recent: [false, false] });
+    expect(eased.adjust).toBe(-STORY_EASE_PER_LOSS);
+    expect(eased.note).toBe(`${rivalById(club(2).rivals[0]!)!.name} rests its best horse today.`);
+    expect(storyField({ race: club(2), runnerLevel: 400, recent: Array(20).fill(false) }).adjust).toBe(-STORY_EASE_MAX);
+    // A win ends the run of losses.
+    expect(storyField({ race: club(2), runnerLevel: 400, recent: [true, false, false, false] }).adjust).toBe(0);
+  });
+
+  it("stiffens a little after two or more wins in a row, up to the cap", () => {
+    expect(storyField({ race: club(3), runnerLevel: 400, recent: [true, true] }).adjust).toBe(STORY_STIFFEN_PER_WIN);
+    expect(storyField({ race: club(3), runnerLevel: 400, recent: [true, true, true, true, true] }).adjust).toBe(STORY_STIFFEN_MAX);
+    expect(storyField({ race: club(3), runnerLevel: 400, recent: [true, true] }).note).toMatch(/sends its best horse/);
+  });
+
+  it("ramps into chapter 2: below the runner at first, closing the gap with each County win, never past the published strength", () => {
+    const first = storyField({ race: county(1), runnerLevel: 400, recent: [] });
+    expect(first.strength).toBe(Math.min(county(1).strength, 400 - STORY_COUNTY_BELOW));
+    expect(storyField({ race: county(2), runnerLevel: 400, recent: [true] }).base).toBe(Math.min(county(2).strength, 400 - STORY_COUNTY_BELOW + STORY_COUNTY_RAMP_PER_WIN));
+    expect(storyField({ race: county(2), runnerLevel: 900, recent: [] }).strength).toBe(county(2).strength);
+  });
+
+  it("leaves chapters 3 and 4 at their published strength", () => {
+    const r = storyRaceByKey("national-2")!;
+    expect(storyField({ race: r, runnerLevel: 300, recent: [false, false, false] })).toEqual({ strength: r.strength, base: r.strength, adjust: 0, note: null });
+  });
+
+  it("open Story races in chapter 1 start their Club window just below the horse's real ability, eased and stiffened by the same runs", () => {
+    expect(storyOpenFloor(33, [])).toEqual({ minRating: 33 - STORY_OPEN_BELOW, adjust: 0 });
+    expect(storyOpenFloor(33, [false, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW - 2 * STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, [true, true]).minRating).toBe(33 - STORY_OPEN_BELOW + STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(3, Array(9).fill(false)).minRating).toBe(0);
+    expect(storyFieldNote(undefined, -1)).toBeNull();
   });
 });

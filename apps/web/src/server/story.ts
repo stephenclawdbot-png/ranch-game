@@ -52,7 +52,9 @@ const score = (c: Candidate) => c.loss + c.ranToday * 15 + (c.tired ? 40 : 0);
  */
 export function suggestedChapterRace<R extends gc.StoryRaceDef>(rows: HorseRow[], silks: ReturnType<typeof parseSilks>, nowMs: number, races: readonly R[]): R | null {
   let best: { race: R; s: number } | null = null;
-  for (const race of races) {
+  // The chapter's last race (its Championship) is the climax: suggested only once it's the last one left.
+  const pool = races.length > 1 ? races.filter((r) => r.order !== gc.chapterDef(r.chapter).races.length) : races;
+  for (const race of pool) {
     const c = candidates(rows, silks, nowMs, race)[0];
     if (c && (!best || score(c) < best.s)) best = { race, s: score(c) };
   }
@@ -176,9 +178,11 @@ export async function storyView(db: Db, session: Session | null, now: Date): Pro
     record: record.get(r.id) ?? { ahead: 0, behind: 0 },
   }));
   const licence = gc.licenceDef(st.licenceLevel);
+  const open = gc.chapterDef(current).races.filter((r) => !won.has(r.key));
   return {
     licence: { level: licence.level, name: licence.name, unlocks: gc.LICENCES.filter((l) => l.level <= st.licenceLevel).map((l) => l.unlocks) },
     current,
+    suggested: (session ? suggestedChapterRace(rows, silks, nowMs, open)?.key : undefined) ?? open[0]?.key ?? null,
     chapters,
     rivals,
     recent,
@@ -195,6 +199,25 @@ export async function chapterResults(db: Db, stableId: string, chapter: gc.Story
     out.push(run.position === 1);
   }
   return out;
+}
+
+/**
+ * After a chapter race, "Try again" stays in the chapter: the same race while it isn't won yet,
+ * else the suggested one; "at a race that suits" (suited, with the horse): the race not yet won that
+ * suits that horse best. When the result completed the chapter, the next chapter's suggestion.
+ */
+export async function followUpChapterRace(db: Db, session: Session, fromKey: string, opts: { horseId?: string; suited?: boolean }, now: Date): Promise<string> {
+  const st = await storyState(db, session.accountId);
+  const won = new Set(st.wonKeys);
+  const chapter = gc.currentChapter(st.licenceLevel, won);
+  const open = gc.chapterDef(chapter).races.filter((r) => !won.has(r.key));
+  if (!open.length) return fromKey;
+  const rows = await listStableHorses(db, session.stable.id);
+  const silks = parseSilks(session.stable.silks);
+  const row = opts.horseId ? rows.find((r) => r.id === opts.horseId) : undefined;
+  if (opts.suited && row) return suitedChapterRace(stableHorseView(row, silks, now.getTime()).horse, open).key;
+  if (open.some((r) => r.key === fromKey)) return fromKey;
+  return (suggestedChapterRace(rows, silks, now.getTime(), open) ?? open[0]!).key;
 }
 
 export interface ChapterRaceRequest {
@@ -229,6 +252,10 @@ export async function createChapterRace(db: Db, session: Session, req: ChapterRa
   const view = stableHorseView(row, silks, nowMs);
   if (view.block) throw new DomainError("NOT_ELIGIBLE", view.block);
   const plan: RacePlan = req.plan ?? { tactic: view.horse.style, intensity: "normal" };
+  // The field (we choose the field, never the result): from this runner's own level and the
+  // stable's run of results in this chapter, fixed now and stored with the race.
+  const level = gc.meanStat(view.horse);
+  const field = gc.storyField({ race: def, runnerLevel: level, recent: await chapterResults(db, session.stable.id, def.chapter) });
   const created = await runSoloRace(
     db,
     session,
@@ -243,7 +270,7 @@ export async function createChapterRace(db: Db, session: Session, req: ChapterRa
         going: def.going,
         weather: def.weather,
         track: def.track,
-        story: { chapter: def.chapter, rivals: def.rivals, raceKey: def.key, strength: def.strength },
+        story: { chapter: def.chapter, rivals: def.rivals, raceKey: def.key, strength: field.strength, field: { level, base: field.base, adjust: field.adjust, note: field.note } },
       },
       targetRunners: def.fieldSize,
     },

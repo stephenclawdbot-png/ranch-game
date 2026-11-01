@@ -1,13 +1,14 @@
 /**
  * The first race is a hook, not a filter (first-hour playtest): a brand-new stable's first Story
  * race is at its horse's best (nearest trip, own surface, good ground) against a Club field drawn
- * from just below the horse's real ability up to level with it (§10 "first maiden"); after that,
- * Story races are found as before. "Try again at a race that suits" (suited) asks for the same
+ * from just below the horse's real ability up to level with it (§10 "first maiden"); later open
+ * Story races in chapter 1 keep that window, eased or stiffened by the stable's run of results
+ * (game-core storyOpenFloor); after chapter 1 they use the band rating's window as before. "Try again at a race that suits" (suited) asks for the same
  * conditions any time, with the usual field.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as gc from "@thoroughbred/game-core";
-import { authenticate, createDb, getRace, listStableHorses, trueMarkOf, type DbHandle } from "@thoroughbred/db";
+import { authenticate, createDb, getRace, listStableHorses, listStableRuns, trueMarkOf, type DbHandle } from "@thoroughbred/db";
 import { foundStable } from "./founding";
 import { FIRST_STORY_BELOW, createStoryRace, storyConditions } from "./game";
 import { horseFromRow, parseSilks } from "./horseView";
@@ -52,6 +53,20 @@ describe("a new stable's first Story race", () => {
     expect(c1.minRating).toBe(Math.max(0, trueMarkOf(row) - FIRST_STORY_BELOW));
     expect(c1.maxRating).toBeUndefined();
     expect(gc.clubWindow({ kind: "story", minRating: c1.minRating }).hi).toBe(Math.min(gc.CLUB_MARK_MAX, c1.minRating! + gc.CLUB_ABOVE_MEDIAN_SPAN));
+    // Still in chapter 1: the same honest window from the second horse's real ability (no band ceiling).
+    const second = await createStoryRace(h.db, s, { horseId: rows[1]!.id, instant: true }, new Date(T0.getTime() + 60_000));
+    const c2 = (await getRace(h.db, second.raceId))!.conditions as { minRating?: number; maxRating?: number };
+    const recent = [((await listStableRuns(h.db, s.stable.id, 5))[0]!.position ?? 0) === 1];
+    expect(c2.minRating).toBe(gc.storyOpenFloor(trueMarkOf(rows[1]!), recent).minRating);
+    expect(c2.maxRating).toBeUndefined();
+  });
+
+  it("after chapter 1, open Story races take the band rating's window again", async () => {
+    const acc = await foundStable(h.db, { stableName: "County Gate Yard", silks: SILKS, inviteCode: null, now: T0 });
+    const s = (await authenticate(h.db, acc.token))!;
+    await h.db.execute(`update stables set licence_level = 2 where id = '${s.stable.id}'`);
+    const rows = await listStableHorses(h.db, s.stable.id);
+    await createStoryRace(h.db, s, { horseId: rows[0]!.id, instant: true }, T0);
     const second = await createStoryRace(h.db, s, { horseId: rows[1]!.id, instant: true }, new Date(T0.getTime() + 60_000));
     const c2 = (await getRace(h.db, second.raceId))!.conditions as { minRating?: number; maxRating?: number };
     expect(c2.maxRating).toBeDefined();

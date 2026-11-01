@@ -56,7 +56,7 @@ export async function homeTiles(db: Db, session: Session, now: Date): Promise<Ho
   let storyTile: HomeTiles["story"] = null;
   if (story) {
     const ch = story.chapters.find((c) => c.id === story.current) ?? story.chapters.find((c) => c.current) ?? null;
-    const race = ch?.races.find((r) => !r.won) ?? null;
+    const race = ch?.races.find((r) => r.key === story.suggested && !r.won) ?? ch?.races.find((r) => !r.won) ?? null;
     if (ch && race) {
       storyTile = { chapter: ch.number, chapterTitle: ch.title, raceKey: race.key, raceName: race.name, wins: ch.wins, winsToComplete: ch.winsToComplete, bestHorse: race.bestHorse?.name ?? null };
     }

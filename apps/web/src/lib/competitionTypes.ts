@@ -270,6 +270,8 @@ export interface ChapterView {
 export interface StoryView {
   licence: { level: number; name: string; unlocks: string[] };
   current: string;
+  /** The chapter race to run next: of the current chapter's races not yet won, the one a horse that can race now suits best. */
+  suggested: string | null;
   chapters: ChapterView[];
   rivals: RivalStableView[];
   recent: { raceId: string; name: string; raceKey: string | null; position: number; fieldSize: number; postTimeMs: number; horseName: string }[];
