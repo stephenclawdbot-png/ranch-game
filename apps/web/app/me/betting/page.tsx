@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import * as gc from "@thoroughbred/game-core";
 import type { ToteSettingsView } from "@thoroughbred/db";
 import { PlayerGate } from "@/components/PlayerGate";
@@ -31,7 +32,7 @@ const asText = (c: Currency, n: number | null) => (n === null ? "" : c === "CR" 
 const when = (ms: number) => new Date(ms).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 async function send(body: unknown): Promise<ToteSettingsView> {
-  const res = await fetch("/api/me/betting", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetchTimed("/api/me/betting", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const json = (await res.json().catch(() => null)) as (ToteSettingsView & { message?: string }) | null;
   if (!res.ok || !json) throw new Error(json?.message ?? "Couldn't save that. Try again.");
   return json;

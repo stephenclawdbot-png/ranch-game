@@ -4,7 +4,7 @@ import { LowCreditHint } from "../ui/LowCreditHint";
 import { CoachMark } from "../onboarding/CoachMark";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { STYLE_LABEL, SURFACE_LABEL, formatClock, formatCredits, formatDistance } from "@/lib/format";
 import { api, recommendHorse, usePlayerState, type PlayerState } from "@/lib/player";
 import type { RaceDayOffer, RacePlan, RaceSummary, RiskView } from "@/lib/types";
@@ -21,6 +21,10 @@ import { entryBlocker } from "@/lib/entryBlocker";
 import { LiveWait, LocalPostTime } from "../race/LiveWait";
 import { pushSure } from "@/lib/navigate";
 import { PushAsk } from "../PushAsk";
+import { ENTRY_SHEET_CLOSED, entrySheetReducer, entrySheetView, type EntryTarget, type WatchMode } from "@/lib/machines/entrySheet";
+import { useSubmit } from "@/lib/machines/useSubmit";
+import { useLoad } from "@/lib/machines/useLoad";
+import { fetchTimed } from "@/lib/fetchTimed";
 
 interface EntryApi {
   /** Story entry sheet for a horse (no stable yet -> onboarding). */
@@ -44,8 +48,6 @@ export function useEntry(): EntryApi {
   return useContext(EntryContext);
 }
 
-type WatchMode = "watch" | "instant" | "later";
-
 export interface LivePickResult {
   raceId: string;
   raceName: string;
@@ -57,13 +59,7 @@ export interface LivePickResult {
   rivals: number;
 }
 
-type Target =
-  | { kind: "entry"; horseId: string | null; picker: boolean; nonce: number }
-  | { kind: "pick"; status: "choose" | "error"; busy?: WatchMode; error?: unknown }
-  | { kind: "pick"; status: "later"; result: QuickPickResult }
-  | { kind: "live"; raceId: string; nonce: number }
-  | { kind: "livePick"; status: "busy" | "error"; error?: unknown }
-  | { kind: "livePick"; status: "done"; result: LivePickResult };
+type Target = EntryTarget<QuickPickResult, LivePickResult>;
 
 /**
  * The entry sheet (modal over any route). Modes:
@@ -72,58 +68,81 @@ type Target =
  * - live: enter a horse in a shared Live card race (eligibility and injury risk per horse);
  * - livePick: Live Quick Pick, entered in one tap, with where and when it runs.
  * Native <dialog>: focus is trapped, Esc closes and focus returns to the opener.
+ * Its views and moves are ENTRY_SHEET_MACHINE (src/lib/machines/entrySheet.ts).
  */
 export function EntryProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const state = usePlayerState();
   const dialog = useRef<HTMLDialogElement>(null);
-  const [target, setTarget] = useState<Target | null>(null);
+  const [sheet, dispatch] = useReducer(entrySheetReducer<QuickPickResult, LivePickResult>, ENTRY_SHEET_CLOSED);
+  const target = sheet.target;
+  /** Every open / pick gets a fresh token; a late result for an older one is dropped. */
+  const tokens = useRef(0);
+  const sheetRef = useRef(sheet);
+  sheetRef.current = sheet;
+  /** The token of a Live Quick Pick in flight: tapping it again shows that one instead of entering twice. */
+  const livePicking = useRef<number | null>(null);
 
   const open = useCallback<EntryApi["open"]>(
     (horseId, opts) => {
       if (!state) return router.push("/play");
-      setTarget({ kind: "entry", horseId: horseId ?? null, picker: opts?.picker ?? !horseId, nonce: Date.now() });
+      dispatch({ type: "openEntry", token: ++tokens.current, horseId: horseId ?? null, picker: opts?.picker ?? !horseId, nonce: Date.now() });
     },
     [state, router],
   );
 
   const quickPick = useCallback(() => {
     if (!state) return router.push("/play");
-    setTarget({ kind: "pick", status: "choose" });
+    dispatch({ type: "openPick", token: ++tokens.current });
   }, [state, router]);
 
   const enterLive = useCallback(
     (raceId: string) => {
       if (!state) return router.push("/play");
-      setTarget({ kind: "live", raceId, nonce: Date.now() });
+      dispatch({ type: "openLive", token: ++tokens.current, raceId, nonce: Date.now() });
     },
     [state, router],
   );
 
   const quickPickLive = useCallback(() => {
     if (!state) return router.push("/play");
-    setTarget({ kind: "livePick", status: "busy" });
+    if (livePicking.current !== null) {
+      dispatch({ type: "startLivePick", token: livePicking.current });
+      return;
+    }
+    const token = ++tokens.current;
+    livePicking.current = token;
+    dispatch({ type: "startLivePick", token });
     api<{ pick: LivePickResult }>("/api/races/live-pick")
       .then(({ pick }) => {
-        setTarget({ kind: "livePick", status: "done", result: pick });
+        dispatch({ type: "livePickDone", token, result: pick });
         router.refresh();
       })
-      .catch((error: unknown) => setTarget({ kind: "livePick", status: "error", error }));
+      .catch((error: unknown) => dispatch({ type: "livePickFailed", token, error }))
+      .finally(() => {
+        livePicking.current = null;
+      });
   }, [state, router]);
 
   const enterPicked = useCallback(
     (mode: WatchMode) => {
-      setTarget({ kind: "pick", status: "choose", busy: mode });
+      // Only from the pick card (its buttons are disabled while entering).
+      if (entrySheetView(sheetRef.current.target) !== "pick") return;
+      const token = ++tokens.current;
+      dispatch({ type: "startPick", token, mode });
       quickPickRace({ instant: mode === "instant" })
         .then((result) => {
           if (mode !== "later") {
+            // Another sheet opened meanwhile: stay with it (the race is in Your races).
+            if (sheetRef.current.token !== token) return;
+            dispatch({ type: "pickLeft", token });
             dialog.current?.close();
             pushSure(router, `/race/${result.raceId}`);
             return;
           }
-          setTarget({ kind: "pick", status: "later", result });
+          dispatch({ type: "pickLater", token, result });
         })
-        .catch((error: unknown) => setTarget({ kind: "pick", status: "error", error }));
+        .catch((error: unknown) => dispatch({ type: "pickFailed", token, error }));
     },
     [router],
   );
@@ -142,7 +161,7 @@ export function EntryProvider({ children }: { children: ReactNode }) {
         ref={dialog}
         className="sheet"
         aria-labelledby="entry-title"
-        onClose={() => setTarget(null)}
+        onClose={() => dispatch({ type: "close" })}
         onClick={(e) => {
           if (e.target === e.currentTarget) close();
         }}
@@ -278,40 +297,47 @@ const NO_EXTRAS: RaceDayChoice = { extras: [], jockey: "apprentice" };
 /** Live entry: pick an eligible horse and a plan for a shared card race; shows cost, close time and risk. */
 function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: string; onClose: () => void }) {
   const router = useRouter();
-  const [data, setData] = useState<{ race: RaceSummary; options: EntryOptionView[]; raceDay?: RaceDayOffer } | null>(null);
-  const [loadError, setLoadError] = useState<unknown>(null);
+  // The race's entry options: LOAD_MACHINE (loading -> ready | failed, Try again), with a timeout.
+  const fetchOptions = useCallback(async () => {
+    const r = await fetchTimed(`/api/races/${encodeURIComponent(raceId)}/options`, { cache: "no-store" });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.message ?? `HTTP ${r.status}`);
+    return body as { race: RaceSummary; options: EntryOptionView[]; raceDay?: RaceDayOffer };
+  }, [raceId]);
+  const options = useLoad(fetchOptions, raceId);
+  const data = options.data;
+  const loadError = options.status === "failed" ? options.error : null;
   const [horseId, setHorseId] = useState<string | null>(null);
   const [plan, setPlan] = useState<RacePlan>({ tactic: "stalker", intensity: "normal" });
   const [raceDay, setRaceDay] = useState<RaceDayChoice>(NO_EXTRAS);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // Entering: SUBMIT_MACHINE (idle -> submitting -> done | failed); `entered` is the horse that went in.
+  const submit = useSubmit();
+  const busy = submit.busy;
+  const error = submit.status === "failed" ? submit.error : null;
   const [entered, setEntered] = useState<string | null>(null);
   /** Claim price per horse (claiming races; defaults to the appraisal). */
   const [claimPrices, setClaimPrices] = useState<Record<string, number>>({});
+  const horsesRef = useRef(state.horses);
+  horsesRef.current = state.horses;
 
+  // Once the options arrive: the default jockey and the best-fit horse (not again on a player
+  // refresh, which used to undo the horse the player had picked).
   useEffect(() => {
-    fetch(`/api/races/${encodeURIComponent(raceId)}/options`, { cache: "no-store" })
-      .then(async (r) => {
-        const body = await r.json();
-        if (!r.ok) throw new Error(body.message ?? `HTTP ${r.status}`);
-        return body as { race: RaceSummary; options: EntryOptionView[]; raceDay?: RaceDayOffer };
-      })
-      .then((d) => {
-        setData(d);
-        // The jockey defaults to your best one free at the off.
-        const defaultId = d.raceDay?.riders?.defaultId;
-        if (defaultId) setRaceDay((c) => ({ ...c, jockeyId: defaultId }));
-        // Preselect the best fit among eligible horses, resting tired ones (as Quick Pick does).
-        const tiredPenalty = (id: string) => (state.horses.find((x) => x.id === id)?.condition === "tired" ? 1000 : 0);
-        const best = [...d.options].filter((o) => !o.reason).sort((a, b) => a.fitLoss + tiredPenalty(a.horseId) - (b.fitLoss + tiredPenalty(b.horseId)))[0];
-        if (best) {
-          setHorseId(best.horseId);
-          const h = state.horses.find((x) => x.id === best.horseId);
-          if (h) setPlan({ tactic: h.horse.style, intensity: "normal" });
-        }
-      })
-      .catch(setLoadError);
-  }, [raceId, state.horses]);
+    const d = data;
+    if (!d) return;
+    // The jockey defaults to your best one free at the off.
+    const defaultId = d.raceDay?.riders?.defaultId;
+    if (defaultId) setRaceDay((c) => ({ ...c, jockeyId: defaultId }));
+    // Preselect the best fit among eligible horses, resting tired ones (as Quick Pick does).
+    const horses = horsesRef.current;
+    const tiredPenalty = (id: string) => (horses.find((x) => x.id === id)?.condition === "tired" ? 1000 : 0);
+    const best = [...d.options].filter((o) => !o.reason).sort((a, b) => a.fitLoss + tiredPenalty(a.horseId) - (b.fitLoss + tiredPenalty(b.horseId)))[0];
+    if (best) {
+      setHorseId(best.horseId);
+      const h = horses.find((x) => x.id === best.horseId);
+      if (h) setPlan({ tactic: h.horse.style, intensity: "normal" });
+    }
+  }, [data]);
 
   const racing = state.horses.filter((h) => h.careerStatus === "racing");
   const reasons = Object.fromEntries((data?.options ?? []).map((o) => [o.horseId, o.reason]));
@@ -321,19 +347,13 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
   const claimPrice = claimBand ? (claimPrices[option!.horseId] ?? claimBand.appraisal) : undefined;
   const claimBad = !!claimBand && (!Number.isInteger(claimPrice) || claimPrice! < claimBand.min || claimPrice! > claimBand.max);
 
-  async function go() {
+  function go() {
     if (!horse) return;
-    setBusy(true);
-    setError(null);
-    try {
+    void submit.run(async () => {
       await api(`/api/races/${encodeURIComponent(raceId)}/enter`, { body: { horseId: horse.id, plan, ...(extrasCost > 0 || raceDay.jockeyId ? { raceDay } : {}), ...(claimPrice !== undefined ? { claimPrice } : {}) } });
       setEntered(horse.horse.name);
       router.refresh();
-    } catch (e) {
-      setError(e);
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   const race = data?.race;
@@ -387,7 +407,7 @@ function LiveEntry({ state, raceId, onClose }: { state: PlayerState; raceId: str
           )}
         </p>
       )}
-      {loadError !== null && <ErrorNote error={loadError} />}
+      {loadError !== null && <ErrorNote error={loadError} onRetry={options.reload} />}
       {blocker && (
         <div role="alert" className="surface-2 border-l-4 border-negative p-3" data-testid="entry-blocker">
           <p className="font-extrabold text-negative">{blocker.title}</p>

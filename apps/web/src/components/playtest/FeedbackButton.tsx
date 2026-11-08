@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import { createPortal } from "react-dom";
 import { recentClientErrors } from "@/lib/clientErrors";
 import { PixelIcon } from "../icons";
@@ -85,7 +86,7 @@ function FeedbackDialog({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/feedback", {
+      const res = await fetchTimed("/api/feedback", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({

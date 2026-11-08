@@ -3,6 +3,7 @@
 import { WalletLink, useWalletStatus } from "@/components/chain/WalletLink";
 import Link from "next/link";
 import { useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import { PlayerGate } from "../PlayerGate";
 import { Skeleton, useEcoView } from "../economy/kit";
 import { ErrorNote } from "../ui/ErrorNote";
@@ -150,7 +151,7 @@ function Wallet({ address, onSaved }: { address: string | null; onSaved: (a: str
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/beta/wallet", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ address: trimmed || null }) });
+      const res = await fetchTimed("/api/beta/wallet", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ address: trimmed || null }) });
       const data = (await res.json().catch(() => ({}))) as { walletAddress?: string | null; message?: string };
       if (!res.ok) throw new Error(data.message ?? "Couldn't save.");
       onSaved(data.walletAddress ?? null);

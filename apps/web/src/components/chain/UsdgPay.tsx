@@ -9,6 +9,7 @@
  * no network switch, no approval); the server moves the T-USDG and delivers in one transaction.
  */
 import { useCallback, useEffect, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import { erc20Abi, type Hex } from "viem";
 import { horseMarketAbi } from "@/lib/chain/contracts.generated";
 import { txUrl } from "@/lib/chain/chains";
@@ -22,7 +23,7 @@ import { useWallet } from "./useWallet";
 type Settle = { status: "fulfilled"; horseId: string } | { status: "pending" | "paid_waiting" | "rejected"; reason: string };
 
 async function post<T>(url: string, body?: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: body === undefined ? undefined : { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store" });
+  const res = await fetchTimed(url, { method: "POST", headers: body === undefined ? undefined : { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store" });
   const data = (await res.json().catch(() => ({}))) as T & { message?: string };
   if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
   return data;

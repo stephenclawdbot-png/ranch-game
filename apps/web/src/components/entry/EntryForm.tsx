@@ -14,6 +14,7 @@ import { GradeBadge } from "../StatBars";
 import { PixelIcon } from "../icons";
 import { ErrorNote } from "../ui/ErrorNote";
 import { pushSure } from "@/lib/navigate";
+import { useSubmit } from "@/lib/machines/useSubmit";
 
 const TACTICS: RunningStyle[] = ["front", "stalker", "closer"];
 /** Where the jockey sits in the pack (index in a 7-cell lane, 6 = leader). */
@@ -377,8 +378,10 @@ export function EntryForm({
   const [horseId, setHorseId] = useState<string | null>(initialHorseId ?? racing.find((h) => !h.block)?.id ?? null);
   const horse = racing.find((h) => h.id === horseId);
   const [plan, setPlan] = useState<RacePlan>({ tactic: horse?.horse.style ?? "stalker", intensity: "normal" });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // SUBMIT_MACHINE: idle -> submitting -> leaving (the race page) | failed (error, button works again).
+  const entering = useSubmit();
+  const busy = entering.busy;
+  const error = entering.status === "failed" ? entering.error : null;
 
   useEffect(() => {
     if (initialHorseId) setHorseId(initialHorseId);
@@ -389,17 +392,13 @@ export function EntryForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horseId]);
 
-  async function go() {
+  function go() {
     if (!horse) return;
-    setBusy(true);
-    setError(null);
-    try {
+    void entering.run(async () => {
       const { raceId } = await enterStoryRace(horse.id, plan);
       pushSure(router, `/race/${raceId}`);
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
+      return "leaving";
+    });
   }
 
   const blocked = horse?.block ?? null;

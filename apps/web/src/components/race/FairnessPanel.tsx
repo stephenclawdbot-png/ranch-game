@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import type { RaceReplay } from "@thoroughbred/shared";
 import type { RaceCard } from "@/lib/types";
 import { shortHash } from "@/lib/format";
@@ -68,7 +69,7 @@ export function FairnessPanel({ card, replay }: { card: RaceCard; replay: RaceRe
     try {
       // Send what this page saw: the commitment published before the race and the hash of the result it played.
       const qs = new URLSearchParams({ commitment: card.seedCommitment, resultHash: replay.result.resultHash });
-      const res = await fetch(`/api/races/${encodeURIComponent(card.id)}/verify?${qs}`);
+      const res = await fetchTimed(`/api/races/${encodeURIComponent(card.id)}/verify?${qs}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setVerify((await res.json()) as VerifyResponse);
       const local = await browserCommitment(replay.seed);

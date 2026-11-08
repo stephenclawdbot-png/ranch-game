@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { askedBefore, currentSubscription, markAsked, pushConfig, pushSupport, turnOnPush } from "@/lib/push";
 import { PixelIcon } from "./icons";
-
-type State = "hidden" | "ask" | "ios" | "busy" | "on" | "no" | "failed";
+import { moveOr } from "@/lib/machines/guard";
+import { PUSH_ASK_MACHINE, type PushAskState as State } from "@/lib/machines/pushAsk";
 
 /**
  * The one ask for phone alerts, at the moment they mean something: right after the player enters
@@ -15,7 +15,9 @@ type State = "hidden" | "ask" | "ios" | "busy" | "on" | "no" | "failed";
  * alerts to the installed app).
  */
 export function PushAsk() {
-  const [state, setState] = useState<State>("hidden");
+  // PUSH_ASK_MACHINE: moves are checked (src/lib/machines/pushAsk.ts).
+  const [state, setRaw] = useState<State>("hidden");
+  const setState = (to: State) => setRaw((from) => moveOr(PUSH_ASK_MACHINE, from, to, "PushAsk"));
 
   useEffect(() => {
     let live = true;
@@ -44,7 +46,7 @@ export function PushAsk() {
 
   const yes = async () => {
     setState("busy");
-    const r = await turnOnPush();
+    const r = await turnOnPush().catch(() => ({ ok: false as const, reason: "failed" as const }));
     setState(r.ok ? "on" : r.reason === "dismissed" || r.reason === "denied" ? "no" : "failed");
   };
 

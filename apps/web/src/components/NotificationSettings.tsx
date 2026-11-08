@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import { refreshPlayer } from "@/lib/player";
 import { CATEGORY_ICON } from "@/lib/notifications";
 import { pushConfig, pushSupport, setDeviceCategory, thisDevice, turnOffPush, turnOnPush, type PushDevice, type PushServerConfig, type PushSupport } from "@/lib/push";
@@ -37,7 +38,7 @@ export function NotificationSettings() {
     setBusy(key);
     setPrefs((p) => (p ? { categories: p.categories.map((c) => (c.key === key ? { ...c, enabled } : c)) } : p));
     try {
-      const r = await fetch("/api/notifications/prefs", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: { [key]: enabled } }) });
+      const r = await fetchTimed("/api/notifications/prefs", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: { [key]: enabled } }) });
       if (!r.ok) throw new Error(String(r.status));
       setPrefs((await r.json()) as NotificationPrefsView);
       setStatus(`${label} ${enabled ? "on" : "off"}`);

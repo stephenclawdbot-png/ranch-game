@@ -27,6 +27,7 @@ import { WhyRead } from "../onboarding/WhyRead";
 import { FirstWinMoment } from "../moments/FirstWinMoment";
 import { claimFirstWinMoment, type FirstWinOf } from "@/lib/firstWin";
 import { pushSure } from "@/lib/navigate";
+import { useSubmit } from "@/lib/machines/useSubmit";
 
 export interface Settlement {
   /** Credits this result paid (purse + Story reward), settled on the server. */
@@ -303,8 +304,10 @@ export function NextActions({
   const router = useRouter();
   const state = usePlayerState();
   const entry = useEntry();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // Race again: SUBMIT_MACHINE (idle -> submitting -> leaving | failed).
+  const entering = useSubmit();
+  const busy = entering.busy;
+  const error = entering.status === "failed" ? entering.error : null;
   const horse = mine ? state?.horses.find((h) => h.id === mine.id) : undefined;
 
   if (!mine || !state) {
@@ -328,19 +331,16 @@ export function NextActions({
     );
   }
 
-  async function again() {
+  function again() {
     if (!horse) return;
-    setBusy(true);
-    setError(null);
-    try {
+    const runner = horse;
+    void entering.run(async () => {
       const plan = { tactic: mine!.tactic, intensity: "normal" as const };
       // A chapter race: race again in the chapter (the same race until it's won), not an open Story race.
-      const { raceId } = card.story?.raceKey ? await followUpChapterRace(card.story.raceKey, horse.id, plan) : await enterStoryRace(horse.id, plan);
+      const { raceId } = card.story?.raceKey ? await followUpChapterRace(card.story.raceKey, runner.id, plan) : await enterStoryRace(runner.id, plan);
       pushSure(router, `/race/${raceId}`);
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
+      return "leaving";
+    });
   }
 
   // The verdict's "try again with the change" is the screen's one primary action when it is on offer.

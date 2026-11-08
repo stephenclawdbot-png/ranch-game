@@ -10,6 +10,7 @@ import { PixelIcon } from "@/components/icons";
 import { SEX_LABEL, formatCredits } from "@/lib/format";
 import type { EcoHorse, Rarity } from "@/lib/economyTypes";
 import { ApiFailure, refreshPlayer } from "@/lib/player";
+import { fetchTimed } from "@/lib/fetchTimed";
 
 /** GETs a JSON view; `reload` refetches. Errors carry the server's friendly message. */
 export function useEcoView<T>(url: string) {
@@ -17,7 +18,8 @@ export function useEcoView<T>(url: string) {
   const [error, setError] = useState<unknown>(null);
   const reload = useCallback(async () => {
     try {
-      const res = await fetch(url, { cache: "no-store" });
+      // Gives up after the API timeout: the screen shows the error and Try again, never a skeleton forever.
+      const res = await fetchTimed(url, { cache: "no-store" });
       const body = (await res.json().catch(() => ({}))) as T & { error?: string; message?: string; details?: Record<string, unknown> };
       if (!res.ok) throw new ApiFailure(res.status, body.error ?? `http_${res.status}`, body.message ?? `Something went wrong (HTTP ${res.status}).`, body.details);
       setData(body);

@@ -16,14 +16,18 @@ import { formatCredits, shortHash } from "@/lib/format";
 import type { PackOffer, PacksView, PullResultView } from "@/lib/economyTypes";
 import { api } from "@/lib/player";
 import { FoalReveal } from "./FoalReveal";
+import { useSubmit } from "@/lib/machines/useSubmit";
 import { PremiumCheckout } from "@/components/chain/PremiumCheckout";
 import { PracticeBadge } from "@/components/chain/UsdgMode";
 import { Credits, RARITY_COLOR, RARITY_LABEL, RarityBadge, Skeleton, newKey, refreshPurse, useEcoView } from "./kit";
 
 export function PacksScreen() {
   const { data, setData, error, reload } = useEcoView<PacksView>("/api/packs");
-  const [busy, setBusy] = useState<string | null>(null);
-  const [pullError, setPullError] = useState<unknown>(null);
+  // Opening a pack: SUBMIT_MACHINE tagged with the pack slot (idle -> submitting -> done | failed).
+  // Every pack button is disabled while one opens, so a double tap can't pull twice.
+  const pull = useSubmit();
+  const busy: string | null = pull.busy ? pull.tag : null;
+  const pullError = pull.status === "failed" ? pull.error : null;
   const [result, setResult] = useState<PullResultView | null>(null);
   // One key per intended pull: a retry after a network error reuses it (no double charge).
   const [keys, setKeys] = useState<Record<string, string>>({});
@@ -34,23 +38,17 @@ export function PacksScreen() {
   if (!data) return <Skeleton rows={3} />;
   const v = data;
 
-  async function open(packType: "paddock" | "premium", free: boolean) {
+  function open(packType: "paddock" | "premium", free: boolean) {
     const slot = `${packType}:${free}`;
     const key = keys[slot] ?? newKey();
     setKeys((k) => ({ ...k, [slot]: key }));
-    setBusy(slot);
-    setPullError(null);
-    try {
+    void pull.run(async () => {
       const r = await api<{ result: PullResultView; view: PacksView }>("/api/packs/pull", { body: { packType, free, key } });
       setData(r.view);
       setResult(r.result);
       setKeys((k) => ({ ...k, [slot]: newKey() }));
       refreshPurse();
-    } catch (e) {
-      setPullError(e);
-    } finally {
-      setBusy(null);
-    }
+    }, slot);
   }
 
   const freeReady = v.paddock.freeAvailable > 0;
