@@ -90,6 +90,15 @@ error + Try again).
 | Admin screens | `components/admin/*`, `chain/admin/*` | staff only |
 | Live feed | `lib/liveRaceFeed.ts` | a polling client with its own backoff and `final`; the race page's phase is derived from it (see `racePage`) |
 
+### Follow-ups noticed (not changed)
+
+- Race page: a race that is already over, opened later, is `live` for a moment (the clock is past
+  post time before the feed's `final` arrives), so `sawLive` is set and the results wait for the
+  finale; when the picture never starts (no WebGL) they show after the 6 s fallback. A phase that
+  waits for the feed when the field is locked would fix it; left alone (it touches the no-spoiler
+  timing).
+- WalletSignIn and UsdgPay are the next candidates for a machine (see above).
+
 ## Diagrams
 
 Generated from `UI_MACHINES`; do not edit by hand.
