@@ -125,9 +125,10 @@ export const PACKS: Record<string, PackDefinition> = {
   premium: { price: 2_500, odds: oddsOf("premium"), pity: pityOf("premium") },
 };
 
-export type Stage = "foal" | "weanling" | "yearling" | "juvenile" | "prime" | "veteran";
+/** horses.stage: the states of game-core horseStageMachine (forward only; docs/state-machines.md). */
+export type Stage = gc.HorseStage;
 
-/** Stage from the career clock (care sessions in the nursery, then starts). Never from time. */
+/** Stage from the career clock (care sessions in the nursery, then starts). Never from time. Only moves forward as the counters grow. */
 export function stageFor(careSessions: number, starts: number): Stage {
   if (careSessions < RULES.careToWean) return "foal";
   if (careSessions < RULES.careToYearling) return "weanling";

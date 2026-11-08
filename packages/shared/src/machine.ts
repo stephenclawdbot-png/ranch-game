@@ -47,6 +47,9 @@ export interface Machine<S extends string> extends MachineDef<S> {
   toMermaid(): string;
 }
 
+/** The state union of a machine: `StateOf<typeof raceMachine>` is "open" | "locked" | ... */
+export type StateOf<M> = M extends Machine<infer S> ? S : never;
+
 export class IllegalTransitionError extends Error {
   readonly machine: string;
   readonly from: string;

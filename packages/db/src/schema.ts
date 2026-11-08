@@ -13,8 +13,10 @@
  *   in migration 0001 (postings append-only, every transaction sums to zero, balances
  *   change only through postings).
  *
- * Keep this file free of workspace imports: drizzle-kit loads it directly.
+ * Keep this file free of workspace imports: drizzle-kit loads it directly. (`import type` is fine:
+ * it is erased before anything loads, so the status column types can come from the game-core machines.)
  */
+import type * as M from "@thoroughbred/game-core";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -1051,7 +1053,7 @@ export const pushDeliveries = pgTable(
     kind: text("kind").notNull(),
     /** The tag the device shows it under (later alerts with the same tag replace it). */
     tag: text("tag").notNull(),
-    status: text("status").notNull(),
+    status: text("status").$type<M.PushDeliveryStatus>().notNull(),
     createdAt: createdAt(),
   },
   (t) => [index("push_deliveries_account_idx").on(t.accountId, t.createdAt)],
@@ -1509,7 +1511,7 @@ export const feedback = pgTable(
     viewport: text("viewport"),
     userAgent: text("user_agent"),
     clientErrors: jsonb("client_errors"),
-    status: text("status").notNull().default("new"),
+    status: text("status").$type<M.FeedbackStatus>().notNull().default("new"),
     /** Accepted as a bug report (earns the bug bounty). */
     acceptedBug: boolean("accepted_bug").notNull().default(false),
     adminNote: text("admin_note"),
@@ -1561,7 +1563,7 @@ export const betaRewards = pgTable(
     ruleKey: text("rule_key").notNull(),
     period: text("period").notNull(),
     amountUsdCents: integer("amount_usd_cents").notNull(),
-    status: text("status").notNull().default("pending"),
+    status: text("status").$type<M.BetaRewardStatus>().notNull().default("pending"),
     txHash: text("tx_hash"),
     notes: text("notes"),
     createdAt: createdAt(),
@@ -1625,7 +1627,7 @@ export const chainOrders = pgTable(
     storeAddress: text("store_address").notNull(),
     deadline: ts("deadline").notNull(),
     /** quoted -> submitted (tx hash known) -> paid (verified on-chain) -> fulfilled; or expired / rejected. */
-    status: text("status").notNull().default("quoted"),
+    status: text("status").$type<M.ChainOrderStatus>().notNull().default("quoted"),
     txHash: text("tx_hash"),
     /** Pack pulls granted for this order (one per quantity). */
     pullIds: jsonb("pull_ids"),
@@ -1670,7 +1672,7 @@ export const poolEpochs = pgTable(
     kind: text("kind").notNull().default("weekly"),
     /** The UTC week (Monday) the scores come from. */
     weekStart: date("week_start", { mode: "string" }).notNull(),
-    status: text("status").notNull().default("draft"),
+    status: text("status").$type<M.PoolEpochStatus>().notNull().default("draft"),
     root: text("root").notNull(),
     totalWei: wei("total_wei").notNull(),
     leafCount: integer("leaf_count").notNull(),
@@ -1844,7 +1846,7 @@ export const usdgListings = pgTable(
     /** Credits appraisal at listing time (the price review compares price per appraisal). */
     appraisal: credits("appraisal").notNull(),
     /** active -> sold | cancelled | expired (fixed) ; active -> closed (offering) -> sold | unsold (auction). */
-    status: text("status").notNull().default("active"),
+    status: text("status").$type<M.UsdgListingStatus>().notNull().default("active"),
     endsAt: ts("ends_at").notNull(),
     /** The sale order currently offered/reserved for this listing (usdg_orders.order_id). */
     offerOrderId: text("offer_order_id"),
@@ -1882,7 +1884,7 @@ export const usdgBids = pgTable(
     nonce: text("nonce").notNull(),
     signature: text("signature").notNull(),
     /** active | offered (won the close, payment window open) | won (paid) | defaulted (didn't pay) | void (bidder ineligible) */
-    status: text("status").notNull().default("active"),
+    status: text("status").$type<M.UsdgBidStatus>().notNull().default("active"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -1934,7 +1936,7 @@ export const usdgOrders = pgTable(
     marketAddress: text("market_address").notNull(),
     deadline: ts("deadline").notNull(),
     /** pending (signed, maybe submitted: tx_hash set) -> paid (verified on-chain) -> fulfilled ; or expired. */
-    status: text("status").notNull().default("pending"),
+    status: text("status").$type<M.UsdgOrderStatus>().notNull().default("pending"),
     txHash: text("tx_hash"),
     /** Price review (wash-trading signal): far from recent comparable sales. The sale still stands. */
     flagged: boolean("flagged").notNull().default(false),
@@ -2054,7 +2056,7 @@ export const horseLeases = pgTable(
     startsAt: ts("starts_at").notNull(),
     endsAt: ts("ends_at").notNull(),
     /** active | ended */
-    status: text("status").notNull().default("active"),
+    status: text("status").$type<M.LeaseStatus>().notNull().default("active"),
     /** term | returned | injured | retired | died */
     endReason: text("end_reason"),
     endRequestedAt: ts("end_requested_at"),
@@ -2171,7 +2173,7 @@ export const raceClaims = pgTable(
       .notNull()
       .references(() => stables.id),
     price: credits("price").notNull(),
-    status: text("status").notNull().default("lodged"),
+    status: text("status").$type<M.RaceClaimStatus>().notNull().default("lodged"),
     /** Burned at the transfer (the market's 5%); 0 until then. */
     fee: credits("fee").notNull().default(0),
     escrowTransactionId: uuid("escrow_transaction_id")
@@ -2234,7 +2236,7 @@ export const jockeys = pgTable(
     seed: text("seed").notNull(),
     /** Start of the riding career (stage and retirement count from here). */
     bornAt: ts("born_at").notNull(),
-    stage: text("stage").notNull().default("apprentice"),
+    stage: text("stage").$type<M.JockeyStageState>().notNull().default("apprentice"),
     personality: text("personality").notNull(),
     skills: jsonb("skills").notNull(),
     potential: jsonb("potential").notNull(),
@@ -2398,7 +2400,7 @@ export const jockeyContracts = pgTable(
     wagesPaid: credits("wages_paid").notNull().default(0),
     /** Notes sent ("2" / "1" weeks before the end), so each goes once. */
     notes: jsonb("notes").notNull().default([]),
-    status: text("status").notNull().default("active"),
+    status: text("status").$type<M.JockeyContractStatus>().notNull().default("active"),
     endedAt: ts("ended_at"),
     /** Why it ended: expired, re-signed, moved, walked_out, unpaid, released, idle, retired. */
     endedWhy: text("ended_why"),
@@ -2440,7 +2442,7 @@ export const jockeyOffers = pgTable(
     /** Signing fee held in escrow (0 for the jockey's current stable). */
     fee: credits("fee").notNull().default(0),
     /** open → won | lost | withdrawn. */
-    status: text("status").notNull().default("open"),
+    status: text("status").$type<M.JockeyOfferStatus>().notNull().default("open"),
     /** The jockey's utility for this offer at the deadline (published). */
     utility: integer("utility"),
     createdAt: createdAt(),
@@ -2549,7 +2551,7 @@ export const racePicks = pgTable(
       .references(() => horses.id),
     postTime: ts("post_time").notNull(),
     /** open (not scored yet) | won | lost | void (the runner didn't run, or the race was called off). */
-    outcome: text("outcome").notNull().default("open"),
+    outcome: text("outcome").$type<M.RacePickOutcome>().notNull().default("open"),
     points: integer("points").notNull().default(0),
     /** Rank by rating in the final field (game-core ratingRanks) and the field size, once scored. */
     rank: integer("rank"),
@@ -2747,7 +2749,7 @@ export const realToteRaces = pgTable(
     /** The on-chain market id: keccak256("posttime:race:<uuid>"), 0x hex. */
     marketKey: text("market_key").notNull(),
     /** pending (flagged) | open (market created) | entropy_locked | sealed | abandoned | result_posted | finalized | void */
-    status: text("status").notNull().default("pending"),
+    status: text("status").$type<M.RealToteRaceStatus>().notNull().default("pending"),
     fieldLockAt: ts("field_lock_at").notNull(),
     /** TotePools closeTime: the entropy can be locked from here. */
     marketCloseAt: ts("market_close_at").notNull(),

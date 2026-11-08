@@ -35,6 +35,7 @@ import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } fro
 import { sha256Hex, utcDay, utcWeekStart } from "../crypto";
 import { DomainError } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
+import { checkMove, fromStates } from "../machines";
 import { defaultAppraise, RULES } from "../rules";
 import { accounts, fraudEvents, horseLeaseListings, horseLeases, horses, raceEntries, races, stables, trades, type HorseLeaseListingRow, type HorseLeaseRow, type HorseRow } from "../schema";
 import type { Db, Executor } from "../types";
@@ -355,6 +356,7 @@ export async function withdrawLeaseOffer(db: Db, input: { accountId: string; lis
     const stable = await stableOf(tx, input.accountId);
     if (listing.ownerStableId !== stable.id) throw new DomainError("NOT_OWNER", "not your offer");
     if (listing.status !== "active") return;
+    checkMove(gc.listingMachine, listing.status, "cancelled", listing.id);
     await tx.update(horseLeaseListings).set({ status: "cancelled", closedAt: input.now }).where(eq(horseLeaseListings.id, listing.id));
     await audit(tx, { actor: input.accountId, action: "lease.withdraw", entityType: "lease_listing", entityId: listing.id });
   });
@@ -415,11 +417,13 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
     if (block) {
       // Entered in a race at home: try again after it runs. Anything else: the offer is void.
       if (block.block === "in_race") throw new DomainError("HORSE_LOCKED", "the horse is entered in a race at home: try again after it runs");
+      checkMove(gc.listingMachine, listing.status, "cancelled", listing.id);
       await tx.update(horseLeaseListings).set({ status: "cancelled", closedAt: input.now }).where(eq(horseLeaseListings.id, listing.id));
       return new DomainError("LISTING_NOT_ACTIVE", `that lease offer is no longer available (${LEASE_BLOCK_TEXT[block.block]})`);
     }
     const caps = listing.ownerStableId ? await ownerLeaseCaps(tx, listing.ownerStableId) : null;
     if (caps && caps.out >= caps.maxOut) {
+      checkMove(gc.listingMachine, listing.status, "cancelled", listing.id);
       await tx.update(horseLeaseListings).set({ status: "cancelled", closedAt: input.now }).where(eq(horseLeaseListings.id, listing.id));
       return new DomainError("LEASE_LIMIT", "that owner has as many horses out on lease as allowed");
     }
@@ -463,6 +467,7 @@ export async function takeLease(db: Db, input: { accountId: string; listingId: s
         createdAt: input.now,
       })
       .returning();
+    checkMove(gc.listingMachine, listing.status, "sold", listing.id);
     await tx.update(horseLeaseListings).set({ status: "sold", leaseId: lease!.id, closedAt: input.now }).where(eq(horseLeaseListings.id, listing.id));
     await tx.update(horses).set({ lesseeStableId: lesseeStable.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
 
@@ -547,13 +552,14 @@ const END_TEXT: Record<LeaseEndReason, string> = {
  */
 export async function endLeaseTx(tx: Executor, lease: HorseLeaseRow, reason: LeaseEndReason, now: Date): Promise<HorseLeaseRow> {
   if (lease.status !== "active") return lease;
+  checkMove(gc.leaseMachine, lease.status, "ended", lease.id);
   const horse = await lockHorse(tx, lease.horseId);
   const condition = leaseCondition(horse, now);
   if (horse.lesseeStableId === lease.lesseeStableId) await tx.update(horses).set({ lesseeStableId: null, updatedAt: now }).where(eq(horses.id, horse.id));
   const [ended] = await tx
     .update(horseLeases)
     .set({ status: "ended", endReason: reason, endedAt: now, endCondition: condition })
-    .where(and(eq(horseLeases.id, lease.id), eq(horseLeases.status, "active")))
+    .where(and(eq(horseLeases.id, lease.id), inArray(horseLeases.status, fromStates(gc.leaseMachine, "ended"))))
     .returning();
   if (!ended) return lease;
   const [ownerAccount, lesseeAccount] = [lease.ownerStableId ? await accountIdOfStable(tx, lease.ownerStableId) : null, await accountIdOfStable(tx, lease.lesseeStableId)];
@@ -775,7 +781,7 @@ export async function sweepLeases(db: Db, now: Date): Promise<LeaseSweep> {
   const expired = await db
     .update(horseLeaseListings)
     .set({ status: "expired", closedAt: now })
-    .where(and(eq(horseLeaseListings.status, "active"), lte(horseLeaseListings.expiresAt, now)))
+    .where(and(inArray(horseLeaseListings.status, fromStates(gc.listingMachine, "expired")), lte(horseLeaseListings.expiresAt, now)))
     .returning({ id: horseLeaseListings.id });
   const due = await db
     .select({ id: horseLeases.id, horseId: horseLeases.horseId })

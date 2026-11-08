@@ -10,6 +10,8 @@
  */
 import { randomBytes } from "node:crypto";
 import { and, asc, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import * as gc from "@thoroughbred/game-core";
+import { checkMove } from "../machines";
 import { DomainError } from "../errors";
 import { sha256Hex, utcDay } from "../crypto";
 import { accounts, betaRewardRules, betaRewards, feedback, inviteCodes, stables, testerRewards, testers, telemetryEvents, type BetaRewardRow, type FeedbackRow, type TesterRow } from "../schema";
@@ -667,6 +669,7 @@ export async function updateFeedback(db: Db, input: { id: string; status?: "new"
     if (!f) throw new DomainError("NOT_FOUND", "feedback not found");
     const patch: Partial<FeedbackRow> = {};
     if (input.status) {
+      checkMove(gc.feedbackMachine, f.status, input.status, f.id);
       patch.status = input.status;
       patch.resolvedAt = input.status === "resolved" ? now : null;
     }
@@ -767,6 +770,7 @@ export async function setBetaRewardStatus(db: Db, input: { id: string; action: "
       patch.status = "paid";
       patch.txHash = hash;
     }
+    if (patch.status) checkMove(gc.betaRewardMachine, r.status, patch.status as gc.BetaRewardStatus, r.id);
     const [row] = await tx.update(betaRewards).set(patch).where(eq(betaRewards.id, r.id)).returning();
     return row!;
   });

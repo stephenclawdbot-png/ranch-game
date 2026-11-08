@@ -20,6 +20,7 @@ import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { commitSeed, newSeed } from "../crypto";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
+import { checkMove, fromStates } from "../machines";
 import { seasonBounds, seasonNumberAt } from "../rules";
 import { fraudEvents, inboxItems, jockeyContracts, jockeyOffers, jockeyRides, jockeyWeeks, jockeys, stables, type JockeyContractRow, type JockeyOfferRow, type JockeyRow, type RaceRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
@@ -86,7 +87,8 @@ export async function startContractTx(tx: Executor, input: { jockey: JockeyRow; 
 }
 
 async function endContractTx(tx: Executor, c: JockeyContractRow, now: Date, why: string): Promise<void> {
-  await tx.update(jockeyContracts).set({ status: "ended", endedAt: now, endedWhy: why }).where(and(eq(jockeyContracts.id, c.id), eq(jockeyContracts.status, "active")));
+  checkMove(gc.jockeyContractMachine, c.status, "ended", c.id);
+  await tx.update(jockeyContracts).set({ status: "ended", endedAt: now, endedWhy: why }).where(and(eq(jockeyContracts.id, c.id), inArray(jockeyContracts.status, fromStates(gc.jockeyContractMachine, "ended"))));
 }
 
 /** Ends a jockey's active contract, if any (release, idle stable, retirement). */
@@ -307,7 +309,8 @@ export async function makeJockeyOffer(db: Db, input: OfferInput): Promise<Jockey
     if (Number(open?.n ?? 0) >= gc.JOCKEY_OPEN_OFFERS_PER_STABLE) throw new DomainError("JOCKEY_LIMIT", `at most ${gc.JOCKEY_OPEN_OFFERS_PER_STABLE} open offers at a time`);
     if (!current && (await stayingCount(tx, stable.id, week)) >= gc.JOCKEYS_PER_STABLE_MAX) throw new DomainError("JOCKEY_LIMIT", `a stable can hold at most ${gc.JOCKEYS_PER_STABLE_MAX} jockeys`);
     const fee = current ? 0 : gc.signingFee(grade);
-    const values = { week, jockeyId: j.id, stableId: stable.id, accountId: input.accountId, ...termsCols(input.terms), fee, status: "open", utility: null, resolvedAt: null, createdAt: input.now };
+    const values = { week, jockeyId: j.id, stableId: stable.id, accountId: input.accountId, ...termsCols(input.terms), fee, status: "open" as const, utility: null, resolvedAt: null, createdAt: input.now };
+    if (existing) checkMove(gc.jockeyOfferMachine, existing.status, "open", existing.id); // a withdrawn offer, reopened in place
     const [row] = existing
       ? await tx.update(jockeyOffers).set(values).where(eq(jockeyOffers.id, existing.id)).returning()
       : await tx.insert(jockeyOffers).values(values).returning();
@@ -343,6 +346,7 @@ export async function withdrawJockeyOffer(db: Db, input: { accountId: string; jo
     const week = currentWindowWeek(input.now);
     const [o] = await tx.select().from(jockeyOffers).where(and(eq(jockeyOffers.week, week), eq(jockeyOffers.jockeyId, input.jockeyId), eq(jockeyOffers.stableId, stable.id), eq(jockeyOffers.status, "open"))).for("update");
     if (!o) throw new DomainError("NOT_FOUND", "no open offer");
+    checkMove(gc.jockeyOfferMachine, o.status, "withdrawn", o.id);
     await tx.update(jockeyOffers).set({ status: "withdrawn", resolvedAt: input.now }).where(eq(jockeyOffers.id, o.id));
     await refundTx(tx, o);
     await audit(tx, { actor: input.accountId, action: "jockey.offer_withdraw", entityType: "jockey", entityId: input.jockeyId, data: { week } });
@@ -525,6 +529,7 @@ export async function runTransferWindowTx(tx: Tx, week: number, now: Date): Prom
     const utility = utilities.get(o.id) ?? 0;
     const terms = { wage: o.wage, length: o.length as gc.JockeyContractLength, promisedRides: o.promisedRides, buyout: o.buyout };
     const contract = await startContractTx(tx, { jockey: j, stableId: to, now, terms, why: from === to ? "re-signed" : (leaving ?? "moved") });
+    checkMove(gc.jockeyOfferMachine, o.status, "won", o.id);
     await tx.update(jockeyOffers).set({ status: "won", utility, resolvedAt: now }).where(eq(jockeyOffers.id, o.id));
     if (o.fee > 0) {
       await post(tx, {
@@ -555,6 +560,7 @@ export async function runTransferWindowTx(tx: Tx, week: number, now: Date): Prom
   const won = new Set([...result].map(([j, s]) => `${j}|${s}`));
   for (const o of open) {
     if (won.has(`${o.jockeyId}|${o.stableId}`) && o.week === week) continue;
+    checkMove(gc.jockeyOfferMachine, o.status, "lost", o.id);
     await tx.update(jockeyOffers).set({ status: "lost", utility: utilities.get(o.id) ?? null, resolvedAt: now }).where(eq(jockeyOffers.id, o.id));
     await refundTx(tx, o);
     refunded++;

@@ -35,6 +35,8 @@
 import { createHash } from "node:crypto";
 import { and, asc, eq, gt, inArray, isNull, lte, notExists, sql } from "drizzle-orm";
 import webpush from "web-push";
+import * as gc from "@thoroughbred/game-core";
+import { fromStates } from "../machines";
 import { accounts, inboxItems, pushDeliveries, pushSubscriptions, races, type PushSubscriptionRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { localDate } from "./entries";
@@ -346,7 +348,8 @@ export function buildPushRequest(config: PushConfig, device: Pick<PushSubscripti
   return { endpoint: d.endpoint, headers, body: d.body };
 }
 
-export type PushStatus = "sent" | "failed" | "off" | "device_off" | "quiet" | "cap" | "duplicate" | "stale" | "held";
+/** A push delivery's outcome: game-core pushDeliveryMachine (docs/state-machines.md), every state but "pending". */
+export type PushStatus = gc.PushOutcome;
 
 export interface PushRunReport {
   considered: number;
@@ -408,7 +411,7 @@ export async function deliverPushes(db: Db, now: Date, opts: { config?: PushConf
   // Claim: whoever inserts the delivery row sends it.
   const claimed = await db
     .insert(pushDeliveries)
-    .values(rows.map((r) => ({ inboxItemId: r.id, accountId: r.accountId, kind: r.kind, tag: pushTag(r), status: "pending", createdAt: now })))
+    .values(rows.map((r) => ({ inboxItemId: r.id, accountId: r.accountId, kind: r.kind, tag: pushTag(r), status: "pending" as const, createdAt: now })))
     .onConflictDoNothing()
     .returning({ id: pushDeliveries.inboxItemId });
   const mine = new Set(claimed.map((c) => c.id));
@@ -428,7 +431,8 @@ export async function deliverPushes(db: Db, now: Date, opts: { config?: PushConf
   const byStatus = new Map<PushStatus, string[]>();
   for (const [id, s] of statuses) byStatus.set(s, [...(byStatus.get(s) ?? []), id]);
   for (const [s, ids] of byStatus) {
-    await db.update(pushDeliveries).set({ status: s }).where(inArray(pushDeliveries.inboxItemId, ids));
+    // Only rows this run claimed (inserted "pending" above) get their outcome, once.
+    await db.update(pushDeliveries).set({ status: s }).where(and(inArray(pushDeliveries.inboxItemId, ids), inArray(pushDeliveries.status, fromStates(gc.pushDeliveryMachine, s))));
     if (s === "sent") report.sent += ids.length;
     else report.skipped[s] = ids.length;
   }

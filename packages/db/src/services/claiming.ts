@@ -25,6 +25,7 @@ import { and, asc, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-or
 import { createHash } from "node:crypto";
 import { DomainError } from "../errors";
 import { bandRatingOf, gc, isGenome, toHorseState } from "../gameCore";
+import { checkMove } from "../machines";
 import { fraudEvents, horseLeaseListings, horses, pregnancies, raceClaims, raceEntries, races, stables, trades, type HorseRow, type RaceClaimRow, type RaceRow, type StableRow } from "../schema";
 import { RULES, defaultAppraise, type GameHooks } from "../rules";
 import { defaultHooks } from "../hooks";
@@ -239,6 +240,7 @@ export async function lodgeClaim(db: Db, input: { accountId: string; raceId: str
 
 /** Pays a claim's escrow back to the claimant and closes it with `status`. Idempotent per claim. */
 async function refundClaimTx(tx: Executor, claim: RaceClaimRow, status: "lost" | "void" | "refunded", now: Date, reason: string): Promise<void> {
+  checkMove(gc.raceClaimMachine, claim.status, status, claim.id);
   const claimantAccountId = await accountIdOfStable(tx, claim.claimantStableId);
   const { transactionId } = await post(tx, {
     idempotencyKey: `claim-refund:${claim.id}`,
@@ -283,6 +285,7 @@ export async function drawClaimsTx(tx: Executor, race: RaceRow, now: Date): Prom
   for (const [horseId, claims] of byHorse) {
     const word = createHash("sha256").update(`${race.seed}|claim-draw:${horseId}`).digest().readUInt32BE(0);
     const winner = claims[word % claims.length]!;
+    checkMove(gc.raceClaimMachine, winner.status, "drawn", winner.id);
     await tx.update(raceClaims).set({ status: "drawn" }).where(eq(raceClaims.id, winner.id));
     for (const c of claims) {
       if (c.id === winner.id) continue;
@@ -341,6 +344,7 @@ export async function settleClaimsTx(tx: Tx, race: RaceRow, fatal: ReadonlySet<s
       ],
     });
     await tx.update(horses).set({ ownerStableId: c.claimantStableId, studFee: null, studFeeUsdg: null, updatedAt: now }).where(eq(horses.id, c.horseId));
+    checkMove(gc.raceClaimMachine, c.status, "claimed", c.id);
     await tx.update(raceClaims).set({ status: "claimed", fee, closeTransactionId: transactionId, closedAt: now }).where(eq(raceClaims.id, c.id));
     await note(tx, claimantAccountId, "claim_won", `claim:${c.id}:won`, `You claimed ${name} from the ${race.name} for ${c.price} credits`, { price: c.price }, race.id, c.horseId, now);
     await note(tx, ownerAccountId, "horse_claimed", `claim:${c.id}:sold`, `${name} was claimed in the ${race.name}: you receive ${toOwner} credits`, { price: c.price, fee, received: toOwner }, race.id, c.horseId, now);

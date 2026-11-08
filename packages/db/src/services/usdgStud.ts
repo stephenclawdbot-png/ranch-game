@@ -27,6 +27,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { DomainError, isDomainError, pgError } from "../errors";
 import { gc } from "../gameCore";
+import { checkMove } from "../machines";
 import { RULES, seasonNumberAt } from "../rules";
 import { fraudEvents, horses, pregnancies, usdgOrders, type HorseRow, type UsdgOrderRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
@@ -226,6 +227,7 @@ export async function fulfilUsdgStudOrder(db: Db, input: { orderId: string; txHa
     if (order.status === "paid" && order.flagged) return { order, duplicate: true, status: "paid" as const, pregnancyId: null };
     const wasExpired = order.status === "expired";
     if (order.status !== "paid") {
+      checkMove(gc.usdgOrderMachine, order.status, "paid", order.id);
       await tx.update(usdgOrders).set({ status: "paid", txHash, paidAt: input.now, updatedAt: input.now, error: null }).where(eq(usdgOrders.id, order.id));
       await audit(tx, { actor: order.accountId, action: "usdg.order_paid", entityType: "usdg_order", entityId: order.id, data: { txHash, kind: order.kind, price: order.price } });
     }
@@ -253,6 +255,7 @@ export async function fulfilUsdgStudOrder(db: Db, input: { orderId: string; txHa
       return refundDue(tx, paid, isDomainError(e) ? e.message : `database refused the covering (${code})`, input.now);
     }
 
+    checkMove(gc.usdgOrderMachine, paid.status, "fulfilled", order.id);
     const [row] = await tx
       .update(usdgOrders)
       .set({ status: "fulfilled", breedingEventId: cover.breedingEventId, fulfilledAt: input.now, updatedAt: input.now, error: null })

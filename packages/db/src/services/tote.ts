@@ -32,6 +32,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
+import { checkMove, fromStates } from "../machines";
 import { accounts, fraudEvents, horses, raceEntries, races, realTotePermits, stables, toteBets, totePools, toteSettings, type RaceRow, type ToteBetRow, type TotePoolRow, type ToteSettingsRow } from "../schema";
 import type { Db, Executor, Tx } from "../types";
 import { accountIdOfStable, areLinked } from "./accounts";
@@ -636,7 +637,8 @@ async function refundBetsTx(tx: Tx, bets: readonly ToteBetRow[], key: (b: ToteBe
         { ledgerAccountId: await ledger.playerAccount(tx, b.accountId), amount: b.stake },
       ],
     });
-    await tx.update(toteBets).set({ status: "void", payout: b.stake, voidReason: reason, settledAt: now }).where(and(eq(toteBets.id, b.id), eq(toteBets.status, "open")));
+    checkMove(gc.toteBetMachine, b.status, "void", b.id);
+    await tx.update(toteBets).set({ status: "void", payout: b.stake, voidReason: reason, settledAt: now }).where(and(eq(toteBets.id, b.id), inArray(toteBets.status, fromStates(gc.toteBetMachine, "void"))));
   }
 }
 
@@ -810,10 +812,11 @@ async function settlePoolTx(
   for (const b of bets) {
     const r = refund.get(b.id);
     const status = r !== undefined ? "void" : s.outcome === "no_winner" ? "returned" : winners.has(b.horseId) ? "won" : "lost";
+    checkMove(gc.toteBetMachine, b.status, status, b.id);
     await tx
       .update(toteBets)
       .set({ status, payout: r ?? pay.get(b.id) ?? 0, voidReason: r !== undefined ? voidWhy : null, settledAt: now })
-      .where(and(eq(toteBets.id, b.id), eq(toteBets.status, "open")));
+      .where(and(eq(toteBets.id, b.id), inArray(toteBets.status, fromStates(gc.toteBetMachine, status))));
   }
   const dividends: ToteDividendRow[] = s.dividends.map((d) => ({ ...d, name: input.names.get(d.horseId) ?? "Runner" }));
   await tx

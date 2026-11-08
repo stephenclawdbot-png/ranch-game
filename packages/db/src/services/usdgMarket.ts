@@ -27,6 +27,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, desc, eq, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import { DomainError, pgError } from "../errors";
 import { gc } from "../gameCore";
+import { checkMove } from "../machines";
 import { defaultHooks } from "../hooks";
 import { defaultAppraise, RULES } from "../rules";
 import {
@@ -373,6 +374,7 @@ export async function fulfilUsdgOrder(db: Db, input: { orderId: string; txHash: 
     if (order.status === "fulfilled") return { order, duplicate: true, status: "fulfilled" as const };
     const wasExpired = order.status === "expired";
     if (order.status !== "paid") {
+      checkMove(gc.usdgOrderMachine, order.status, "paid", order.id);
       await tx.update(usdgOrders).set({ status: "paid", txHash, paidAt: input.now, updatedAt: input.now, error: null }).where(eq(usdgOrders.id, order.id));
       await audit(tx, { actor: order.accountId, action: "usdg.order_paid", entityType: "usdg_order", entityId: order.id, data: { txHash, kind: order.kind, price: order.price } });
     }
@@ -412,8 +414,13 @@ export async function fulfilUsdgOrder(db: Db, input: { orderId: string; txHash: 
         .update(horses)
         .set({ ownerStableId: buyerStable.id, lockKind: null, lockRef: null, studFee: null, studFeeUsdg: null, updatedAt: input.now })
         .where(eq(horses.id, horse.id));
+      checkMove(gc.usdgListingMachine, listing.status, "sold", listing.id);
       await tx.update(usdgListings).set({ status: "sold", closedAt: input.now }).where(eq(usdgListings.id, listing.id));
-      if (order.bidId) await tx.update(usdgBids).set({ status: "won" }).where(eq(usdgBids.id, order.bidId));
+      if (order.bidId) {
+        const [bid] = await tx.select({ status: usdgBids.status }).from(usdgBids).where(eq(usdgBids.id, order.bidId));
+        checkMove(gc.usdgBidMachine, bid?.status, "won", order.bidId);
+        await tx.update(usdgBids).set({ status: "won" }).where(eq(usdgBids.id, order.bidId));
+      }
       // Price review (wash-trading signal): flag, never block. Dollar prices are the players'.
       const recent = await tx
         .select({ price: usdgOrders.price, appraisal: usdgListings.appraisal })
@@ -434,6 +441,7 @@ export async function fulfilUsdgOrder(db: Db, input: { orderId: string; txHash: 
         });
       }
     }
+    checkMove(gc.usdgOrderMachine, paidRow.status, "fulfilled", order.id);
     const [row] = await tx
       .update(usdgOrders)
       .set({ status: "fulfilled", fulfilledAt: input.now, updatedAt: input.now, error: null })
@@ -596,6 +604,7 @@ export async function delistUsdg(db: Db, input: { accountId: string; listingId: 
       if (bid) throw new DomainError("LISTING_NOT_ACTIVE", "An auction with bids can't be cancelled.");
     }
     await unlockFor(tx, listing, input.now);
+    checkMove(gc.usdgListingMachine, listing.status, "cancelled", listing.id);
     await tx.update(usdgListings).set({ status: "cancelled", closedAt: input.now }).where(eq(usdgListings.id, listing.id));
     await audit(tx, { actor: input.accountId, action: "usdg.delist", entityType: "usdg_listing", entityId: listing.id });
   });
@@ -765,6 +774,7 @@ async function offerNextBidder(tx: Tx, listing: UsdgListingRow, chain: UsdgChain
       !(await usdgBarredUntil(tx, { accountId: bid.accountId, now }, policy)) &&
       !(await areLinked(tx, bid.accountId, listing.sellerAccountId));
     if (!ok) {
+      checkMove(gc.usdgBidMachine, bid.status, "void", bid.id);
       await tx.update(usdgBids).set({ status: "void" }).where(and(eq(usdgBids.listingId, listing.id), eq(usdgBids.accountId, bid.accountId), eq(usdgBids.status, "active")));
       continue;
     }
@@ -783,12 +793,15 @@ async function offerNextBidder(tx: Tx, listing: UsdgListingRow, chain: UsdgChain
       deadline: new Date(now.getTime() + policy.paymentWindowMs),
       now,
     });
+    checkMove(gc.usdgBidMachine, bid.status, "offered", bid.id);
     await tx.update(usdgBids).set({ status: "offered" }).where(eq(usdgBids.id, bid.id));
+    checkMove(gc.usdgListingMachine, listing.status, "closed", listing.id);
     await tx.update(usdgListings).set({ status: "closed", offerOrderId: order.orderId, closedAt: listing.closedAt ?? now }).where(eq(usdgListings.id, listing.id));
     await audit(tx, { actor: null, action: "usdg.auction_offer", entityType: "usdg_listing", entityId: listing.id, data: { bidId: bid.id, accountId: bid.accountId, amount: bid.amount, orderId: order.orderId } });
     return order;
   }
   await unlockFor(tx, listing, now);
+  checkMove(gc.usdgListingMachine, listing.status, "unsold", listing.id);
   await tx.update(usdgListings).set({ status: "unsold", offerOrderId: null, closedAt: listing.closedAt ?? now }).where(eq(usdgListings.id, listing.id));
   await audit(tx, { actor: null, action: "usdg.auction_unsold", entityType: "usdg_listing", entityId: listing.id });
   await noteListingExpiredTx(tx, { accountId: listing.sellerAccountId, listingId: listing.id, horseId: listing.horseId, market: "usdg", auction: true, hadBids: candidates.length > 0, now });
@@ -836,6 +849,7 @@ export async function expireUsdgOrder(db: Db, input: { orderId: string; now: Dat
     const [order] = await tx.select().from(usdgOrders).where(eq(usdgOrders.orderId, lower(input.orderId))).for("update");
     if (!order || order.status !== "pending") return { expired: false, next: null };
     if (order.deadline.getTime() + USDG_ORDER_GRACE_MS > input.now.getTime()) return { expired: false, next: null };
+    checkMove(gc.usdgOrderMachine, order.status, "expired", order.id);
     await tx.update(usdgOrders).set({ status: "expired", expiredAt: input.now, updatedAt: input.now }).where(eq(usdgOrders.id, order.id));
     if (order.kind === "stud") await releaseStudBooking(tx, order, input.now);
     let next: UsdgOrderRow | null = null;
@@ -843,12 +857,15 @@ export async function expireUsdgOrder(db: Db, input: { orderId: string; now: Dat
       const [listing] = await tx.select().from(usdgListings).where(eq(usdgListings.id, order.listingId)).for("update");
       if (listing && listing.offerOrderId === order.orderId) {
         if (order.bidId) {
+          const [bid] = await tx.select({ status: usdgBids.status }).from(usdgBids).where(eq(usdgBids.id, order.bidId));
+          checkMove(gc.usdgBidMachine, bid?.status, "defaulted", order.bidId);
           await tx.update(usdgBids).set({ status: "defaulted" }).where(eq(usdgBids.id, order.bidId));
           await tx.update(usdgBids).set({ status: "void" }).where(and(eq(usdgBids.listingId, listing.id), eq(usdgBids.accountId, order.accountId), eq(usdgBids.status, "active")));
           await audit(tx, { actor: order.accountId, action: "usdg.non_payment", entityType: "usdg_order", entityId: order.id, data: { listingId: listing.id, barDays: Math.round(policy.nonPayerBarMs / 86_400_000) } });
           next = await offerNextBidder(tx, listing, { chainId: order.chainId, market: order.marketAddress, token: order.token }, input.now, policy);
         } else if (listing.endsAt <= input.now) {
           await unlockFor(tx, listing, input.now);
+          checkMove(gc.usdgListingMachine, listing.status, "expired", listing.id);
           await tx.update(usdgListings).set({ status: "expired", offerOrderId: null, closedAt: input.now }).where(eq(usdgListings.id, listing.id));
           await noteListingExpiredTx(tx, { accountId: listing.sellerAccountId, listingId: listing.id, horseId: listing.horseId, market: "usdg", now: input.now });
         } else {
@@ -899,6 +916,7 @@ export async function expireUsdgListings(db: Db, input: { now: Date }): Promise<
     for (const l of due) {
       if (await liveOfferOf(tx, l, input.now)) continue;
       await unlockFor(tx, l, input.now);
+      checkMove(gc.usdgListingMachine, l.status, "expired", l.id);
       await tx.update(usdgListings).set({ status: "expired", offerOrderId: null, closedAt: input.now }).where(eq(usdgListings.id, l.id));
       await noteListingExpiredTx(tx, { accountId: l.sellerAccountId, listingId: l.id, horseId: l.horseId, market: "usdg", now: input.now });
       n++;

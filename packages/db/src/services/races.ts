@@ -18,6 +18,7 @@ import { DomainError } from "../errors";
 import { horses, pregnancies, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
 import { bandRatingOf, gc, genomeOf, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
+import { checkMove } from "../machines";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
 import { LIVE_RACE_MODEL, purseShares, type RaceCourse, type RaceKit, type RaceModel } from "@thoroughbred/shared";
@@ -474,6 +475,7 @@ export async function scratchEntry(db: Db, input: { accountId: string; raceId: s
     const [entry] = await tx.select().from(raceEntries).where(and(eq(raceEntries.raceId, race.id), eq(raceEntries.horseId, horse.id)));
     if (!entry || entry.stableId !== stable.id) throw new DomainError("NOT_FOUND", "no such entry");
     if (entry.status === "scratched") return;
+    checkMove(gc.raceEntryMachine, entry.status, "scratched", entry.id);
     await tx.update(raceEntries).set({ status: "scratched", scratchedAt: input.now }).where(eq(raceEntries.id, entry.id));
     await refundRaceDay(tx, input.accountId, race.id, horse.id, entry.snapshot);
     await refundClaimsTx(tx, race, input.now, "the horse was scratched", horse.id);
@@ -691,6 +693,7 @@ export function callsOffWithoutPlayers(race: Pick<RaceRow, "kind" | "slotKey" | 
 async function callOffTx(tx: Tx, race: RaceRow, now: Date): Promise<void> {
   await refundClaimsTx(tx, race, now, "the race was called off");
   await refundToteRaceTx(tx, race.id, "void: the race was called off", now);
+  checkMove(gc.raceMachine, race.status, "cancelled", race.id);
   await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
   await audit(tx, { actor: null, action: "race.call_off", entityType: "race", entityId: race.id, data: { reason: "no_player_runners", at: now.toISOString() } });
 }
@@ -712,6 +715,7 @@ async function scratchInFoalAtLockTx(tx: Tx, race: RaceRow, entries: readonly Ra
   for (const e of [...players].sort((a, b) => (a.horseId < b.horseId ? -1 : 1))) {
     if (!ids.has(e.horseId) || !e.stableId) continue;
     out.add(e.horseId);
+    checkMove(gc.raceEntryMachine, e.status, "scratched", e.id);
     await tx.update(raceEntries).set({ status: "scratched", scratchedAt: now }).where(eq(raceEntries.id, e.id));
     await refundEntries(tx, e.stableId, e.entryCost, race.id, e.horseId);
     const accountId = await accountIdOfStable(tx, e.stableId);
@@ -840,6 +844,7 @@ async function lockFieldTx(tx: Tx, raceId: string, now: Date, hooks: FieldHooks,
   const model = modelForRace(race);
   const fieldHash = fieldHashOf(runners, course, model);
   const field: LockedField = { raceId: race.id, seedCommitment: race.seedCommitment, lockedAt: now.toISOString(), runners, ...(course ? { course } : {}), ...(model ? { model } : {}), fieldHash };
+  checkMove(gc.raceMachine, race.status, "locked", race.id);
   await tx.update(races).set({ status: "locked", field, fieldHash, lockedAt: now }).where(eq(races.id, race.id));
   // A claiming race: several claims on one horse are decided by the seeded draw now.
   await drawClaimsTx(tx, race, now);
@@ -963,6 +968,8 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
     if (input.now < race.postTime) throw new DomainError("TOO_EARLY", "race has not run yet");
     // the field is normally locked (or the race called off) by the card tick; settling never calls a race off
     if (!race.field) await lockFieldTx(tx, race.id, input.now, {}, { callOff: false });
+    // the status this settle moves from: the stored one, or "locked" when the lock just ran above
+    const settlingFrom = race.field ? race.status : "locked";
     const entries = await listRaceEntries(tx, race.id);
 
     const byHorse = new Map(input.runners.map((r) => [r.horseId, r]));
@@ -1022,6 +1029,7 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       const quirks = [...new Set([...((h.quirks as string[]) ?? []), ...(r.quirksRevealed ?? [])])];
       if (mustRetire) retired.push(h.id);
       if (fatal) fatalities.add(h.id);
+      if (fatal || mustRetire) checkMove(gc.horseCareerMachine, h.careerStatus, fatal ? "pasture" : "retired", h.id);
       await tx
         .update(horses)
         .set({
@@ -1163,6 +1171,7 @@ export async function settleRace(db: Db, input: SettleInput): Promise<SettleResu
       result: input.result,
       ledgerTransactionId,
     });
+    checkMove(gc.raceMachine, settlingFrom, "settled", race.id);
     await tx.update(races).set({ status: "settled", settledAt: input.now }).where(eq(races.id, race.id));
     // Jockeys: each ride's result, rides/wins, experience and growth (once, with the settlement).
     const fieldMeanOr = entries.length ? Math.floor(entries.reduce((a, e) => a + e.ratingBefore, 0) / entries.length) : 0;
@@ -1228,6 +1237,7 @@ export async function cancelRace(db: Db, input: { raceId: string; now: Date; rea
     await refundClaimsTx(tx, race, input.now, "the race was abandoned");
     await refundToteRaceTx(tx, race.id, "void: the race was abandoned", input.now);
     await cancelJockeyRidesTx(tx, race.id);
+    checkMove(gc.raceMachine, race.status, "cancelled", race.id);
     await tx.update(races).set({ status: "cancelled" }).where(eq(races.id, race.id));
     await audit(tx, { actor: null, action: "race.cancel", entityType: "race", entityId: race.id, data: { reason: input.reason } });
   });

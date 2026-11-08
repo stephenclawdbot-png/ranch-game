@@ -21,6 +21,7 @@ import { DomainError, type DomainErrorCode } from "../errors";
 import { breedingEvents, horses, lineageEdges, pregnancies, raceEntries, races, type HorseRow, type PregnancyRow } from "../schema";
 import { RULES, seasonNumberAt, type GameHooks } from "../rules";
 import { gc, toHorseState } from "../gameCore";
+import { checkMove } from "../machines";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor } from "../types";
 import { accountIdOfStable, areLinked, assertStallFree, insertHorse, lockStable, occupancy, stableOf } from "./accounts";
@@ -430,6 +431,7 @@ export async function foalTx(
     nameMode: input.name ? "chosen" : "system",
   });
   await insertLineage(tx, foalId, sire.id, dam.id);
+  checkMove(gc.pregnancyMachine, preg.status, "foaled", preg.id);
   const [updated] = await tx
     .update(pregnancies)
     .set({ status: "foaled", foalId, foaledAt: input.now, seedRevealed: true })

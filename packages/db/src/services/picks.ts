@@ -14,6 +14,7 @@
  */
 import { and, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import * as gc from "@thoroughbred/game-core";
+import { checkMove, fromStates } from "../machines";
 import { DomainError } from "../errors";
 import { horses, racePicks, raceEntries, raceResults, races, stables, type RacePickRow } from "../schema";
 import type { Db, Executor } from "../types";
@@ -81,10 +82,11 @@ export async function scorePicks(db: Db, input: { now: Date; raceIds?: string[];
       const open = await tx.select({ id: racePicks.id, horseId: racePicks.horseId }).from(racePicks).where(and(eq(racePicks.raceId, race.id), eq(racePicks.outcome, "open")));
       for (const p of open) {
         const s = gc.scorePick({ horseId: p.horseId, field, winners, ran });
+        checkMove(gc.racePickMachine, "open", s.outcome, p.id); // read with outcome = 'open' just above
         const res = await tx
           .update(racePicks)
           .set({ outcome: s.outcome, points: s.points, rank: s.rank, fieldSize: s.fieldSize, scoredAt: input.now })
-          .where(and(eq(racePicks.id, p.id), eq(racePicks.outcome, "open")))
+          .where(and(eq(racePicks.id, p.id), inArray(racePicks.outcome, fromStates(gc.racePickMachine, s.outcome))))
           .returning({ id: racePicks.id });
         scored += res.length;
       }

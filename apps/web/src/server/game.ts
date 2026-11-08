@@ -468,9 +468,16 @@ async function sponsorFor(db: Db, race: PublicRace, viewerStableId: string | nul
   return s ? { stableName: s.stableName, silks: parseSilks(s.silks), mine: !!viewerStableId && s.stableId === viewerStableId } : undefined;
 }
 
+/** The card's phase: game-core raceCardPhaseMachine (docs/state-machines.md), derived from the clock. */
 function phaseOf(race: PublicRace, now: Date, replay: RaceReplay | null): RaceCard["status"] {
-  if (now < race.postTime) return race.field || now >= race.entriesCloseAt ? "closed" : "open";
-  return replay && isBroadcastOver(replay, now.getTime()) ? "finished" : "live";
+  return gc.raceCardPhaseAt({
+    nowMs: now.getTime(),
+    postTimeMs: race.postTime.getTime(),
+    entriesCloseAtMs: race.entriesCloseAt.getTime(),
+    fieldLocked: !!race.field,
+    // only asked after post time, as before (isBroadcastOver is the no-spoiler gate)
+    broadcastOver: now >= race.postTime && !!replay && isBroadcastOver(replay, now.getTime()),
+  });
 }
 
 /** The race card for a viewer (never the seed; no outcome before the finish is broadcast). */

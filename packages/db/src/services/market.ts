@@ -18,6 +18,7 @@
 import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { DomainError, type DomainErrorCode } from "../errors";
 import { gc, isGenome, toHorseState } from "../gameCore";
+import { checkMove } from "../machines";
 import { accounts, fraudEvents, horses, marketListings, raceClaims, raceEntries, races, trades, type HorseRow, type ListingRow } from "../schema";
 import { bps, defaultAppraise, gcSellerPolicy, RULES, sellerPolicy, type GameHooks, type SellerPolicy } from "../rules";
 import { defaultHooks } from "../hooks";
@@ -212,6 +213,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
       .update(horses)
       .set({ ownerStableId: buyerStable.id, lockKind: null, lockRef: null, studFee: null, studFeeUsdg: null, updatedAt: input.now })
       .where(eq(horses.id, horse.id));
+    checkMove(gc.listingMachine, listing.status, "sold", listing.id);
     await tx.update(marketListings).set({ status: "sold", closedAt: input.now }).where(eq(marketListings.id, listing.id));
     const [trade] = await tx
       .insert(trades)
@@ -236,6 +238,7 @@ export async function buyListing(db: Db, input: { accountId: string; listingId: 
 }
 
 export async function closeListing(tx: Executor, listing: ListingRow, status: "cancelled" | "expired", now: Date): Promise<void> {
+  checkMove(gc.listingMachine, listing.status, status, listing.id);
   const h = await lockHorse(tx, listing.horseId);
   if (h.lockKind === "market" && h.lockRef === listing.id) {
     await tx.update(horses).set({ lockKind: null, lockRef: null }).where(eq(horses.id, h.id));

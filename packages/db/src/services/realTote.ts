@@ -28,6 +28,7 @@ import { and, asc, eq, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzl
 import { commitSeed, mixSeedEntropy } from "../crypto";
 import { DomainError } from "../errors";
 import { gc } from "../gameCore";
+import { checkMove } from "../machines";
 import { accounts, fraudEvents, raceEntries, races, realToteEvents, realTotePermits, realToteRaces, type RaceRow, type RealToteRaceRow, type ToteSettingsRow } from "../schema";
 import type { Db, Executor } from "../types";
 import { areLinked } from "./accounts";
@@ -278,6 +279,7 @@ export async function resolveRealToteSeed(db: Db, race: Pick<RaceRow, "id" | "se
         if (row!.seedMode) return row!;
         const mode = row!.entropy ? "final" : "server";
         const status = mode === "server" && !["void", "finalized"].includes(row!.status) ? "abandoned" : row!.status;
+        checkMove(gc.realToteRaceMachine, row!.status, status as gc.RealToteRaceStatus, race.id);
         const [next] = await tx.update(realToteRaces).set({ seedMode: mode, status, updatedAt: now }).where(eq(realToteRaces.raceId, race.id)).returning();
         await audit(tx, { actor: null, action: "real_tote.seed_mode", entityType: "race", entityId: race.id, data: { mode } });
         return next!;
@@ -345,7 +347,11 @@ export async function recordRealToteEvent(db: Db, ev: RealToteChainEvent, now: D
     const patch: Partial<RealToteRaceRow> = { updatedAt: now };
     const next = STATUS_AFTER[ev.kind];
     // An abandoned market (the race ran on its server seed) stays abandoned until it is voided.
-    if (next && !(rt.status === "abandoned" && next !== "void")) patch.status = next;
+    if (next && !(rt.status === "abandoned" && next !== "void")) {
+      // A mirror of the chain: an unexpected order is a bug to look at, never a reason to drop the event.
+      checkMove(gc.realToteRaceMachine, rt.status, next as gc.RealToteRaceStatus, rt.raceId);
+      patch.status = next;
+    }
     if (ev.kind === "EntropyLocked") patch.entropyBlock = Number(ev.data.entropyBlock);
     if (ev.kind === "EntropySealed" && !rt.seedMode) patch.entropy = String(ev.data.entropy).replace(/^0x/, "").toLowerCase();
     if (ev.kind === "MarketVoided") patch.voidReason = String(ev.data.reason ?? "");
@@ -546,6 +552,7 @@ export async function closeUnopenedRealToteRace(db: Db, raceId: string, now: Dat
   await runTx(db, async (tx) => {
     const [rt] = await tx.select().from(realToteRaces).where(eq(realToteRaces.raceId, raceId)).for("update");
     if (!rt || rt.status !== "pending" || now < rt.betsCloseAt) return;
+    checkMove(gc.realToteRaceMachine, rt.status, "void", raceId);
     await tx.update(realToteRaces).set({ status: "void", voidReason: "never_opened", updatedAt: now }).where(eq(realToteRaces.raceId, raceId));
     await audit(tx, { actor: null, action: "real_tote.never_opened", entityType: "race", entityId: raceId });
   });

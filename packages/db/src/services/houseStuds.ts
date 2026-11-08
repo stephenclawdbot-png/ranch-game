@@ -18,6 +18,7 @@
  */
 import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { gc, specFromGenome } from "../gameCore";
+import { checkMove } from "../machines";
 import { RULES, seasonNumberAt } from "../rules";
 import { horses } from "../schema";
 import type { Db } from "../types";
@@ -66,6 +67,7 @@ export async function ensureHouseStuds(db: Db, now: Date): Promise<{ created: nu
     let retired = 0;
     for (const h of all) {
       if (h.careerStatus !== "pasture" && h.breedingCount >= RULES.breedingLifetimeLimit) {
+        checkMove(gc.horseCareerMachine, h.careerStatus, "pasture", h.id);
         await tx.update(horses).set({ careerStatus: "pasture", pasturedAt: now, updatedAt: now }).where(eq(horses.id, h.id));
         retired++;
       }
@@ -76,6 +78,7 @@ export async function ensureHouseStuds(db: Db, now: Date): Promise<{ created: nu
     for (let n = all.length; n < all.length + Math.max(0, HOUSE_STUD_COUNT - available); n++) {
       const { spec, fee, rarity, rareColour } = houseStudSpec(n, season);
       const id = await insertHorse(tx, { stableId: null, spec, origin: "house", birthSeasonNumber: season, now });
+      checkMove(gc.horseCareerMachine, "racing", "retired", id); // inserted racing (the column default), retired to stand at stud
       await tx
         .update(horses)
         .set({ careerStatus: "retired", retirementReason: "choice", retiredAt: now, studFee: fee, dynamics: { houseStud: n, retiredAtStarts: 0 } })

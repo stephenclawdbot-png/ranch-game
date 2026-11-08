@@ -9,6 +9,7 @@ import { DomainError } from "../errors";
 import { careLog, horseLeaseListings, horses, pregnancies, trainingPlans, type HorseRow } from "../schema";
 import { RULES, stageFor } from "../rules";
 import { gc, isGenome, statePatch, toHorseState } from "../gameCore";
+import { checkMove } from "../machines";
 import type { Db, Executor } from "../types";
 import { recordPlayDay, stableOf } from "./accounts";
 import { grantCreditsTx, spendCreditsTx } from "./ledger";
@@ -239,6 +240,7 @@ export async function retireHorse(db: Db, input: { accountId: string; horseId: s
     const { horse } = await lockOwnedHorse(tx, input.accountId, input.horseId);
     if (horse.careerStatus !== "racing") throw new DomainError("HORSE_RETIRED", "already retired");
     if (horse.lockKind === "race") throw new DomainError("HORSE_LOCKED", "horse is entered in a race");
+    checkMove(gc.horseCareerMachine, horse.careerStatus, "retired", horse.id);
     const [h] = await tx
       .update(horses)
       .set({ careerStatus: "retired", retirementReason: "choice", retiredAt: input.now, updatedAt: input.now })
@@ -258,6 +260,7 @@ export async function moveToLegacyFarm(db: Db, input: { accountId: string; horse
     if (horse.careerStatus === "pasture") return horse;
     if (horse.lockKind) throw new DomainError("HORSE_LOCKED", "horse is entered in a race or listed");
     if (await isCarrying(tx, horse.id)) throw new DomainError("HORSE_IN_FOAL", "wait until she has foaled");
+    checkMove(gc.horseCareerMachine, horse.careerStatus, "pasture", horse.id);
     const [h] = await tx
       .update(horses)
       .set({

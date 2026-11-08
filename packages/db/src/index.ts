@@ -76,3 +76,4 @@ export * from "./services/push";
 export * from "./services/commentary";
 export * from "./services/engagement";
 export * from "./services/creditNotes";
+export { checkMove, fromStates, IllegalTransitionError } from "./machines";

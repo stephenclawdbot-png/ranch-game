@@ -11,6 +11,8 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
 import { DomainError, pgError } from "../errors";
 import { utcDay, utcWeekStart } from "../crypto";
+import { gc } from "../gameCore";
+import { checkMove, fromStates } from "../machines";
 import {
   accountPlayDays,
   accounts,
@@ -204,7 +206,8 @@ export const BETA_SKUS = {
 } as const;
 export type BetaSku = keyof typeof BETA_SKUS;
 
-export type ChainOrderStatus = "quoted" | "submitted" | "paid" | "fulfilled" | "expired" | "rejected";
+/** chain_orders.status: the lifecycle is game-core chainOrderMachine (docs/state-machines.md). */
+export type ChainOrderStatus = gc.ChainOrderStatus;
 
 export interface NewChainOrder {
   orderId: string;
@@ -346,10 +349,11 @@ export async function markOrderSubmitted(db: Db, input: { orderId: string; accou
   const [other] = await db.select({ orderId: chainOrders.orderId }).from(chainOrders).where(eq(chainOrders.txHash, txHash));
   if (other && other.orderId !== order.orderId) throw new DomainError("IDEMPOTENCY_CONFLICT", "That transaction paid another order.");
   if (order.status !== "quoted" && order.status !== "expired") return order;
+  checkMove(gc.chainOrderMachine, order.status, "submitted", order.id);
   const [row] = await db
     .update(chainOrders)
     .set({ status: "submitted", txHash, updatedAt: input.now })
-    .where(and(eq(chainOrders.id, order.id), inArray(chainOrders.status, ["quoted", "expired"])))
+    .where(and(eq(chainOrders.id, order.id), inArray(chainOrders.status, fromStates(gc.chainOrderMachine, "submitted"))))
     .returning();
   return row ?? (await getChainOrder(db, input.orderId))!;
 }
@@ -362,10 +366,14 @@ export async function clearOrderTx(db: Db, input: { orderId: string; error: stri
   await db
     .update(chainOrders)
     .set({ status: "quoted", txHash: null, error: input.error.slice(0, 500), updatedAt: input.now })
-    .where(and(eq(chainOrders.orderId, input.orderId.toLowerCase()), eq(chainOrders.status, "submitted")));
+    .where(and(eq(chainOrders.orderId, input.orderId.toLowerCase()), inArray(chainOrders.status, fromStates(gc.chainOrderMachine, "quoted"))));
 }
 
-/** Terminal states for orders that were never paid (deadline passed / tx rejected). */
+/**
+ * Orders that were never paid (deadline passed / tx rejected). The guard is the machine's sources
+ * of expired and rejected (quoted, submitted, expired); an expired order may be marked expired
+ * again (its error refreshed), a rejected one is never touched.
+ */
 export async function markOrderUnpaid(db: Db, input: { orderId: string; status: "expired" | "rejected"; error?: string; now: Date }): Promise<void> {
   await db
     .update(chainOrders)
@@ -396,6 +404,7 @@ export async function fulfilChainOrder(
   if (order.txHash && order.txHash !== txHash) throw new DomainError("IDEMPOTENCY_CONFLICT", "order paid by a different transaction");
   if (order.status === "rejected") throw new DomainError("NOT_ELIGIBLE", "order was rejected");
   if (order.status !== "paid" && order.status !== "fulfilled") {
+    checkMove(gc.chainOrderMachine, order.status, "paid", order.id);
     await db
       .update(chainOrders)
       .set({
@@ -407,7 +416,7 @@ export async function fulfilChainOrder(
         poolShareWei: input.split?.poolShareWei.toString() ?? null,
         treasuryWei: input.split?.treasuryWei.toString() ?? null,
       })
-      .where(and(eq(chainOrders.id, order.id), inArray(chainOrders.status, ["quoted", "submitted", "expired"])));
+      .where(and(eq(chainOrders.id, order.id), inArray(chainOrders.status, fromStates(gc.chainOrderMachine, "paid"))));
     await audit(db, { actor: order.accountId, action: "chain_order.paid", entityType: "chain_order", entityId: order.id, data: { txHash, priceWei: order.priceWei } });
   }
   const sku = BETA_SKUS[order.sku as BetaSku];
@@ -425,6 +434,7 @@ export async function fulfilChainOrder(
     );
   }
   const wasFulfilled = order.status === "fulfilled";
+  checkMove(gc.chainOrderMachine, wasFulfilled ? "fulfilled" : "paid", "fulfilled", order.id);
   const [row] = await db
     .update(chainOrders)
     .set({ status: "fulfilled", txHash, pullIds: pulls.map((p) => p.pullId), fulfilledAt: order.fulfilledAt ?? input.now, updatedAt: input.now })
@@ -772,7 +782,7 @@ export async function markEpochPosted(db: Db, input: { id: string; txHash: strin
   const [row] = await db
     .update(poolEpochs)
     .set({ status: "posted", txHash: input.txHash?.toLowerCase() ?? null, postedAt: input.now })
-    .where(and(eq(poolEpochs.id, input.id), eq(poolEpochs.status, "draft")))
+    .where(and(eq(poolEpochs.id, input.id), inArray(poolEpochs.status, fromStates(gc.poolEpochMachine, "posted"))))
     .returning();
   if (row) return row;
   const cur = await getEpochRow(db, input.id);
@@ -780,8 +790,9 @@ export async function markEpochPosted(db: Db, input: { id: string; txHash: strin
   throw new DomainError("NOT_FOUND", "epoch draft not found");
 }
 
+/** Drops a draft epoch. A posted epoch (its root is on chain) is never cancelled. */
 export async function markEpochCancelled(db: Db, input: { id: string }): Promise<void> {
-  await db.update(poolEpochs).set({ status: "cancelled" }).where(eq(poolEpochs.id, input.id));
+  await db.update(poolEpochs).set({ status: "cancelled" }).where(and(eq(poolEpochs.id, input.id), inArray(poolEpochs.status, fromStates(gc.poolEpochMachine, "cancelled"))));
 }
 
 /** A wallet's POSTED allocations (with proofs), newest first. */
