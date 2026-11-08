@@ -579,3 +579,4 @@ export function purseShares(purse: number, runners: number): number[] {
   if (runners > 0) prizes[0] = (prizes[0] ?? 0) + (purse - paid);
   return prizes;
 }
+export * from "./machine";
