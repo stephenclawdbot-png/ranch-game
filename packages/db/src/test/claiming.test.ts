@@ -213,7 +213,7 @@ describe("claiming races: entering", () => {
     const young = await makeHorse(h.db, s.stableId, { tradeMinStarts: 5, starts: 2 });
     await expect(tryEnter(young.id)).rejects.toMatchObject({ code: "HORSE_BOUND" });
     const offered = await makeHorse(h.db, s.stableId);
-    await h.db.insert(horseLeaseListings).values({ horseId: offered.id, ownerStableId: s.stableId, termDays: 7, ownerSharePct: 50, expiresAt: at(DAY) });
+    await h.db.insert(horseLeaseListings).values({ horseId: offered.id, ownerStableId: s.stableId, termDays: 7, ownerSharePct: 50, createdAt: T0, expiresAt: at(DAY) });
     await expect(tryEnter(offered.id)).rejects.toMatchObject({ code: "HORSE_LOCKED" });
     const leasedOut = await makeHorse(h.db, s.stableId);
     const lessee = await newPlayer(h.db);

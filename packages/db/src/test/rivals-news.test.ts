@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
+import { BROADCAST_DELAY_S } from "@thoroughbred/shared";
 import type { DbHandle } from "../client";
 import { horses, inboxItems, newsItems, raceTargets } from "../schema";
 import { gc } from "../gameCore";
@@ -113,7 +114,7 @@ describe("rivals and head-to-head", () => {
     const runs = [];
     for (let d = 0; d < 3; d++) runs.push(await race([{ accountId: a.accountId, horseId: a1.id }, { accountId: b.accountId, horseId: b1.id }], { order: [b1.id, a1.id], margins: [100], day: 20 + d, kind: "feature", name: `Saltmarsh Feature ${d}` }));
     const last = runs[2]!;
-    expect(resultPublicAt(last.race, { finishOrder: [{ finishTimeUs: FINISH_US }] }).getTime()).toBe(last.race.postTime.getTime() + 2_000 + 70_000 + 2_750);
+    expect(resultPublicAt(last.race, { finishOrder: [{ finishTimeUs: FINISH_US }] }).getTime()).toBe(last.race.postTime.getTime() + BROADCAST_DELAY_S * 1000 + 70_000 + 2_750);
     // settled, but the broadcast is still running: no rival, no line, no news
     expect((await rivalsView(h.db, a.stableId, last.now)).rivals).toEqual([]);
     expect((await rivalsView(h.db, a.stableId, last.after)).rivals.map((r) => r.stableId)).toEqual([b.stableId]);
