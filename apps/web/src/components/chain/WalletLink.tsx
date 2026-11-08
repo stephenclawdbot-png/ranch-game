@@ -6,6 +6,7 @@
  * verified wallet on the server (GET /api/wallet).
  */
 import { useCallback, useEffect, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import type { Hex } from "viem";
 import { addressUrl } from "@/lib/chain/chains";
 import { shortAddress } from "@/lib/chain/format";
@@ -23,7 +24,7 @@ interface Status {
 }
 
 async function post<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+  const res = await fetchTimed(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
   const data = (await res.json().catch(() => ({}))) as T & { message?: string };
   if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
   return data;

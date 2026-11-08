@@ -8,6 +8,8 @@ import { useEffect, useSyncExternalStore } from "react";
 import type { Silks } from "@thoroughbred/shared";
 import type { ApiError, PlayerView, StableHorse } from "./types";
 import { conditionRating } from "./aptitude";
+import { LOAD_MACHINE, type LoadStatus } from "./machines/load";
+import { moveOr } from "./machines/guard";
 
 export type PlayerState = PlayerView;
 
@@ -53,18 +55,43 @@ export function setPlayer(v: PlayerView | null): void {
   emit();
 }
 
-/** Fetches the player from the server (deduplicated). */
+/**
+ * Where the last /api/me fetch stands (LOAD_MACHINE: loading -> ready | failed, failed -> loading).
+ * Screens that wait for the player (found a stable, sign in) show Try again when it failed
+ * before any answer arrived, instead of a blank page that never fills.
+ */
+let loadStatus: LoadStatus = "loading";
+
+function setLoadStatus(to: LoadStatus): void {
+  const next = moveOr(LOAD_MACHINE, loadStatus, to, "player:/api/me");
+  if (next === loadStatus) return;
+  loadStatus = next;
+  emit();
+}
+
+/** Fetches the player from the server (deduplicated; gives up after API_TIMEOUT_MS). */
 export function refreshPlayer(): Promise<PlayerView | null> {
-  inflight ??= fetch("/api/me", { cache: "no-store" })
-    .then(async (r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const { player } = (await r.json()) as { player: PlayerView | null };
-      setPlayer(player);
-      return player;
-    })
-    .finally(() => {
-      inflight = null;
-    });
+  if (!inflight) {
+    setLoadStatus("loading");
+    const ctrl = typeof AbortController === "undefined" ? null : new AbortController();
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), API_TIMEOUT_MS) : null;
+    inflight = fetch("/api/me", { cache: "no-store", ...(ctrl ? { signal: ctrl.signal } : {}) })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { player } = (await r.json()) as { player: PlayerView | null };
+        setPlayer(player);
+        setLoadStatus("ready");
+        return player;
+      })
+      .catch((e: unknown) => {
+        setLoadStatus("failed");
+        throw e;
+      })
+      .finally(() => {
+        if (timer) clearTimeout(timer);
+        inflight = null;
+      });
+  }
   return inflight;
 }
 
@@ -103,6 +130,24 @@ export function usePlayerState(opts: { pollMs?: number } = {}): PlayerState | nu
 
 export function getPlayerState(): PlayerState | null | undefined {
   return current;
+}
+
+/**
+ * True when the player is still unknown (no answer and no cached copy) and the last /api/me
+ * failed or timed out: show a "Couldn't reach the track" with Try again (`retryPlayer`).
+ */
+export function usePlayerLoadFailed(): boolean {
+  return useSyncExternalStore<boolean>(subscribe, () => current === undefined && loadStatus === "failed", () => false);
+}
+
+/** Where the last /api/me fetch stands (LOAD_MACHINE). */
+export function playerLoadStatus(): LoadStatus {
+  return loadStatus;
+}
+
+/** Try again after `usePlayerLoadFailed`. */
+export function retryPlayer(): void {
+  refreshPlayer().catch(() => undefined);
 }
 
 // ---------------------------------------------------------------------------

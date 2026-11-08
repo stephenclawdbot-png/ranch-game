@@ -4,6 +4,7 @@
  * miss it?" Very / Somewhat / Not really, plus an optional why. Sent as feedback "miss_it".
  */
 import { useEffect, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 
 const CHOICES = [
   { rating: 3, label: "Very much" },
@@ -37,7 +38,7 @@ export function MissItCard() {
     if (rating === null) return;
     setState("sending");
     try {
-      const res = await fetch("/api/feedback", {
+      const res = await fetchTimed("/api/feedback", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ category: "miss_it", rating, message: why.trim() || "(no reason given)", route: "/" }),

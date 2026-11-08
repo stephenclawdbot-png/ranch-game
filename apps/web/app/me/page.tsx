@@ -3,6 +3,7 @@
 import { LoginCodeCard } from "@/components/chain/LoginCodeCard";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
 import { PlayerGate } from "@/components/PlayerGate";
@@ -256,7 +257,8 @@ function StablePhotoCard({ state }: { state: PlayerState }) {
     try {
       const form = new FormData();
       form.append("photo", file);
-      const res = await fetch("/api/account/photo", { method: "POST", body: form });
+      // An upload on a slow phone connection gets longer than a plain call.
+      const res = await fetchTimed("/api/account/photo", { method: "POST", body: form }, 90_000);
       const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
       if (!res.ok) throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? "That photo didn't upload. Try another image.");
       await refreshPlayer(); // the badge reads photoUrl from the player state
@@ -271,7 +273,7 @@ function StablePhotoCard({ state }: { state: PlayerState }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/account/photo", { method: "DELETE" });
+      const res = await fetchTimed("/api/account/photo", { method: "DELETE" });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
         throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? "That didn't work. Try again in a moment.");

@@ -24,6 +24,10 @@ import { WalletLink, useWalletStatus } from "./WalletLink";
 const practiceDollars = usdgDisplay(true).dollars;
 import { WalletPicker } from "./WalletPicker";
 import { useWallet } from "./useWallet";
+import { fetchTimed } from "@/lib/fetchTimed";
+import { moveOr } from "@/lib/machines/guard";
+import { CHECKOUT_MACHINE, CONFIRM_GIVE_UP_MS, type CheckoutPhase } from "@/lib/machines/checkout";
+import { useSubmit } from "@/lib/machines/useSubmit";
 
 interface OrderView {
   orderId: string;
@@ -67,7 +71,8 @@ interface Quote {
 type SettleResult = { status: "fulfilled"; pullIds: string[] } | { status: "pending" | "paid_waiting" | "rejected"; reason: string };
 
 async function call<T>(url: string, body?: unknown): Promise<T> {
-  const res = await fetch(url, {
+  // Gives up after the API timeout: no "Getting a price…" / "Opening…" that never ends.
+  const res = await fetchTimed(url, {
     method: body === undefined ? "GET" : "POST",
     headers: body === undefined ? undefined : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -107,7 +112,9 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
   const [st, setSt] = useState<CheckoutStatus | null>(null);
   const [qty, setQty] = useState(1);
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [phase, setPhase] = useState<"idle" | "quoting" | "quoted" | "paying" | "confirming" | "done">("idle");
+  // CHECKOUT_MACHINE: every move is checked (an illegal one throws in dev, is ignored in production).
+  const [phase, setPhaseRaw] = useState<CheckoutPhase>("idle");
+  const setPhase = useCallback((to: CheckoutPhase) => setPhaseRaw((from) => moveOr(CHECKOUT_MACHINE, from, to, "PremiumCheckout")), []);
   const [tx, setTx] = useState<Hex | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -115,11 +122,21 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
   const w = useWallet();
   const { status: wallet, reload: reloadWallet } = useWalletStatus();
   const requoted = useRef<string | null>(null);
+  /** False once unmounted: the confirming loop stops (it resumes from the saved order next visit). */
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const confirm = useCallback(
     async (orderId: string, txHash: string) => {
       setPhase("confirming");
-      for (let i = 0; i < 90; i++) {
+      const giveUpAt = Date.now() + CONFIRM_GIVE_UP_MS;
+      for (let i = 0; i < 90 && Date.now() < giveUpAt; i++) {
+        if (!alive.current) return;
         try {
           const r = await call<SettleResult>("/api/checkout/confirm", { orderId, txHash });
           if (r.status === "fulfilled") {
@@ -142,7 +159,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
       setMsg("Still waiting for the network. Your order is saved: reload this page later and it will finish.");
       setPhase("idle");
     },
-    [onFulfilled],
+    [onFulfilled, setPhase],
   );
 
   // Status + resume pending orders after a reload.
@@ -177,7 +194,7 @@ export function PremiumCheckout({ weeklyLeft, stallsFree, onFulfilled }: { weekl
       setMsg((e as Error).message);
       setPhase("idle");
     }
-  }, [qty]);
+  }, [qty, setPhase]);
 
   // Auto re-quote once when the quote expires (the price may have moved).
   useEffect(() => {
@@ -317,31 +334,34 @@ function PracticePackCheckout({
   onFulfilled: (pullIds: string[]) => void;
 }) {
   const [qty, setQty] = useState(1);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  // Buying: SUBMIT_MACHINE (idle -> submitting -> done | failed; "Buy another" resets to idle).
+  const buying = useSubmit();
+  const busy = buying.busy;
+  const msg = buying.status === "failed" ? ((buying.error as Error | null)?.message ?? null) : null;
+  const done = buying.status === "done";
   const [balance, setBalance] = useState<number | null>(st.practiceBalance);
-  const [done, setDone] = useState(false);
   const [leftCents, setLeftCents] = useState(st.lifetimeLeftCents);
+  /**
+   * One key per intended purchase (quantity): a retry after a timeout or a network error reuses it,
+   * so a purchase that went through can't be charged twice. A new key after a success.
+   */
+  const intent = useRef<{ qty: number; key: string } | null>(null);
   const price = (n: number) => practiceDollars(practiceUsdgFromUsdCents(st.packUsdCents * n));
   const lifetimeLeft = Math.floor(leftCents / st.packUsdCents);
   const affordable = balance === null ? 0 : Math.floor(balance / practiceUsdgFromUsdCents(st.packUsdCents));
   const maxQty = Math.max(0, Math.min(10, weeklyLeft, stallsFree, lifetimeLeft, affordable));
 
-  async function buy() {
-    setBusy(true);
-    setMsg(null);
-    try {
-      const key = `pp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-      const r = await call<{ pullIds: string[]; balance: number }>("/api/checkout/practice", { sku: "premium_pack", quantity: qty, clientKey: key });
+  function buy() {
+    const n = qty;
+    if (!intent.current || intent.current.qty !== n) intent.current = { qty: n, key: `pp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}` };
+    const key = intent.current.key;
+    void buying.run(async () => {
+      const r = await call<{ pullIds: string[]; balance: number }>("/api/checkout/practice", { sku: "premium_pack", quantity: n, clientKey: key });
+      intent.current = null;
       setBalance(r.balance);
-      setLeftCents((c) => Math.max(0, c - st.packUsdCents * qty));
-      setDone(true);
+      setLeftCents((c) => Math.max(0, c - st.packUsdCents * n));
       onFulfilled(r.pullIds);
-    } catch (e) {
-      setMsg((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   return (
@@ -368,7 +388,7 @@ function PracticePackCheckout({
           {done ? (
             <p className="font-bold text-cream" data-testid="checkout-done">
               ✓ Paid with T-USDG. Your new horse{qty > 1 ? "s are" : " is"} in your stable, ready to race.{" "}
-              <button type="button" className="underline" onClick={() => setDone(false)}>
+              <button type="button" className="underline" onClick={buying.reset}>
                 Buy another
               </button>
             </p>

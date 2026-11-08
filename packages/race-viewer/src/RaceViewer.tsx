@@ -44,6 +44,7 @@ import type { TracksideScene as TracksideSceneT } from "./trackside/TracksideSce
 import { clothOffByUrl, saddleClothOf } from "./cloth";
 import { firstSheetsAt } from "./trackside/firstSheets";
 import { PHONE_PX, closeUpByUrl, phoneLayoutByUrl } from "./phone";
+import { SLOW_LOAD_MS, VIEWER_LOAD_MACHINE, viewerMove, type ViewerLoad } from "./machines";
 
 type AnyScene = HD2DSceneT | TracksideSceneT;
 const VIEW_KEY = "rv:view";
@@ -466,8 +467,23 @@ export function RaceViewer(props: RaceViewerProps) {
   onFinishedRef.current = onFinished;
   const finishedFired = useRef(false);
   const scrubbing = useRef<{ wasPlaying: boolean } | null>(null);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // VIEWER_LOAD_MACHINE (machines.ts): loading -> ready | slow | failed; slow and failed offer Try again.
+  const [load, setLoadRaw] = useState<ViewerLoad>("loading");
+  const setLoad = useCallback((to: ViewerLoad) => setLoadRaw((from) => viewerMove(VIEWER_LOAD_MACHINE, from, to, "RaceViewer")), []);
+  const ready = load === "ready";
+  const failed = load === "failed";
+  /** Bumped by Try again: the scene effect runs again from the start. */
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const retryLoad = useCallback(() => {
+    setLoad("loading");
+    setLoadAttempt((n) => n + 1);
+  }, [setLoad]);
+  useEffect(() => {
+    if (load !== "loading") return;
+    // Only from loading: the picture may have come up in the same tick as the timer.
+    const t = setTimeout(() => setLoadRaw((from) => (from === "loading" ? viewerMove(VIEWER_LOAD_MACHINE, from, "slow", "RaceViewer") : from)), SLOW_LOAD_MS);
+    return () => clearTimeout(t);
+  }, [load]);
   const [width, setWidth] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [hud, setHud] = useState<HudState | null>(null);
@@ -1053,7 +1069,7 @@ export function RaceViewer(props: RaceViewerProps) {
       });
       ro.observe(stage);
       setWidth(w0);
-      setReady(true);
+      setLoad("ready");
 
       cleanup = () => {
         cancelAnimationFrame(raf);
@@ -1069,16 +1085,16 @@ export function RaceViewer(props: RaceViewerProps) {
       };
     })().catch((err) => {
       console.error("[RaceViewer] failed to start renderer", err);
-      setFailed(true);
+      if (!disposed) setLoad("failed");
     });
     return () => {
       disposed = true;
       cleanup();
-      setReady(false);
+      setLoad("loading");
     };
     // quality changes are applied live below; debug only gates the overlay text.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course, raceStage, injured, clothOn]);
+  }, [initialFinal, live, highlightHorseId, artBaseUrl, pixelated, view, course, raceStage, injured, clothOn, loadAttempt]);
 
   // Unmount: send a report for viewers that left before the 20 s mark (>= 150 frames drawn).
   useEffect(() => () => sendPerfReport(), [sendPerfReport]);
@@ -1253,10 +1269,26 @@ export function RaceViewer(props: RaceViewerProps) {
       <div className="rv-stage" ref={stageRef} style={stageStyle}>
         <div className="rv-canvas" ref={canvasHostRef} />
         {!ready && (
-          <div className={failed ? "rv-loading rv-failed" : "rv-loading"}>
-            {failed
-              ? "The race picture couldn't start in this browser. Close every Post Time tab and restart the browser; if it still happens, turn on graphics (hardware) acceleration in the browser's settings. The race and its result are safe either way."
-              : "Loading race…"}
+          <div className={failed || load === "slow" ? "rv-loading rv-failed" : "rv-loading"} data-rv-load={load}>
+            {failed ? (
+              <div>
+                <p>
+                  The race picture couldn&apos;t start in this browser. Close every Post Time tab and restart the browser; if it still happens, turn on graphics (hardware) acceleration in the browser&apos;s settings. The race and its result are safe either way.
+                </p>
+                <button type="button" className="rv-btn rv-retry" onClick={retryLoad}>
+                  Try again
+                </button>
+              </div>
+            ) : load === "slow" ? (
+              <div>
+                <p>Loading race… This is taking longer than usual. It carries on loading; the race and its result are safe either way.</p>
+                <button type="button" className="rv-btn rv-retry" onClick={retryLoad}>
+                  Try again
+                </button>
+              </div>
+            ) : (
+              "Loading race…"
+            )}
           </div>
         )}
         {h && !finaleRunning && !preHud && (

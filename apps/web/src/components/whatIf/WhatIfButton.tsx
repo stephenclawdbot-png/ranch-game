@@ -7,6 +7,7 @@
  * never a result (no credits, rating or form).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import { STYLE_LABEL, ordinal } from "@/lib/format";
 import { ApiFailure, api } from "@/lib/player";
 import { INTENSITY_WORD, WHAT_IF_PER_HOUR, changeKey, parseChangeKey, type WhatIfChange, type WhatIfExtra, type WhatIfOptionsView, type WhatIfView } from "@/lib/whatIf";
@@ -29,7 +30,7 @@ export function WhatIfButton({ raceId, horseId, horseName, className = "btn btn-
   const load = useCallback(async () => {
     setState({ kind: "loading" });
     try {
-      const res = await fetch(`/api/races/${encodeURIComponent(raceId)}/what-if?horseId=${encodeURIComponent(horseId)}`, { cache: "no-store" });
+      const res = await fetchTimed(`/api/races/${encodeURIComponent(raceId)}/what-if?horseId=${encodeURIComponent(horseId)}`, { cache: "no-store" });
       const data = (await res.json().catch(() => ({}))) as WhatIfOptionsView & { message?: string };
       if (!res.ok) throw new Error(data.message ?? "What if? isn't available for this race.");
       setState({ kind: "pick", options: data, busy: false, error: null });

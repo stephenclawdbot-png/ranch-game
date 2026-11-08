@@ -19,6 +19,12 @@ import { JoinNudge } from "../PlayerGate";
 import { SilksIcon } from "../Silks";
 import { HashValue } from "../ui/HashValue";
 import { EmptyState, HowItWorks } from "../ui/Page";
+import { fetchTimed } from "@/lib/fetchTimed";
+import { pushSure } from "@/lib/navigate";
+import { useSubmit, type Submit } from "@/lib/machines/useSubmit";
+
+/** The message of a failed submit flow (null otherwise), for the panels' one-line errors. */
+const failedText = (s: Submit): string | null => (s.status === "failed" ? ((s.error as Error | null)?.message ?? "That didn't run. Try again.") : null);
 
 export type QuickTab = "daily" | "match" | "ghost";
 const TABS: QuickTab[] = ["daily", "match", "ghost"];
@@ -30,8 +36,9 @@ const INTENSITIES: { v: Intensity; label: string; sub: string }[] = [
 ];
 const GRADES: JockeyGrade[] = ["A", "B", "C", "D", "E"];
 
+/** Runs a quick race on the server (gives up after the API timeout with a "try again"). */
 async function post(url: string, body: unknown): Promise<{ id: string }> {
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetchTimed(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const data = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
   if (!res.ok || !data.id) throw new Error(data.message ?? "That didn't run. Try again.");
   return { id: data.id };
@@ -117,18 +124,16 @@ function Remaining({ left, perDay, what }: { left: number; perDay: number; what:
 function DailyPanel({ d, signedIn, skew }: { d: DailyView; signedIn: boolean; skew: number }) {
   const router = useRouter();
   const [plan, setPlan] = useState<DailyRequest>({ tactic: d.horse.style, intensity: "normal", grade: "C" });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  async function ride() {
-    setBusy(true);
-    setError(null);
-    try {
+  // SUBMIT_MACHINE: idle -> submitting -> leaving (the race page) | failed.
+  const riding = useSubmit();
+  const busy = riding.busy;
+  const error = failedText(riding);
+  function ride() {
+    void riding.run(async () => {
       const { id } = await post("/api/quick/daily", plan);
-      router.push(`/quick/${id}`);
-    } catch (e) {
-      setError((e as Error).message);
-      setBusy(false);
-    }
+      pushSure(router, `/quick/${id}`);
+      return "leaving";
+    });
   }
   const dateLabel = new Date(d.opensAtMs).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
   return (
@@ -353,8 +358,10 @@ function MatchPanel({ v, initialHorse, initialVs }: { v: QuickHubView; initialHo
   const [surface, setSurface] = useState<Surface>(horse?.surface && course.surfaces.includes(horse.surface) ? horse.surface : course.surfaces[0]!);
   const [distanceM, setDistanceM] = useState(() => (horse ? nearest(v.trips, horse.bestTripM) : 1600));
   const [going, setGoing] = useState<(typeof v.goings)[number]>("good");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // SUBMIT_MACHINE: idle -> submitting -> leaving (the race page) | failed.
+  const racing = useSubmit();
+  const busy = racing.busy;
+  const error = failedText(racing);
   const max = v.match.fieldMax - 1;
 
   // A challenge from a horse page, the racecard or a stable page: preload that horse.
@@ -381,16 +388,12 @@ function MatchPanel({ v, initialHorse, initialVs }: { v: QuickHubView; initialHo
   }
   const goingFor = (s: Surface) => (s === "synthetic" ? "good" : going);
 
-  async function race() {
-    setBusy(true);
-    setError(null);
-    try {
+  function race() {
+    void racing.run(async () => {
       const { id } = await post("/api/quick/match", { horseId, opponentIds: opponents.map((o) => o.id), courseId, distanceM, surface, going: goingFor(surface), tactic });
-      router.push(`/quick/${id}`);
-    } catch (e) {
-      setError((e as Error).message);
-      setBusy(false);
-    }
+      pushSure(router, `/quick/${id}`);
+      return "leaving";
+    });
   }
 
   if (!v.signedIn) return <JoinNudge compact />;
@@ -527,20 +530,19 @@ function GhostPanel({ v, initialHorse }: { v: QuickHubView; initialHorse?: strin
   const horse = v.horses.find((h) => h.id === horseId);
   const [tactic, setTactic] = useState<RunningStyle>(horse?.style ?? "stalker");
   const [raceId, setRaceId] = useState<string | null>(v.ghost.sources[0]?.raceId ?? null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // SUBMIT_MACHINE: idle -> submitting -> leaving (the race page) | failed.
+  const racing = useSubmit();
+  const busy = racing.busy;
+  const error = failedText(racing);
 
-  async function run() {
+  function run() {
     if (!raceId) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const { id } = await post("/api/quick/ghost", { horseId, raceId, tactic });
-      router.push(`/quick/${id}`);
-    } catch (e) {
-      setError((e as Error).message);
-      setBusy(false);
-    }
+    const ghostOf = raceId;
+    void racing.run(async () => {
+      const { id } = await post("/api/quick/ghost", { horseId, raceId: ghostOf, tactic });
+      pushSure(router, `/quick/${id}`);
+      return "leaving";
+    });
   }
 
   if (!v.signedIn) return <JoinNudge compact />;

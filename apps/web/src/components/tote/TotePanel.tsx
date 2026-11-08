@@ -11,6 +11,7 @@
  */
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import * as gc from "@thoroughbred/game-core";
 import type { MyToteBet, MyToteRace, ToteAuditRow, ToteBoard } from "@thoroughbred/db";
 import { refreshPlayer } from "@/lib/player";
@@ -268,6 +269,7 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
   const [placed, setPlaced] = useState<string | null>(null);
   const [adultTick, setAdultTick] = useState(false);
   const [dayLimit, setDayLimit] = useState("");
+  const betIntent = useRef<{ slip: string; key: string } | null>(null);
 
   const view = board?.pools.find((p) => p.currency === currency) ?? board?.pools[0];
   const poolView = view ? (pool === "place" ? view.place : view.win) : null;
@@ -291,14 +293,20 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
     setBusy(true);
     setError(null);
     setPlaced(null);
+    // One key per intended bet: a Try again after a timeout or a network error reuses it, so a
+    // bet that went through isn't placed twice. A new key once it's placed or the slip changes.
+    const slip = `${horseId}|${pool}|${currency}|${units}`;
+    if (betIntent.current?.slip !== slip) betIntent.current = { slip, key: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` };
+    const clientKey = betIntent.current.key;
     try {
-      const res = await fetch(`/api/races/${encodeURIComponent(raceId)}/tote/bet`, {
+      const res = await fetchTimed(`/api/races/${encodeURIComponent(raceId)}/tote/bet`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ horseId, pool, currency, stake: units, clientKey: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` }),
+        body: JSON.stringify({ horseId, pool, currency, stake: units, clientKey }),
       });
       const body = (await res.json().catch(() => null)) as { me?: MyToteRace; message?: string } | null;
       if (!res.ok || !body?.me) throw new Error(body?.message ?? `Couldn't place the bet (HTTP ${res.status}).`);
+      betIntent.current = null;
       setMe({ signedIn: true, me: body.me });
       setPlaced(`${gc.formatToteAmount(currency, units)} on ${selected?.name ?? "your pick"} to ${pool === "win" ? "win" : "place"}.`);
       setStake("");
@@ -312,7 +320,7 @@ export function TotePanel({ raceId, reveal = true }: { raceId: string; reveal?: 
   }
 
   async function settings(body: unknown) {
-    const res = await fetch("/api/me/betting", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const res = await fetchTimed("/api/me/betting", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     if (!res.ok) throw new Error("Couldn't save that. Try again.");
   }
 

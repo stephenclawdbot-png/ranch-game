@@ -8,6 +8,7 @@
  */
 import Link from "next/link";
 import { useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import type { HorseLogEntryView, HorseLogView } from "@/lib/types";
 import { logEntryText, type LogTone } from "@/lib/formBook";
 import { PositionBadge } from "../ui/PositionBadge";
@@ -80,7 +81,7 @@ export function HorseLog({ horseId, initial, numbers = false }: { horseId: strin
     setBusy(true);
     setFailed(false);
     try {
-      const res = await fetch(`/api/horses/${horseId}/log?cursor=${encodeURIComponent(next)}`, { cache: "no-store" });
+      const res = await fetchTimed(`/api/horses/${horseId}/log?cursor=${encodeURIComponent(next)}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const page = (await res.json()) as HorseLogView;
       setEntries((cur) => cur.concat(page.entries));

@@ -11,6 +11,7 @@ import { MentorLine } from "../onboarding/Mentor";
 import { ActionBar } from "../ui/ActionBar";
 import { ErrorNote } from "../ui/ErrorNote";
 import { pushSure } from "@/lib/navigate";
+import { useSubmit } from "@/lib/machines/useSubmit";
 
 /**
  * The result in one breath (first-hour playtest): Wilf says why it went that way in one sentence,
@@ -37,25 +38,25 @@ export function Verdict({
   chapterRaceKey?: string | null;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // Try the change: SUBMIT_MACHINE (idle -> submitting -> leaving | failed).
+  const entering = useSubmit();
+  const busy = entering.busy;
+  const error = entering.status === "failed" ? entering.error : null;
   const c = story.change;
   const runner = c?.kind === "fresh_horse" ? fresh : horse;
   const block = runner?.block ?? null;
 
-  async function go() {
+  function go() {
     if (!c || !runner) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const plan = { tactic: c.kind === "tactic" && c.tactic ? c.tactic : c.kind === "fresh_horse" ? runner.horse.style : tactic, intensity: "normal" as const };
-      const suited = c.kind === "suited";
-      const { raceId } = chapterRaceKey ? await followUpChapterRace(chapterRaceKey, runner.id, plan, { suited }) : await enterStoryRace(runner.id, plan, suited ? { suited: true } : {});
+    const change = c;
+    const horse = runner;
+    void entering.run(async () => {
+      const plan = { tactic: change.kind === "tactic" && change.tactic ? change.tactic : change.kind === "fresh_horse" ? horse.horse.style : tactic, intensity: "normal" as const };
+      const suited = change.kind === "suited";
+      const { raceId } = chapterRaceKey ? await followUpChapterRace(chapterRaceKey, horse.id, plan, { suited }) : await enterStoryRace(horse.id, plan, suited ? { suited: true } : {});
       pushSure(router, `/race/${raceId}`);
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
+      return "leaving";
+    });
   }
 
   return (

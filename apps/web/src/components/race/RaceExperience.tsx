@@ -3,7 +3,7 @@
 import { trackClient } from "@/lib/telemetry";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { InjuryCard, MyRaceResult, RaceCard } from "@/lib/types";
 import { fitCheck } from "@/lib/aptitude";
 import { useClockSkew, useNow } from "@/lib/clock";
@@ -41,14 +41,19 @@ import { CoachMark } from "../onboarding/CoachMark";
 import { FeatureGate } from "../onboarding/FeatureGate";
 import { PlainNote, Term } from "../onboarding/Term";
 import { plainRace } from "@/lib/plain";
+import { fetchTimed } from "@/lib/fetchTimed";
+import { useLoad } from "@/lib/machines/useLoad";
+import { checkPhaseMove, finaleNext, racePhase, type FinaleStage, type RacePhase } from "@/lib/machines/racePage";
 
-type Phase = "loading" | "pre" | "live" | "result";
+type Phase = RacePhase;
 
 /**
  * The viewer takes over the stage this long before the off (ms): its build-up (paddock, going
  * down to post, loading the stalls; ~24 s) plays to the real clock, with a few seconds to load.
  */
 const BUILD_UP_LEAD_MS = 32_000;
+/** Your settled result: retried after 2, 5, 10 and 20 s if the first fetch fails. */
+const SETTLEMENT_RETRY = { retryMs: [2000, 5000, 10_000, 20_000] } as const;
 
 /**
  * The race page is a live broadcast: the client only ever holds the race up to "now"
@@ -76,12 +81,17 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   /** The complete replay (result + seed): only present once the race is over on the broadcast clock. */
   const replay = feed?.final ?? null;
 
-  const [settlement, setSettlement] = useState<Settlement | null>(null);
-
   const mine = card.field.find((e) => e.mine) ?? null;
   const highlightHorseId = mine?.horse.id;
 
-  const phase: Phase = now === null ? "loading" : replay ? "result" : now < localPost ? "pre" : "live";
+  // RACE_PAGE_MACHINE (src/lib/machines/racePage.ts): derived from the clock and the feed, moves checked per race.
+  const phase: Phase = racePhase(now, !!replay, localPost);
+  const lastPhase = useRef<{ raceId: string; phase: Phase } | null>(null);
+  useEffect(() => {
+    const last = lastPhase.current;
+    if (last && last.raceId === card.id && last.phase !== phase) checkPhaseMove(last.phase, phase);
+    lastPhase.current = { raceId: card.id, phase };
+  }, [phase, card.id]);
   // The header pill and tab title count to the off the broadcast shows (post time + the broadcast
   // delay, on the feed's server-synced clock), the same moment as the viewer's own countdown.
   const offAt = broadcastOffAt(localPost, feed?.broadcastStartMs);
@@ -129,12 +139,15 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   // The finish as an event plays in the stage first (photograph, replay, weighed in, the placed
   // horses' cards); the result board and credits below wait for it when the race was watched
   // live. If the viewer never starts it (paused, skipped ahead), they show after a few seconds.
-  const [finale, setFinale] = useState<"pending" | "running" | "done">("pending");
+  // FINALE_MACHINE: pending -> running -> done (or pending -> done); done stays done, so replaying
+  // the finale in the viewer doesn't hide the results again.
+  const [finale, setFinaleRaw] = useState<FinaleStage>("pending");
+  const setFinale = useCallback((report: "running" | "done") => setFinaleRaw((f) => finaleNext(f, report)), []);
   useEffect(() => {
     if (phase !== "result" || finale !== "pending") return;
-    const t = setTimeout(() => setFinale((f) => (f === "pending" ? "done" : f)), 6000);
+    const t = setTimeout(() => setFinale("done"), 6000);
     return () => clearTimeout(t);
-  }, [phase, finale]);
+  }, [phase, finale, setFinale]);
   const holdResults = phase === "result" && sawLive.current && finale !== "done";
   // The finale's cards: each runner's stable (name and photo) and jockey from the racecard.
   const connections = useMemo(
@@ -146,23 +159,20 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   );
   const mineIds = useMemo(() => card.field.filter((e) => e.mine).map((e) => e.horse.id), [card.field]);
 
-  // Your result comes from the server (settled there, once); this only shows it.
-  useEffect(() => {
-    if (phase !== "result" || !replay || !mine || settlement) return;
-    let cancelled = false;
-    fetch(`/api/races/${encodeURIComponent(card.id)}/me`, { cache: "no-store" })
-      .then((r) => (r.ok ? (r.json() as Promise<MyRaceResult>) : null))
-      .then((res) => {
-        const r = res?.runners.find((x) => x.horseId === mine.horse.id) ?? res?.runners[0];
-        if (cancelled || !res || !r) return;
-        setSettlement({ prize: r.prize + r.storyReward, position: r.position, fresh: res.firstView, storyReward: r.storyReward, firstWin: r.firstWin, ratingBefore: r.ratingBefore, ratingAfter: r.ratingAfter, ratingWhy: r.ratingWhy ?? null, atOff: r.atOff ?? null, injury: r.injury ?? null, firstWinOf: r.firstWinOf ?? null });
-        void refreshPlayer().catch(() => undefined);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [phase, replay, mine, settlement, card.id]);
+  // Your result comes from the server (settled there, once); this only shows it. LOAD_MACHINE with
+  // a timeout and a few automatic retries: a blip used to leave the credits and verdict missing.
+  const mineHorseId = mine?.horse.id ?? null;
+  const fetchSettlement = useCallback(async (): Promise<Settlement> => {
+    const r = await fetchTimed(`/api/races/${encodeURIComponent(card.id)}/me`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const res = (await r.json()) as MyRaceResult;
+    const x = res.runners.find((y) => y.horseId === mineHorseId) ?? res.runners[0];
+    if (!x) throw new Error("no runner");
+    void refreshPlayer().catch(() => undefined);
+    return { prize: x.prize + x.storyReward, position: x.position, fresh: res.firstView, storyReward: x.storyReward, firstWin: x.firstWin, ratingBefore: x.ratingBefore, ratingAfter: x.ratingAfter, ratingWhy: x.ratingWhy ?? null, atOff: x.atOff ?? null, injury: x.injury ?? null, firstWinOf: x.firstWinOf ?? null };
+  }, [card.id, mineHorseId]);
+  const settled = useLoad(phase === "result" && replay && mine ? fetchSettlement : null, card.id, SETTLEMENT_RETRY);
+  const settlement: Settlement | null = settled.data;
 
   // Tab title: countdown before the off, LIVE while running (no result in the title, ever before the finish).
   const baseTitle = useRef<string | null>(null);

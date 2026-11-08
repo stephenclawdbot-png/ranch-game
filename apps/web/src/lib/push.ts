@@ -7,6 +7,7 @@
  * from there; in a Safari tab there is no PushManager, so the UI explains Add to Home Screen.
  */
 import { api } from "./player";
+import { withTimeout } from "./fetchTimed";
 import type { NotificationCategoryKey } from "./types";
 
 export interface PushServerConfig {
@@ -24,6 +25,8 @@ export type PushSupport = "ready" | "ios-install" | "denied" | "unsupported";
 
 const SW_URL = "/sw.js";
 const ASKED_KEY = "pt-push-asked";
+/** Each step after the permission prompt (register, ready, subscribe) gives up after this. */
+const PUSH_STEP_TIMEOUT_MS = 20_000;
 
 let configPromise: Promise<PushServerConfig> | null = null;
 
@@ -98,15 +101,18 @@ export async function turnOnPush(): Promise<TurnOnResult> {
   try {
     const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
     if (permission !== "granted") return { ok: false, reason: permission === "denied" ? "denied" : "dismissed" };
-    const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
-    await navigator.serviceWorker.ready;
+    // After the player's answer every step has a time limit: a service worker that never gets
+    // ready, or a browser whose push service never answers, ends as "failed" instead of a
+    // "Turning on…" that never finishes.
+    const reg = await withTimeout(navigator.serviceWorker.register(SW_URL, { scope: "/" }), PUSH_STEP_TIMEOUT_MS);
+    await withTimeout(navigator.serviceWorker.ready, PUSH_STEP_TIMEOUT_MS);
     const key = keyBytes(cfg.publicKey);
-    let sub = await reg.pushManager.getSubscription();
+    let sub = await withTimeout(reg.pushManager.getSubscription(), PUSH_STEP_TIMEOUT_MS);
     if (sub && !sameKey(sub.options.applicationServerKey, key)) {
       await sub.unsubscribe().catch(() => undefined);
       sub = null;
     }
-    sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    sub ??= await withTimeout(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }), PUSH_STEP_TIMEOUT_MS);
     return { ok: true, device: await saveSubscription(sub) };
   } catch (err) {
     console.warn("[push] couldn't turn alerts on", err);

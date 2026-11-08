@@ -7,7 +7,9 @@ import { ErrorNote } from "@/components/ui/ErrorNote";
 import { Wordmark } from "@/components/SiteNav";
 import { SceneBackdrop } from "@/components/ui/Page";
 import { PixelIcon } from "@/components/icons";
-import { api, usePlayerState } from "@/lib/player";
+import { api, usePlayerLoadFailed, usePlayerState } from "@/lib/player";
+import { useSubmit } from "@/lib/machines/useSubmit";
+import { PlayerLoadFailed } from "@/components/ui/PlayerLoadFailed";
 import { afterSignInHref, nextFromLocation } from "@/lib/nextPath";
 import { WalletSignIn } from "@/components/chain/WalletSignIn";
 
@@ -78,9 +80,12 @@ export function LinkClient({ testing }: { testing: boolean }) {
   const state = usePlayerState();
   const [code, setCode] = useState("");
   const [confirmed, setConfirmed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // Sign in: SUBMIT_MACHINE (idle -> submitting -> leaving | failed; a code that can't work fails before sending).
+  const signIn = useSubmit();
+  const busy = signIn.busy;
+  const error = signIn.status === "failed" ? signIn.error : null;
   const [needsConfirm, setNeedsConfirm] = useState(false);
+  const loadFailed = usePlayerLoadFailed();
   const hasStable = state !== null && state !== undefined;
 
   useEffect(() => {
@@ -88,27 +93,24 @@ export function LinkClient({ testing }: { testing: boolean }) {
     if (fromLink) setCode(maskCode(fromLink));
   }, []);
 
-  async function submit() {
+  function submit() {
     if (busy) return;
     if (isPersonalInviteCode(code)) {
-      setError(new Error("That's the invite code you joined with (R-…), not a login code: several stables can share one, so it can't open yours. Your login code starts PT- and has 20 letters and numbers; it was on the \"Your key to come back\" screen and is on your Profile. Lost it? Ask the person running the beta to send it to you."));
+      signIn.reject(new Error("That's the invite code you joined with (R-…), not a login code: several stables can share one, so it can't open yours. Your login code starts PT- and has 20 letters and numbers; it was on the \"Your key to come back\" screen and is on your Profile. Lost it? Ask the person running the beta to send it to you."));
       return;
     }
-    setBusy(true);
-    setError(null);
-    try {
+    void signIn.run(async () => {
       const body = { code, label: deviceLabel(), ...(hasStable && confirmed ? { replace: true } : {}) };
       // On success the response carries the player, so the shared state is already this stable.
       await api(testing && isInviteCode(code) ? "/api/account/invite-sign-in" : "/api/account/link", { body });
       // Back to the page they were trying to open, else Home with "Welcome back".
       window.location.assign(afterSignInHref(nextFromLocation()));
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
+      return "leaving";
+    });
   }
 
-  if (state === undefined) return <div className="min-h-[60vh]" aria-busy />;
+  // The player never loaded (offline, the server didn't answer): Try again instead of a blank page.
+  if (state === undefined) return loadFailed ? <PlayerLoadFailed /> : <div className="min-h-[60vh]" aria-busy />;
 
   const codeBox = (
     <>

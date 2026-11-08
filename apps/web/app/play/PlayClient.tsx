@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import type { Silks as SilksT } from "@thoroughbred/shared";
 import { HorsePortrait } from "@/components/HorsePortrait";
 import { Stall } from "@/components/Stall";
@@ -28,6 +29,11 @@ import { HorseNameInput, useHorseNameCheck } from "@/components/ui/HorseNameInpu
 import { randomSilks } from "@/lib/silks";
 import { afterSignInHref, nextFromLocation, signInHref } from "@/lib/nextPath";
 import { pushSure } from "@/lib/navigate";
+import { usePlayerLoadFailed } from "@/lib/player";
+import { PlayerLoadFailed } from "@/components/ui/PlayerLoadFailed";
+import { useSubmit } from "@/lib/machines/useSubmit";
+import { moveOr } from "@/lib/machines/guard";
+import { FOUNDING_MACHINE, type FoundingStage } from "@/lib/machines/founding";
 
 /**
  * Onboarding in one tap: the name and silks are pre-rolled (dice to reroll, colours optional),
@@ -40,10 +46,15 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
   const wallet = useWallet();
   const [name, setName] = useState("");
   const [silks, setSilks] = useState<SilksT | null>(null);
-  const [stage, setStage] = useState<"form" | "key" | "mentor" | "welcome">("form");
+  // The screens: FOUNDING_MACHINE (form -> key -> mentor -> welcome), moves checked.
+  const [stage, setStageRaw] = useState<FoundingStage>("form");
+  const setStage = (to: FoundingStage) => setStageRaw((from) => moveOr(FOUNDING_MACHINE, from, to, "PlayClient"));
   const [imported, setImported] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // Register: SUBMIT_MACHINE (idle -> submitting -> done | failed).
+  const registering = useSubmit();
+  const busy = registering.busy;
+  const error = registering.status === "failed" ? registering.error : null;
+  const loadFailed = usePlayerLoadFailed();
   const decided = useRef(false);
   /** Closed playtest: the checked invite code (null until accepted). */
   const [invite, setInvite] = useState<string | null>(null);
@@ -105,24 +116,21 @@ export function PlayClient({ playtest }: { playtest: boolean }) {
       />
     );
   if (stage === "welcome" && state) return <Welcome />;
+  // The player never loaded (offline, the server didn't answer): a way out instead of a blank page.
+  if (loadFailed && state === undefined) return <PlayerLoadFailed />;
   if ((state !== null && stage === "form" && !busy) || !silks) return <div className="min-h-[60vh]" aria-busy />;
   if (playtest && invite === null) return <InviteGate onAccepted={setInvite} />;
 
   const valid = stableNameProblem(name) === null;
-  async function register() {
+  function register() {
     if (!valid || !silks || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
+    const chosen = silks;
+    void registering.run(async () => {
       const code = invite ?? referral;
-      await createStable({ stableName: name.trim(), silks, ...(code ? { inviteCode: code } : {}), ...(rival && referral ? { rival: true, deviceId: deviceId() } : {}) });
+      await createStable({ stableName: name.trim(), silks: chosen, ...(code ? { inviteCode: code } : {}), ...(rival && referral ? { rival: true, deviceId: deviceId() } : {}) });
       setStage("key");
       window.scrollTo({ top: 0 });
-    } catch (e) {
-      setError(e);
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   return (
@@ -210,25 +218,23 @@ function Welcome() {
   const state = usePlayerState();
   const entry = useEntry();
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  // Race now: SUBMIT_MACHINE (idle -> submitting -> leaving | failed).
+  const racing = useSubmit();
+  const busy = racing.busy;
+  const error = racing.status === "failed" ? racing.error : null;
   const star = useMemo(() => recommendHorse(state), [state]);
   if (!state) return null;
   const horses = state.horses;
   const h = star?.horse;
 
   // First race in one tap: the natural plan is preselected (explained below); "Change the plan" opens the sheet.
-  async function raceNow() {
+  function raceNow() {
     if (!star) return;
-    setBusy(true);
-    setError(null);
-    try {
+    void racing.run(async () => {
       const { raceId } = await enterStoryRace(star.id, { tactic: star.horse.style, intensity: "normal" });
       pushSure(router, `/race/${raceId}`);
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
+      return "leaving";
+    });
   }
 
   const ordered = star ? [star, ...horses.filter((x) => x.id !== star.id)] : horses;
@@ -372,7 +378,7 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
   const autoTried = useRef(false);
 
   async function signIn(c: string) {
-    const res = await fetch("/api/account/invite-sign-in", {
+    const res = await fetchTimed("/api/account/invite-sign-in", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ code: c, label: deviceLabel() }),
@@ -393,7 +399,7 @@ function InviteGate({ onAccepted }: { onAccepted: (code: string) => void }) {
     setBusy(true);
     setProblem(null);
     try {
-      const res = await fetch(`/api/invite?code=${encodeURIComponent(c)}`, { cache: "no-store" });
+      const res = await fetchTimed(`/api/invite?code=${encodeURIComponent(c)}`, { cache: "no-store" });
       const data = (await res.json()) as { ok: boolean; problem?: string };
       if (data.ok) onAccepted(c);
       else if (data.problem === "SIGN_IN") await signIn(c);

@@ -10,6 +10,7 @@
  * Intent "link" (/me): only ever links the wallet to the signed-in stable.
  */
 import { useEffect, useRef, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import Link from "next/link";
 import type { Hex } from "viem";
 import { shortAddress } from "@/lib/chain/format";
@@ -55,7 +56,7 @@ export interface WalletSignInProps {
 
 /** Fetch helper that keeps the API's error code and body on the thrown error. */
 async function post<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+  const res = await fetchTimed(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; message?: string; currentStable?: string };
   if (!res.ok) {
     const err = new Error(data.message ?? `HTTP ${res.status}`) as Error & { api?: true; code?: string; data?: { currentStable?: string } };

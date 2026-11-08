@@ -17,6 +17,7 @@ import { PositionBadge } from "../ui/PositionBadge";
 import { TrackTile } from "../RaceList";
 import { HowItWorks, SceneBand, StillScene, type StillSceneName } from "../ui/Page";
 import { pushSure } from "@/lib/navigate";
+import { useSubmit } from "@/lib/machines/useSubmit";
 
 type Mode = "watch" | "instant";
 
@@ -25,8 +26,10 @@ function RaceAction({ race, chapter, signedIn }: { race: StoryRaceView; chapter:
   const state = usePlayerState();
   const [open, setOpen] = useState(false);
   const [horseId, setHorseId] = useState<string>(race.bestHorse?.id ?? "");
-  const [busy, setBusy] = useState<Mode | null>(null);
-  const [error, setError] = useState<unknown>(null);
+  // SUBMIT_MACHINE, tagged with the button that started it: idle -> submitting -> leaving | failed.
+  const entering = useSubmit<Mode>();
+  const busy: Mode | null = entering.busy ? entering.tag : null;
+  const error = entering.status === "failed" ? entering.error : null;
   const ready = (state?.horses ?? []).filter((h) => h.block === null);
 
   if (!chapter.unlocked) {
@@ -39,16 +42,12 @@ function RaceAction({ race, chapter, signedIn }: { race: StoryRaceView; chapter:
   if (!signedIn) return <p className="caption text-cream-dim">Found a stable to race.</p>;
   if (!race.bestHorse) return <p className="caption text-cream-dim">None of your horses can race right now. Story races are free whenever one is ready.</p>;
 
-  async function go(mode: Mode) {
-    setBusy(mode);
-    setError(null);
-    try {
+  function go(mode: Mode) {
+    void entering.run(async () => {
       const res = await api<{ raceId: string }>("/api/story/race", { body: { raceKey: race.key, horseId: horseId || undefined, pick: horseId ? undefined : "auto", instant: mode === "instant" } });
       pushSure(router, `/race/${res.raceId}`);
-    } catch (e) {
-      setError(e);
-      setBusy(null);
-    }
+      return "leaving";
+    }, mode);
   }
 
   if (!open) {

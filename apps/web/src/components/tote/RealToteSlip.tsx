@@ -12,6 +12,7 @@
  * wallet sends the bet to the TotePools contract itself (the stake never touches our servers).
  */
 import { useEffect, useMemo, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import { erc20Abi, type Address, type Hex } from "viem";
 import * as gc from "@thoroughbred/game-core";
 import type { RealToteBoard, ToteBoardRunner } from "@thoroughbred/db";
@@ -85,7 +86,7 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
       const provider = wallets.find((w) => w.provider)?.provider;
       if (!provider) throw new Error("Connect a wallet first.");
       const wallet = await connect(provider);
-      const r = await fetch(`/api/races/${raceId}/tote/real/permit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horseId: selected.horseId, pool, amount: String(units), wallet }) });
+      const r = await fetchTimed(`/api/races/${raceId}/tote/real/permit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ horseId: selected.horseId, pool, amount: String(units), wallet }) });
       const body = (await r.json()) as Signed & { message?: string };
       if (!r.ok) throw new Error(body.message ?? "Couldn't prepare the bet.");
       setSigned(body);

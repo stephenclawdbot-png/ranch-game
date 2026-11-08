@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { fetchTimed } from "@/lib/fetchTimed";
 import type { PlanCandidate, PlanTargetView, PlanView } from "@/lib/socialTypes";
 import { LocalTime } from "../competition/LocalTime";
 import { useEntry } from "../entry/EntryProvider";
@@ -50,7 +51,7 @@ export function PlannerPanel({ initial, horses, horseId }: { initial: PlanView; 
     setBusy(true);
     setError(null);
     try {
-      const r = await fetch("/api/plans", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const r = await fetchTimed("/api/plans", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       if (!r.ok) setError(((await r.json().catch(() => ({}))) as { message?: string }).message ?? "That didn't work. Try again.");
       await refresh();
       return r.ok;
