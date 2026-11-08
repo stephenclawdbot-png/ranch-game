@@ -39,7 +39,9 @@ export type RacePickOutcome = StateOf<typeof racePickMachine>;
 /**
  * real_tote_races.status (text + CHECK real_tote_races_status): a mirror of the TotePools contract
  * (services/realTote.ts records chain events in order) plus the server's own "abandoned" (the race
- * had to run on its server seed, so the market must be voided and refunded on chain).
+ * had to run on its server seed, so the market must be voided and refunded on chain). A mirror only
+ * sees the events it was given, so it may skip ahead along the chain's order (open straight to
+ * result_posted), but it never goes back.
  */
 export const realToteRaceMachine = defineMachine({
   name: "realToteRace",
@@ -48,10 +50,10 @@ export const realToteRaceMachine = defineMachine({
   initial: "pending",
   terminal: ["finalized", "void"],
   transitions: {
-    pending: ["open", "abandoned", "void"],
-    open: ["entropy_locked", "abandoned", "void"],
-    entropy_locked: ["sealed", "abandoned", "void"],
-    sealed: ["result_posted", "abandoned", "void"],
+    pending: ["open", "entropy_locked", "sealed", "result_posted", "finalized", "abandoned", "void"],
+    open: ["entropy_locked", "sealed", "result_posted", "finalized", "abandoned", "void"],
+    entropy_locked: ["sealed", "result_posted", "finalized", "abandoned", "void"],
+    sealed: ["result_posted", "finalized", "abandoned", "void"],
     result_posted: ["finalized", "abandoned", "void"],
     abandoned: ["void"],
   },

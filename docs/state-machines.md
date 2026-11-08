@@ -69,7 +69,7 @@ registry, its writes checked, and the database proven to hold exactly its states
 | jockeyOffer | `jockey_offers.status` (text, CHECK) | `services/jockeyContracts.ts` | open, won, lost, withdrawn | stable, the weekly window | **Explicit.** `withdrawn -> open`: an offer made again in the same window reuses its row. |
 | toteBet | `tote_bets.status` (pgEnum `tote_bet_status`) | `services/tote.ts` | open, won, lost, returned, void | pool settlement, scratches, abandoned races | **Explicit.** Settles are `WHERE status IN fromStates(...)` (= `'open'`). |
 | racePick | `race_picks.outcome` (text, CHECK) | `services/picks.ts` | open, won, lost, void | scoring once the result is public | **Explicit.** |
-| realToteRace | `real_tote_races.status` (text, CHECK) | `services/realTote.ts` | pending ... finalized, void, abandoned | chain events (mirror), seed decision, keeper | **Explicit (mirror).** The chain is the truth: an unexpected order is reported (throws in tests, warns in production), the event is never dropped. |
+| realToteRace | `real_tote_races.status` (text, CHECK) | `services/realTote.ts` | pending ... finalized, void, abandoned | chain events (mirror), seed decision, keeper | **Explicit (mirror).** The chain is the truth: the mirror may skip ahead (it records the events it is given) but never goes back; an unexpected move is reported (throws in tests, warns in production) and the event is never dropped. |
 | chainOrder | `chain_orders.status` (text, CHECK) | `services/betaMoney.ts`, web `server/chain/checkout.ts` | quoted, submitted, paid, fulfilled, expired, rejected | wallet, chain verification, backstop | **Explicit.** Guarded updates use `fromStates`. |
 | poolEpoch | `pool_epochs.status` (text, CHECK) | `services/betaMoney.ts` | draft, posted, cancelled | admin, chain verification | **Explicit.** `markEpochCancelled` now only cancels drafts. |
 | betaReward | `beta_rewards.status` (text, CHECK) | `services/playtest.ts` | pending, approved, paid, void | admin | **Explicit.** |
@@ -477,10 +477,10 @@ Stored in: real_tote_races.status (text, CHECK real_tote_races_status).
 
 | State | Kind | Meaning |
 |---|---|---|
-| `pending` | initial | Flagged for a real-money pool; the market is not created on chain yet. Next: open, abandoned, void. |
-| `open` | - | MarketCreated: bets accepted until the market closes. Next: entropy_locked, abandoned, void. |
-| `entropy_locked` | - | EntropyLocked: betting closed, the entropy block chosen. Next: sealed, abandoned, void. |
-| `sealed` | - | EntropySealed: the entropy is known; the race runs on the final seed. Next: result_posted, abandoned, void. |
+| `pending` | initial | Flagged for a real-money pool; the market is not created on chain yet. Next: open, entropy_locked, sealed, result_posted, finalized, abandoned, void. |
+| `open` | - | MarketCreated: bets accepted until the market closes. Next: entropy_locked, sealed, result_posted, finalized, abandoned, void. |
+| `entropy_locked` | - | EntropyLocked: betting closed, the entropy block chosen. Next: sealed, result_posted, finalized, abandoned, void. |
+| `sealed` | - | EntropySealed: the entropy is known; the race runs on the final seed. Next: result_posted, finalized, abandoned, void. |
 | `abandoned` | - | The race ran on its server seed: the market must be voided (refunds). Next: void. |
 | `result_posted` | - | ResultPosted: in the challenge window (attest or correct). Next: finalized, abandoned, void. |
 | `finalized` | terminal | MarketFinalized: winners can claim. |
@@ -490,15 +490,25 @@ Stored in: real_tote_races.status (text, CHECK real_tote_races_status).
 stateDiagram-v2
   [*] --> pending
   pending --> open
+  pending --> entropy_locked
+  pending --> sealed
+  pending --> result_posted
+  pending --> finalized
   pending --> abandoned
   pending --> void
   open --> entropy_locked
+  open --> sealed
+  open --> result_posted
+  open --> finalized
   open --> abandoned
   open --> void
   entropy_locked --> sealed
+  entropy_locked --> result_posted
+  entropy_locked --> finalized
   entropy_locked --> abandoned
   entropy_locked --> void
   sealed --> result_posted
+  sealed --> finalized
   sealed --> abandoned
   sealed --> void
   result_posted --> finalized
