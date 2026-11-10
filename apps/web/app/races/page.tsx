@@ -43,11 +43,11 @@ export default async function RacesPage() {
           <p>Every result is sealed before the off and can be replayed and verified afterwards.</p>
         </HowItWorks>
         {session && (
-          <p className="mt-3">
-            <Link href="/races/sponsor" className="btn btn-sm" data-testid="sponsor-entry">
+          <p className="mt-3 flex items-center gap-3">
+            <Link href="/races/sponsor" className="btn btn-sm shrink-0" data-testid="sponsor-entry">
               Sponsor a race
-            </Link>{" "}
-            <span className="t-meta">Put your stable&rsquo;s name on a race this week.</span>
+            </Link>
+            <span className="t-meta min-w-0">Put your stable&rsquo;s name on a race this week.</span>
           </p>
         )}
         <div className="mt-8 grid gap-8 lg:grid-cols-2">

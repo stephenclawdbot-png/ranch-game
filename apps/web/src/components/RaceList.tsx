@@ -108,6 +108,9 @@ export function busiestRaces(races: readonly RaceSummary[], n = BUSY_FLAGS): Set
   );
 }
 
+/** Meetings shown open on the card; later ones fold to a row each. */
+const OPEN_MEETINGS = 2;
+
 const meetingDay = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short" });
 
 /**
@@ -137,18 +140,35 @@ export function UpcomingCard({ races, note }: { races: RaceSummary[]; note?: str
       </div>
       {sort === "meeting" ? (
         <div className="grid gap-5">
-          {meetings.map((m) => {
+          {meetings.map((m, i) => {
             const entered = m.races.reduce((a, r) => a + r.stables, 0);
+            const head = (
+              <>
+                <span className="t-title">
+                  Race meeting · {meetingDay(m.startMs)} {formatClock(m.startMs)}
+                </span>
+                <span className="caption">
+                  {m.races.length} {m.races.length === 1 ? "race" : "races"} · {entered} {entered === 1 ? "stable entry" : "stable entries"}
+                </span>
+              </>
+            );
+            // The next two meetings are open; later ones fold to one row each (a day of 32 races was a
+            // 7,000 px wall on a phone). A meeting you have a runner in always opens.
+            if (i >= OPEN_MEETINGS) {
+              const mine = m.races.some((r) => r.mine > 0);
+              return (
+                <details key={m.startMs} className="meeting-fold" open={mine || undefined} aria-label={`Race meeting from ${formatClock(m.startMs)}`} data-testid="meeting">
+                  <summary>
+                    <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">{head}</span>
+                    {mine && <span className="tag tag-you !h-5 !text-[0.6875rem]">You</span>}
+                  </summary>
+                  <ul className="surface rows mt-2">{m.races.map(row)}</ul>
+                </details>
+              );
+            }
             return (
               <section key={m.startMs} aria-label={`Race meeting from ${formatClock(m.startMs)}`} data-testid="meeting">
-                <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2">
-                  <span className="t-title">
-                    Race meeting · {meetingDay(m.startMs)} {formatClock(m.startMs)}
-                  </span>
-                  <span className="caption">
-                    {m.races.length} {m.races.length === 1 ? "race" : "races"} · {entered} {entered === 1 ? "stable entry" : "stable entries"}
-                  </span>
-                </h3>
+                <h3 className="mb-2 flex flex-wrap items-baseline gap-x-2">{head}</h3>
                 <ul className="surface rows">{m.races.map(row)}</ul>
               </section>
             );

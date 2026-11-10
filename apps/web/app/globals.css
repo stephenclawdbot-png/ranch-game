@@ -69,11 +69,11 @@
   --color-turf-600: #2c6645;
   --color-turf-500: #3f8558;
 
-  --font-display: var(--font-pixelify), "Courier New", monospace;
-  --font-score: var(--font-jersey), var(--font-pixelify), monospace;
+  --font-display: var(--font-heading), "Courier New", monospace;
+  --font-score: var(--font-jersey), var(--font-heading), monospace;
   --font-sans: var(--font-nunito), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-num: var(--font-jersey), var(--font-pixelify), monospace;
-  --font-led: var(--font-jersey), var(--font-pixelify), monospace;
+  --font-num: var(--font-jersey), var(--font-heading), monospace;
+  --font-led: var(--font-jersey), var(--font-heading), monospace;
   --font-pixel: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
@@ -1670,7 +1670,7 @@ html[data-motion="reduce"] *::after {
  * stay pixel (Jersey). Paper survives as printed matter only (`.print`).
  * ============================================================================================= */
 :root {
-  --font-serif: var(--font-pixelify), "Courier New", monospace;
+  --font-serif: var(--font-heading), "Courier New", monospace;
   --font-display: var(--font-serif);
   --glass: rgba(8, 21, 14, 0.72);
   --glass-strong: rgba(8, 21, 14, 0.86);
@@ -2920,8 +2920,8 @@ select.field option {
  * visible through the scene backdrops; the panels themselves are solid.
  * ============================================================================================= */
 :root {
-  --font-display: var(--font-pixelify), "Courier New", monospace;
-  --font-name: var(--font-jersey), var(--font-pixelify), monospace;
+  --font-display: var(--font-heading), "Courier New", monospace;
+  --font-name: var(--font-jersey), var(--font-heading), monospace;
   --r-panel: 0px;
   --r-control: 0px;
   --ink-0: #050d08;
@@ -5273,4 +5273,101 @@ a.pill:hover,
     linear-gradient(90deg, transparent, rgba(242, 200, 106, 0.9), transparent) top / 100% 2px no-repeat,
     radial-gradient(120% 140% at 0% 0%, rgba(242, 200, 106, 0.18), transparent 60%),
     var(--glass);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Design pass, 2026-11-10 (v3.2). The display face is Jersey 25 (app/layout.tsx); the rules below
+   are the polish that came out of looking at every main screen on a 390 px phone and at 1440 px.
+   --------------------------------------------------------------------------------------------- */
+
+/* Greeting on art: the title and eyebrow sat straight on bright clouds. A soft pool of shade behind
+   the block keeps the picture and makes the words read (text shadows alone left them muddy). */
+.ranch-greet::before,
+.estate-greet::before {
+  content: "";
+  position: absolute;
+  inset: -28px -72px -36px -48px;
+  z-index: -1;
+  background: radial-gradient(ellipse at 38% 45%, rgba(5, 13, 8, 0.66), rgba(5, 13, 8, 0.4) 45%, transparent 72%);
+  pointer-events: none;
+}
+.ranch-greet .eyebrow,
+.estate-greet .eyebrow {
+  color: var(--color-brass-hi);
+  text-shadow: 0 1px 0 #050d08, 0 0 8px rgba(0, 0, 0, 0.75);
+}
+
+/* Genes the horse has no copy of, folded into one closed row (HorseDetail Genetics). */
+.genes-absent {
+  border-top: 2px dotted var(--color-line);
+  padding-top: 8px;
+}
+.genes-absent > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-brass-bright);
+}
+.genes-absent > summary::-webkit-details-marker {
+  display: none;
+}
+.genes-absent > summary::before {
+  content: "+";
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+.genes-absent[open] > summary::before {
+  content: "\2212";
+}
+.genes-absent > summary:focus-visible {
+  outline: 3px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+/* Race card: a later meeting folded to one row (RaceList UpcomingCard). */
+.meeting-fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+  border: var(--u) solid var(--color-line);
+  background: var(--color-surface-1);
+}
+.meeting-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.meeting-fold > summary::after {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-right: 3px solid var(--color-brass-bright);
+  border-bottom: 3px solid var(--color-brass-bright);
+  transform: rotate(45deg) translate(-2px, -2px);
+}
+.meeting-fold[open] > summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+.meeting-fold > summary:hover {
+  border-color: var(--color-line-strong);
+}
+.meeting-fold > summary:focus-visible {
+  outline: 3px solid var(--color-brass);
+  outline-offset: 2px;
 }

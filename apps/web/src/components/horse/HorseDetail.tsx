@@ -184,36 +184,8 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
         }
       />
       {tabs}
-      {planner}
-
-      {(view.lease || (view.owned && st?.careerStatus === "racing")) && <HorseLeasePanel view={view} />}
-
-      <CareerStoryRead enabled={isMine && view.story.entries.length > 0}>
-        <CareerStory story={view.story} name={first} female={horse.sex === "filly" || horse.sex === "mare"} />
-      </CareerStoryRead>
-
-      {view.matchRace && view.matchRace.record.length > 0 && (
-        <section className="surface p-4" aria-labelledby="match-h" data-testid="match-record">
-          <h2 id="match-h" className="t-h2">
-            Match races
-          </h2>
-          <p className="mt-1 text-sm text-cream-dim">Unofficial head-to-heads: not on the form book, no rating.</p>
-          <ul className="mt-2 divide-y-2 divide-dotted divide-line text-sm">
-            {view.matchRace.record.map((r) => (
-              <li key={r.opponentId} className="flex items-baseline justify-between gap-3 py-1.5">
-                <Link href={`/horse/${r.opponentId}`} className="link min-w-0 truncate">
-                  v {r.opponentName}
-                </Link>
-                <span className="num shrink-0">
-                  {r.won}–{r.lost}
-                  {r.meetings > r.won + r.lost ? ` (${r.meetings - r.won - r.lost} dead heat${r.meetings - r.won - r.lost === 1 ? "" : "s"})` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
+      {/* Order (design pass 2026-11-10): what the horse is, what it has done, where it is going, where it came
+          from; trading sits last. On a phone the old order put two forms and an empty story above the stats. */}
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface p-4" aria-labelledby="apt-h">
           <h2 id="apt-h" className="t-h2">
@@ -245,8 +217,6 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
           </div>
         </section>
       </div>
-
-      {view.genetics && <Genetics gen={view.genetics} familyLine={view.familyLine ?? null} />}
 
       {(isMine || form.lines.length > 0) && (
         <section aria-labelledby="history-h" className="grid gap-3">
@@ -286,6 +256,47 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
         </section>
       )}
 
+      <CareerStoryRead enabled={isMine && view.story.entries.length > 0}>
+        <CareerStory story={view.story} name={first} female={horse.sex === "filly" || horse.sex === "mare"} />
+      </CareerStoryRead>
+
+      {view.matchRace && view.matchRace.record.length > 0 && (
+        <section className="surface p-4" aria-labelledby="match-h" data-testid="match-record">
+          <h2 id="match-h" className="t-h2">
+            Match races
+          </h2>
+          <p className="mt-1 text-sm text-cream-dim">Unofficial head-to-heads: not on the form book, no rating.</p>
+          <ul className="mt-2 divide-y-2 divide-dotted divide-line text-sm">
+            {view.matchRace.record.map((r) => (
+              <li key={r.opponentId} className="flex items-baseline justify-between gap-3 py-1.5">
+                <Link href={`/horse/${r.opponentId}`} className="link min-w-0 truncate">
+                  v {r.opponentName}
+                </Link>
+                <span className="num shrink-0">
+                  {r.won}–{r.lost}
+                  {r.meetings > r.won + r.lost ? ` (${r.meetings - r.won - r.lost} dead heat${r.meetings - r.won - r.lost === 1 ? "" : "s"})` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {planner}
+
+      <section aria-labelledby="ped-h" data-testid="pedigree">
+        <h2 id="ped-h" className="t-h2 mb-3">
+          Pedigree
+        </h2>
+        <div className="surface grid gap-3 p-4">
+          <PedigreeTree root={view.tree} coiText={view.genetics?.inbreeding.text ?? null} />
+          <p className="t-meta">
+            {FACE_LABEL[horse.appearance.face]}; {legsText(horse.appearance.legs)}.
+          </p>
+        </div>
+      </section>
+      {view.genetics && <Genetics gen={view.genetics} familyLine={view.familyLine ?? null} first={first} />}
+
       {view.sireLine && (
         <section aria-labelledby="sireline-h" className="grid gap-3" data-testid="sire-line">
           <div>
@@ -300,26 +311,48 @@ export function HorseDetail({ view, tabs, planner }: { view: HorseDetailView; ta
         </section>
       )}
 
+      {(view.lease || (view.owned && st?.careerStatus === "racing")) && <HorseLeasePanel view={view} />}
+
       {isMine && (view.owned ?? true) && !view.lease && <UsdgHorsePanel horseId={horse.id} />}
 
-      <section aria-labelledby="ped-h" data-testid="pedigree">
-        <h2 id="ped-h" className="t-h2 mb-3">
-          Pedigree
-        </h2>
-        <div className="surface grid gap-3 p-4">
-          <PedigreeTree root={view.tree} coiText={view.genetics?.inbreeding.text ?? null} />
-          <p className="t-meta">
-            {FACE_LABEL[horse.appearance.face]}; {legsText(horse.appearance.legs)}.
-          </p>
-        </div>
-      </section>
     </div>
   );
 }
 
 /** Coat genotype, markings, breed mix and build — the stud-book view of the horse. */
-function Genetics({ gen, familyLine }: { gen: NonNullable<HorseDetailView["genetics"]>; familyLine: string | null }) {
+type Locus = NonNullable<HorseDetailView["genetics"]>["coat"]["loci"][number];
+
+function LociTable({ caption, rows, testid }: { caption: string; rows: readonly Locus[]; testid: string }) {
+  if (rows.length === 0) return null;
+  return (
+    <table className="w-full text-sm" data-testid={testid}>
+      <caption className="label mb-1 text-left">{caption}</caption>
+      <tbody>
+        {rows.map((l) => (
+          <tr key={l.locus} className="border-t-2 border-dotted border-line">
+            <th scope="row" className="py-1.5 pr-2 text-left font-bold">
+              {l.locus}
+            </th>
+            <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
+            <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
+              {l.meaning}
+              {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Genetics({ gen, familyLine, first }: { gen: NonNullable<HorseDetailView["genetics"]>; familyLine: string | null; first: string }) {
   const cls = gen.coat.class;
+  // A gene the horse has no copy of ("n/n: no roan") is one line of a long list of nothing: those
+  // fold into a single closed row, and the tables keep only what the horse shows or can pass on.
+  const all = [...gen.coat.loci, ...gen.genes2, ...(gen.cosmetic ?? [])];
+  const isAbsent = (l: Locus) => l.alleles === "n/n" && !l.carried;
+  const absent = all.filter(isAbsent);
+  const shown = (rows: readonly Locus[]) => rows.filter((l) => !isAbsent(l));
   return (
     <section className="surface p-4" aria-labelledby="gen-h" data-testid="genetics">
       <h2 id="gen-h" className="t-h2">
@@ -345,59 +378,17 @@ function Genetics({ gen, familyLine }: { gen: NonNullable<HorseDetailView["genet
         </p>
       )}
       <div className="mt-3 grid gap-x-6 gap-y-4 lg:grid-cols-2">
-        <div>
-          <table className="w-full text-sm" data-testid="genetics-loci">
-            <caption className="label mb-1 text-left">Coat loci</caption>
-            <tbody>
-              {gen.coat.loci.map((l) => (
-                <tr key={l.locus} className="border-t-2 border-dotted border-line">
-                  <th scope="row" className="py-1.5 pr-2 text-left font-bold">
-                    {l.locus}
-                  </th>
-                  <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
-                  <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
-                    {l.meaning}
-                    {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <table className="mt-4 w-full text-sm" data-testid="genetics-genes2">
-            <caption className="label mb-1 text-left">Body, pattern and performance genes</caption>
-            <tbody>
-              {gen.genes2.map((l) => (
-                <tr key={l.locus} className="border-t-2 border-dotted border-line">
-                  <th scope="row" className="py-1.5 pr-2 text-left font-bold">
-                    {l.locus}
-                  </th>
-                  <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
-                  <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
-                    {l.meaning}
-                    {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(gen.cosmetic?.length ?? 0) > 0 && (
-                      <table className="mt-4 w-full text-sm" data-testid="genetics-cosmetic">
-              <caption className="label mb-1 text-left">Shades and rare colours (looks only)</caption>
-              <tbody>
-                {(gen.cosmetic ?? []).map((l) => (
-                  <tr key={l.locus} className="border-t-2 border-dotted border-line">
-                    <th scope="row" className="py-1.5 pr-2 text-left font-bold">
-                      {l.locus}
-                    </th>
-                    <td className="w-16 py-1.5 pr-2 font-mono text-xs leading-5">{l.alleles}</td>
-                    <td className={`py-1.5 leading-5 ${l.carried ? "text-cream-dim" : ""}`}>
-                      {l.meaning}
-                      {l.carried && <span className="label ml-1" title="A copy this horse doesn't show but can pass to its foals">(hidden copy)</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="grid content-start gap-4">
+          <LociTable caption="Coat loci" rows={shown(gen.coat.loci)} testid="genetics-loci" />
+          <LociTable caption="Body, pattern and performance genes" rows={shown(gen.genes2)} testid="genetics-genes2" />
+          <LociTable caption="Shades and rare colours (looks only)" rows={shown(gen.cosmetic ?? [])} testid="genetics-cosmetic" />
+          {absent.length > 0 && (
+            <details className="genes-absent" data-testid="genetics-absent">
+              <summary>
+                {absent.length} {absent.length === 1 ? "gene" : "genes"} {first} doesn&rsquo;t carry
+              </summary>
+              <p className="t-meta mt-2">{absent.map((l) => l.locus).join(" · ")}</p>
+            </details>
           )}
         </div>
         <div className="grid content-start gap-3">

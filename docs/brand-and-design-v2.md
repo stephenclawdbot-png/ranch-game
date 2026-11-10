@@ -295,6 +295,8 @@ default content card.
 
 Three faces; the roles are strict:
 
+> **Update, 2026-11-10 (v3.2).** The display face is now **Jersey 25** (self-hosted, `apps/web/app/fonts`, loaded with `size-adjust: 125%` in `app/layout.tsx`), in every row below that says Pixelify Sans. Pixelify's B read as G and its C as O ("Grave Heart", "Olub") on buttons, titles and the tab bar. Jersey 25 is the same family as the Jersey 10 numerals, so headings and scores now match.
+
 | Token | Face | Size / line (phone → desktop) | Use | Rules |
 |---|---|---|---|---|
 | `display` | Pixelify Sans 600 | 32/36 → 48/52 | **The one page title**, set on the scene band | One per screen. Never wraps beyond 1 line on a phone (shorten the copy). 2-px ink drop shadow. |
