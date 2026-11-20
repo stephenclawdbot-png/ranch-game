@@ -532,14 +532,48 @@ export function storyFieldNote(rival: Pick<RivalStable, "name"> | undefined, adj
 
 /**
  * Open Story races (Quick Pick, "race again") while a stable is still in chapter 1: the Club window
- * starts this many marks below the horse's real ability mark (the first race's rule), eased or
- * stiffened by the same streaks, STORY_OPEN_MARKS_PER_STEP marks a step.
+ * starts this many marks below the horse's real ability mark, eased after losses in a row and
+ * stiffened after wins in a row, STORY_OPEN_MARKS_PER_STEP marks a step. A stable's very first
+ * race starts STORY_FIRST_BELOW below.
+ *
+ * 2026-11-20 (first races probe, tools/season-harness firstRaces, 2,000 new stables): at 8 below
+ * with 8-10 runners a new stable finished in the first three of its first race 50% of the time
+ * (39% and 42% in its second and third, last 11% and 9%), and 65% had a win within five races. A Club runner is a seasoned horse: at the same
+ * ability mark it out-runs a debutant (its temperament, soundness and adaptability are a grown
+ * horse's; the mark counts speed, stamina and burst only), so "level" on the marks was not level.
+ * Now 10 below (12 for the first race), fields of 7-8 (STORY_CLUB_OPEN_RUNNERS), 3 marks a step (was 2), and the field
+ * eases from the first loss (STORY_OPEN_EASE_FROM_LOSSES): 67% in the first three of the first
+ * race, 6% last, a win within five for 89%. The races stay honest simulations.
  */
-export const STORY_OPEN_BELOW = 8;
-export const STORY_OPEN_MARKS_PER_STEP = 2;
+export const STORY_OPEN_BELOW = 10;
+export const STORY_FIRST_BELOW = 12;
+export const STORY_OPEN_MARKS_PER_STEP = 3;
+/** Open Story races in chapter 1 ease from this many losses in a row (chapter races: from 2). */
+export const STORY_OPEN_EASE_FROM_LOSSES = 1;
+
+/**
+ * Runners (yours included) in an open Story race: lowest and highest, drawn evenly. While the
+ * stable is in chapter 1 the Club's fields are small, like its chapter races (7 runners); a
+ * stable's very first race has the fewest. Later chapters keep 8-10.
+ */
+export const STORY_CLUB_OPEN_RUNNERS: readonly [number, number] = [7, 8];
+export const STORY_OPEN_RUNNERS: readonly [number, number] = [8, 10];
+
+/** How many runners an open Story race has. `roll(n)` draws an integer in 0..n-1. */
+export function storyOpenRunners(o: { club: boolean; first: boolean }, roll: (n: number) => number): number {
+  const [lo, hi] = o.club ? STORY_CLUB_OPEN_RUNNERS : STORY_OPEN_RUNNERS;
+  return o.first ? lo : lo + roll(hi - lo + 1);
+}
+
+/** The streak steps of an open Story race: eased from STORY_OPEN_EASE_FROM_LOSSES losses in a row, stiffened like a chapter race. */
+function openStreakSteps(recent: readonly boolean[]): number {
+  const losses = runOf(recent, false);
+  if (losses >= STORY_OPEN_EASE_FROM_LOSSES) return -Math.min(Math.floor(STORY_EASE_MAX / STORY_EASE_PER_LOSS), losses - STORY_OPEN_EASE_FROM_LOSSES + 1);
+  return Math.max(0, streakSteps(recent));
+}
 
 /** An open Story race's Club window floor for a chapter-1 stable (a Story window spans clubFill's CLUB_ABOVE_MEDIAN_SPAN up from it). */
 export function storyOpenFloor(mark: number, recent: readonly boolean[]): { minRating: number; adjust: number } {
-  const adjust = streakSteps(recent) * STORY_OPEN_MARKS_PER_STEP;
+  const adjust = openStreakSteps(recent) * STORY_OPEN_MARKS_PER_STEP;
   return { minRating: Math.max(0, Math.trunc(mark) - STORY_OPEN_BELOW + adjust), adjust };
 }

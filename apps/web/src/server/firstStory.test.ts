@@ -56,7 +56,8 @@ describe("a new stable's first Story race", () => {
     // Still in chapter 1: the same honest window from the second horse's real ability (no band ceiling).
     const second = await createStoryRace(h.db, s, { horseId: rows[1]!.id, instant: true }, new Date(T0.getTime() + 60_000));
     const c2 = (await getRace(h.db, second.raceId))!.conditions as { minRating?: number; maxRating?: number };
-    const recent = [((await listStableRuns(h.db, s.stable.id, 5))[0]!.position ?? 0) === 1];
+    // The stable's results before this race: the first race's alone (a loss already eases the field).
+    const recent = [((await listStableRuns(h.db, s.stable.id, 5)).find((r) => r.raceId === first.raceId)!.position ?? 0) === 1];
     expect(c2.minRating).toBe(gc.storyOpenFloor(trueMarkOf(rows[1]!), recent).minRating);
     expect(c2.maxRating).toBeUndefined();
   });
@@ -70,5 +71,31 @@ describe("a new stable's first Story race", () => {
     const second = await createStoryRace(h.db, s, { horseId: rows[1]!.id, instant: true }, new Date(T0.getTime() + 60_000));
     const c2 = (await getRace(h.db, second.raceId))!.conditions as { minRating?: number; maxRating?: number };
     expect(c2.maxRating).toBeDefined();
+  });
+});
+
+describe("a racing mare in foal", () => {
+  it("is never the Story Quick Pick (the entry would refuse her): another horse runs, and the Story screen suggests another", { timeout: 120_000 }, async () => {
+    const { coverMare } = await import("./economy");
+    const { createChapterRace, storyView } = await import("./story");
+    const acc = await foundStable(h.db, { stableName: "In Foal Yard", silks: SILKS, inviteCode: null, now: T0 });
+    const s = (await authenticate(h.db, acc.token))!;
+    const rows = await listStableHorses(h.db, s.stable.id);
+    const mare = rows.find((r) => r.sex === "female")!;
+    const colt = rows.find((r) => r.sex === "male")!;
+    // Both have run their Live race(s): she can be covered while still racing (BREED_FROM_STARTS).
+    for (const r of [mare, colt]) await h.db.execute(`update horses set starts = ${gc.BREED_FROM_STARTS} where id = '${r.id}'`);
+    await coverMare(h.db, s, { sireId: colt.id, damId: mare.id, key: "in-foal-pick" }, T0);
+    const later = T0.getTime() + 60_000;
+    for (let i = 0; i < 3; i++) {
+      const created = await createStoryRace(h.db, s, { instant: true }, new Date(later + i * 60_000));
+      expect(created.horseId).not.toBe(mare.id);
+    }
+    const view = await storyView(h.db, s, new Date(later + 10 * 60_000));
+    for (const ch of view.chapters) for (const r of ch.races) expect(r.bestHorse?.id).not.toBe(mare.id);
+    const chapter = await createChapterRace(h.db, s, { raceKey: "club-1", instant: true }, new Date(later + 11 * 60_000));
+    expect(chapter.horseId).not.toBe(mare.id);
+    // Asking for her by name still says why she can't run.
+    await expect(createStoryRace(h.db, s, { horseId: mare.id, instant: true }, new Date(later + 12 * 60_000))).rejects.toMatchObject({ code: "HORSE_IN_FOAL" });
   });
 });

@@ -16,6 +16,10 @@ import {
   storyField,
   storyFieldNote,
   storyOpenFloor,
+  storyOpenRunners,
+  STORY_CLUB_OPEN_RUNNERS,
+  STORY_FIRST_BELOW,
+  STORY_OPEN_RUNNERS,
   rivalById,
   STORY_CLUB_BELOW,
   STORY_CLUB_FINAL_BELOW,
@@ -184,9 +188,24 @@ describe("choosing a chapter race's field (we choose the field, never the result
     expect(storyField({ race: r, runnerLevel: 300, recent: [false, false, false] })).toEqual({ strength: r.strength, base: r.strength, adjust: 0, note: null });
   });
 
+  it("open Story races in chapter 1 have small Club fields (the first race the smallest) and the first race the kindest window", () => {
+    const [lo, hi] = STORY_CLUB_OPEN_RUNNERS;
+    expect(storyOpenRunners({ club: true, first: true }, () => 99)).toBe(lo);
+    const seen = new Set([0, 1, 2, 3].map((k) => storyOpenRunners({ club: true, first: false }, (n) => k % n)));
+    expect([...seen].sort()).toEqual(Array.from({ length: hi - lo + 1 }, (_, i) => lo + i));
+    expect(storyOpenRunners({ club: false, first: false }, () => 0)).toBe(STORY_OPEN_RUNNERS[0]);
+    expect(storyOpenRunners({ club: false, first: false }, (n) => n - 1)).toBe(STORY_OPEN_RUNNERS[1]);
+    expect(hi).toBeLessThanOrEqual(STORY_OPEN_RUNNERS[0]);
+    expect(STORY_FIRST_BELOW).toBeGreaterThanOrEqual(STORY_OPEN_BELOW);
+  });
+
   it("open Story races in chapter 1 start their Club window just below the horse's real ability, eased and stiffened by the same runs", () => {
     expect(storyOpenFloor(33, [])).toEqual({ minRating: 33 - STORY_OPEN_BELOW, adjust: 0 });
-    expect(storyOpenFloor(33, [false, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW - 2 * STORY_OPEN_MARKS_PER_STEP);
+    // Eased from the first loss in a row (chapter races: from the second), at most three steps.
+    expect(storyOpenFloor(33, [false]).minRating).toBe(33 - STORY_OPEN_BELOW - STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, [false, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW - 3 * STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, Array(7).fill(false)).minRating).toBe(33 - STORY_OPEN_BELOW - 3 * STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, [true, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW);
     expect(storyOpenFloor(33, [true, true]).minRating).toBe(33 - STORY_OPEN_BELOW + STORY_OPEN_MARKS_PER_STEP);
     expect(storyOpenFloor(3, Array(9).fill(false)).minRating).toBe(0);
     expect(storyFieldNote(undefined, -1)).toBeNull();

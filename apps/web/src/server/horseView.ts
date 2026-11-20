@@ -5,7 +5,7 @@
 import type { Horse, Silks } from "@thoroughbred/shared";
 import { SilksSchema } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
-import { isGenome, isInjury, storedRaceDay, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
+import { carryingDueByDam, isGenome, isInjury, ratingOf, storedRaceDay, toHorseState, type Db, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
 import type { InjuryCard, RacePlan, RiskView, StableHorse } from "@/lib/types";
 import { houseOwnerFor, storyHouseHorse } from "./storyField";
 
@@ -172,6 +172,19 @@ const BLOCK_TEXT: Record<string, string> = {
   daily_limit: `Raced ${gc.MAX_STARTS_PER_DAY} times today`,
 };
 
+/**
+ * The rows a Quick Pick may choose from: mares in foal are left out (they don't race: the entry
+ * refuses them, and a pick that then fails is an error on the player's screen). Racing mares
+ * breed after one Live race since 2026-11-20, so a mare in foal in a racing stable is common now.
+ * One small query, none when the stable has no racing filly or mare.
+ */
+export async function withoutMaresInFoal(db: Db, rows: HorseRow[]): Promise<HorseRow[]> {
+  const mares = rows.filter((r) => r.sex === "female" && r.careerStatus === "racing").map((r) => r.id);
+  if (!mares.length) return rows;
+  const inFoal = await carryingDueByDam(db, mares);
+  return inFoal.size ? rows.filter((r) => !inFoal.has(r.id)) : rows;
+}
+
 /** Everything the stable pages show about one of the player's horses. */
 export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number, opts: { inFoalDueAtMs?: number | null } = {}): StableHorse {
   const horse = horseFromRow(row, silks, nowMs);
@@ -183,7 +196,7 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number, opts
     careerStatus: row.careerStatus,
     starts: row.starts,
     maxStarts: gc.CAREER_MAX_STARTS,
-    rating: row.rating,
+    rating: ratingOf(row),
     injury:
       row.injury && row.injuredUntil && row.injuredUntil.getTime() > nowMs
         ? {

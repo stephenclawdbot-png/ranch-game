@@ -54,6 +54,8 @@ export function stepHref(key: string, state: PlayerState): string {
       return "/week";
     case "breeding_preview":
       return "/breeding#finder";
+    case "first_foal":
+      return "/breeding";
     default:
       return "/";
   }

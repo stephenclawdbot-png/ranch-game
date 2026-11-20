@@ -220,9 +220,10 @@ export async function firstWeekFacts(ex: Executor, accountId: string, now: Date)
     canRename: false,
     qualifier: false,
     careerStory: ((row?.coachSeen as string[] | null) ?? []).includes("career_story"),
+    bred: false,
   };
   if (!row?.guided || !stable) return facts;
-  const [f] = rowsOf<{ first_race: boolean; renamed: boolean; can_rename: boolean; qualifier: boolean }>(
+  const [f] = rowsOf<{ first_race: boolean; renamed: boolean; can_rename: boolean; qualifier: boolean; bred: boolean }>(
     await ex.execute(sql`
       select
         exists (select 1 from race_entries e where e.stable_id = ${stable.id} and e.finish_position is not null) as first_race,
@@ -231,12 +232,14 @@ export async function firstWeekFacts(ex: Executor, accountId: string, now: Date)
                  and h.career_status = 'racing' and h.starts = 0) as can_rename,
         exists (select 1 from race_entries e join races r on r.id = e.race_id
                  where e.stable_id = ${stable.id} and e.status = 'entered'
-                   and r.conditions->'calendar'->>'kind' = 'feature_qualifier') as qualifier`),
+                   and r.conditions->'calendar'->>'kind' = 'feature_qualifier') as qualifier,
+        exists (select 1 from breeding_events b where b.requested_by = ${accountId}) as bred`),
   );
   facts.firstRace = !!f?.first_race;
   facts.renamed = !!f?.renamed;
   facts.canRename = !!f?.can_rename;
   facts.qualifier = !!f?.qualifier;
+  facts.bred = !!f?.bred;
   return facts;
 }
 
@@ -351,7 +354,7 @@ export async function isFeatureUnlocked(ex: Executor, accountId: string, feature
  * in), not on the Legacy Farm, not entered or listed, not in foal. Dismissed with the coach mark
  * `bloodline`; never shown once the account has requested a covering.
  */
-export async function bloodlineNudgeFor(ex: Executor, accountId: string, now: Date): Promise<{ horseId: string; name: string; retired: boolean } | null> {
+export async function bloodlineNudgeFor(ex: Executor, accountId: string, now: Date): Promise<gc.BloodlineSuggestion | null> {
   const row = await onboardingRow(ex, accountId);
   if (!row?.guided) return null;
   const dismissed = ((row.coachSeen as string[] | null) ?? []).includes("bloodline");
@@ -359,11 +362,12 @@ export async function bloodlineNudgeFor(ex: Executor, accountId: string, now: Da
   const [stable] = await ex.select({ id: stables.id }).from(stables).where(eq(stables.accountId, accountId));
   if (!acc || !stable) return null;
   const daysSinceFounding = gc.dayIndex(now.getTime()) - gc.dayIndex(acc.createdAt.getTime());
-  if (dismissed || daysSinceFounding < gc.BLOODLINE_NUDGE_DAYS) return null;
+  if (dismissed) return null;
   const [bred] = rowsOf<{ bred: boolean }>(await ex.execute(sql`select exists (select 1 from breeding_events where requested_by = ${accountId}) as bred`));
-  const mares = rowsOf<{ id: string; name: string; career_status: string; rating: number }>(
+  if (bred?.bred) return null;
+  const mares = rowsOf<{ id: string; name: string; career_status: string; rating: number; starts: number }>(
     await ex.execute(sql`
-      select h.id, h.name, h.career_status, h.rating from horses h
+      select h.id, h.name, h.career_status, h.rating, h.starts from horses h
        where h.owner_stable_id = ${stable.id} and h.lessee_stable_id is null and h.sex = 'female' and not h.gelded
          and h.career_status in ('racing', 'retired') and h.lock_kind is null and h.care_sessions >= ${gc.CARE_TO_RACING}
          and not exists (select 1 from pregnancies p where p.dam_id = h.id and p.status = 'carrying')`),
@@ -373,7 +377,7 @@ export async function bloodlineNudgeFor(ex: Executor, accountId: string, now: Da
     daysSinceFounding,
     dismissed,
     hasBred: !!bred?.bred,
-    mares: mares.map((m) => ({ id: m.id, name: m.name, racing: m.career_status === "racing", rating: Number(m.rating) })),
+    mares: mares.map((m) => ({ id: m.id, name: m.name, racing: m.career_status === "racing", rating: Number(m.rating), starts: Number(m.starts) })),
   });
 }
 

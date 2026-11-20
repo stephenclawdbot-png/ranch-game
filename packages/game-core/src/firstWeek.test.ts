@@ -18,6 +18,7 @@ const facts = (f: Partial<FirstWeekFacts> = {}): FirstWeekFacts => ({
   canRename: true,
   qualifier: false,
   careerStory: false,
+  bred: false,
   ...f,
 });
 const all = { quickRaces: true };
@@ -28,9 +29,23 @@ describe("the first-week list on Home", () => {
     const keys = l.items.map((i) => i.key);
     expect(new Set(keys).size).toBe(keys.length);
     for (const s of STABLE_STEPS) expect(keys).toContain(s.key);
-    for (const k of ["first_race", "rename", "qualifier", "career_story"]) expect(keys).toContain(k);
+    for (const k of ["first_race", "rename", "qualifier", "career_story", "first_foal"]) expect(keys).toContain(k);
     expect(keys).toEqual(FIRST_WEEK_ORDER.filter((k) => keys.includes(k)));
     expect(keys[0]).toBe("first_race");
+  });
+
+  it("puts breeding in the first days: the stallion finder and the first foal come before the weekly tools and the Qualifier", () => {
+    const at = (k: (typeof FIRST_WEEK_ORDER)[number]) => FIRST_WEEK_ORDER.indexOf(k);
+    expect(at("first_foal")).toBe(at("breeding_preview") + 1);
+    expect(at("breeding_preview")).toBe(at("daily_cup") + 1);
+    for (const later of ["pick", "pin_target", "qualifier", "career_story"] as const) expect(at("first_foal")).toBeLessThan(at(later));
+    // With the first days' jobs done, the list's open jobs are the breeding ones.
+    const l = firstWeekList(stableStepsProgress(new Set(["read_why", "care", "train_plan", "enter_live", "watch_live", "daily_cup"]), all), facts({ firstRace: true, canRename: false }));
+    expect(l.next.slice(0, 2)).toEqual(["breeding_preview", "first_foal"]);
+    // Ticked from the records (a covering), and left off when the caller doesn't know.
+    expect(firstWeekList(stableStepsProgress(new Set(), all), facts({ bred: true })).items.find((i) => i.key === "first_foal")!.done).toBe(true);
+    const { bred: _unknown, ...noBred } = facts();
+    expect(firstWeekList(stableStepsProgress(new Set(), all), noBred).items.some((i) => i.key === "first_foal")).toBe(false);
   });
 
   it("never adds a reward: extras pay 0 and the paid steps pay what the guide pays", () => {
@@ -69,7 +84,7 @@ describe("the first-week list on Home", () => {
     expect(firstWeekList(p, facts({ daysSinceFounding: FIRST_WEEK_DAYS })).visible).toBe(false);
     expect(firstWeekList(p, facts({ guided: false })).visible).toBe(false);
     const everything = stableStepsProgress(new Set(STABLE_STEPS.map((s) => s.key)), all);
-    const done = firstWeekList(everything, facts({ firstRace: true, renamed: true, qualifier: true, careerStory: true }));
+    const done = firstWeekList(everything, facts({ firstRace: true, renamed: true, qualifier: true, careerStory: true, bred: true }));
     expect(done.done).toBe(done.total);
     expect(done.next).toEqual([]);
     expect(done.visible).toBe(false);

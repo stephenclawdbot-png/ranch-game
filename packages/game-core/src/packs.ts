@@ -1,5 +1,5 @@
 /**
- * Packs (§8, §4b). Paddock Packs produce FOALS (12 care days before they can race); Premium Packs
+ * Packs (§8, §4b). Paddock Packs produce FOALS (CARE_TO_RACING care days before they can race); Premium Packs
  * (beta, T-USDG test money) produce JUVENILES ready to race (PREMIUM_PACK_READY_TO_RACE). Both are
  * always under the season's genetic ceiling, with published odds, pity and commit–reveal seeds.
  *

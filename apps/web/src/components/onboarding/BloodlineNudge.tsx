@@ -1,93 +1,65 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { api, refreshPlayer } from "@/lib/player";
-import { ErrorNote } from "../ui/ErrorNote";
+import * as gc from "@thoroughbred/game-core";
 import { MentorLine } from "./Mentor";
 import { sendOnboarding, useOnboarding } from "./guide";
 
+const PREGNANCY_HOURS = Math.round(gc.PREGNANCY_MS / 3_600_000);
+const N = gc.BREED_FROM_STARTS;
+const liveRaces = N === 1 ? "a Live race" : `${N} Live races`;
+
 /**
- * The day-3 bloodline nudge (owner-approved, 2026-11-01): from the stable's third day Wilf
- * suggests starting a bloodline. Retire one of the starters to the broodmares (a retired mare can
- * breed straight away) and pick a stallion, straight in the stallion finder. Shown once: "Not now"
- * puts it away for good, and the server never sends it to a stable that has already bred.
+ * The bloodline nudge (owner-approved 2026-11-01; reworked 2026-11-20): Wilf suggests starting a
+ * bloodline, from the stable's third day or the day a racing filly has the starts to breed
+ * (game-core BREED_FROM_STARTS). A mare that can be covered today goes straight to the stallion
+ * finder; one that can't yet is told how many Live races she still needs. It no longer asks a new
+ * stable to retire a starter: a racing mare breeds and races on. Shown once: "Not now" puts it
+ * away for good, and the server never sends it to a stable that has already bred.
  */
 export function BloodlineNudge() {
   const o = useOnboarding();
-  const router = useRouter();
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
   const b = o?.bloodline;
   if (!b) return null;
   const finder = `/breeding?mare=${encodeURIComponent(b.horseId)}#finder`;
-
-  async function retire() {
-    if (!b) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await api(`/api/horses/${b.horseId}/career`, { body: { action: "retire" } });
-      await sendOnboarding({ action: "coach", id: "bloodline" }).catch(() => undefined);
-      await refreshPlayer().catch(() => undefined);
-      router.push(finder);
-    } catch (e) {
-      setError(e);
-      setBusy(false);
-    }
-  }
+  // Older payloads carry no `ready`: a retired mare always could breed.
+  const ready = b.ready ?? b.retired;
+  const toGo = b.startsToGo ?? 0;
 
   return (
     <section className="frame-hero grid gap-3 p-4" aria-label="Start a bloodline" data-testid="bloodline-nudge">
       <MentorLine compact>
-        {b.retired ? (
+        {ready && b.retired ? (
           <p>
             A few days in the yard now, and you&rsquo;ve a broodmare doing nothing. <b>{b.name}</b> can be covered today: pick her a stallion and there&rsquo;s a foal on the way of your own
             breeding. That&rsquo;s how a stable becomes a name.
           </p>
+        ) : ready ? (
+          <p>
+            <b>{b.name}</b> has run {liveRaces}: she can be covered today. Pick her a stallion (one of your own colts that has run {liveRaces} costs only the covering fee) and there&rsquo;s a
+            foal of your own breeding in {PREGNANCY_HOURS} hours. She rests while she&rsquo;s in foal, then races on. That&rsquo;s how a stable becomes a name.
+          </p>
         ) : (
           <p>
-            A few days in the yard now: time to think about a bloodline. Retire <b>{b.name}</b> to the broodmares: a retired mare can be covered straight away. Pick her a stallion and you&rsquo;ll
-            have a foal of your own breeding. That&rsquo;s how a stable becomes a name.
+            Time to think about a bloodline. <b>{b.name}</b> can be covered once she has run {liveRaces}
+            {N > 1 ? `: ${toGo} to go` : ""} (Story races don&rsquo;t count). No need to retire her, she races on after the foal. Enter her on the Live card, and have a look at the stallions
+            meanwhile.
           </p>
         )}
       </MentorLine>
-      {confirming ? (
-        <div className="surface-2 grid gap-2 p-3" role="group" aria-label={`Retire ${b.name}?`}>
-          <p className="font-bold">Retire {b.name} from racing? It&rsquo;s for good: she won&rsquo;t race again, but she can breed from today.</p>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn btn-brass" onClick={retire} disabled={busy} data-testid="bloodline-retire-confirm">
-              {busy ? "Retiring…" : `Retire ${b.name} and pick a stallion`}
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setConfirming(false)} disabled={busy}>
-              Keep her racing
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          {b.retired ? (
-            <Link href={finder} className="btn btn-brass" data-testid="bloodline-finder">
-              Pick a stallion for {b.name}
-            </Link>
-          ) : (
-            <>
-              <button type="button" className="btn btn-brass" onClick={() => setConfirming(true)} data-testid="bloodline-retire">
-                Retire {b.name} to the broodmares
-              </button>
-              <Link href={finder} className="btn" data-testid="bloodline-finder">
-                Look at stallions first
-              </Link>
-            </>
-          )}
-          <button type="button" className="btn btn-ghost ml-auto" onClick={() => void sendOnboarding({ action: "coach", id: "bloodline" }).catch(() => undefined)} data-testid="bloodline-dismiss">
-            Not now
-          </button>
-        </div>
-      )}
-      {error !== null && <ErrorNote error={error} />}
+      <div className="flex flex-wrap items-center gap-2">
+        {!ready && (
+          <Link href="/races" className="btn btn-brass" data-testid="bloodline-live">
+            Find {b.name} a Live race
+          </Link>
+        )}
+        <Link href={finder} className={ready ? "btn btn-brass" : "btn"} data-testid="bloodline-finder">
+          {ready ? `Pick a stallion for ${b.name}` : "Look at the stallions"}
+        </Link>
+        <button type="button" className="btn btn-ghost ml-auto" onClick={() => void sendOnboarding({ action: "coach", id: "bloodline" }).catch(() => undefined)} data-testid="bloodline-dismiss">
+          Not now
+        </button>
+      </div>
     </section>
   );
 }

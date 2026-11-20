@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import type { DbHandle } from "../client";
 import { gc } from "../gameCore";
-import { accounts, achievements, breedingEvents, inboxItems, stables } from "../schema";
+import { accounts, achievements, breedingEvents, horses, inboxItems, stables } from "../schema";
 import { renameHorse, retireHorse } from "../services/horses";
 import { createAccount } from "../services/accounts";
 import { runCupEntry } from "../services/dailyCup";
@@ -283,20 +283,24 @@ describe("mentor, coach marks and welcome back", () => {
   });
 });
 
-describe("the day-3 bloodline nudge", () => {
-  it("from the third day suggests a filly to retire, a retired mare first; once dismissed or bred, never again", async () => {
+describe("the bloodline nudge", () => {
+  it("from the third day names a filly and the starts she still needs, a mare that can breed today first; once dismissed or bred, never again", async () => {
     const p = await player();
     const colt = await makeHorse(h.db, p.stableId, { name: "Brave Heart" });
     const filly = await makeHorse(h.db, p.stableId, { name: "Lucky Penny", sex: "female", rating: 44 });
     // Days one and two: nothing.
     expect(await bloodlineNudgeFor(h.db, p.accountId, T0)).toBeNull();
     expect(await bloodlineNudgeFor(h.db, p.accountId, at(DAY))).toBeNull();
-    // The third day: Wilf suggests retiring the filly (the colt is no mare).
+    // The third day: Wilf names the filly and the starts she needs (the colt is no mare); nobody is told to retire.
     const day3 = at(2 * DAY);
-    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: false });
+    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: false, ready: false, startsToGo: gc.BREED_FROM_STARTS });
+    // With her starts she can be covered today, racing on: and that shows before the third day too.
+    await h.db.update(horses).set({ starts: gc.BREED_FROM_STARTS }).where(eq(horses.id, filly.id));
+    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: false, ready: true, startsToGo: 0 });
+    expect(await bloodlineNudgeFor(h.db, p.accountId, at(DAY))).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: false, ready: true, startsToGo: 0 });
     // Already retired: she can breed straight away.
     await retireHorse(h.db, { accountId: p.accountId, horseId: filly.id, now: day3 });
-    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: true });
+    expect(await bloodlineNudgeFor(h.db, p.accountId, day3)).toEqual({ horseId: filly.id, name: "Lucky Penny", retired: true, ready: true, startsToGo: 0 });
     // "Not now" is final.
     await markCoachSeen(h.db, { accountId: p.accountId, id: "bloodline", now: day3 });
     expect(await bloodlineNudgeFor(h.db, p.accountId, at(5 * DAY))).toBeNull();

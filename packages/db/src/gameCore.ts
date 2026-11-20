@@ -140,6 +140,28 @@ export function statePatch(state: gc.HorseState, nowMs: number) {
   };
 }
 
+/**
+ * True for a racing-age horse that has not run a rated race and still carries the placeholder
+ * rating (game-core INITIAL_OR): it has not been seated at its debut rating yet. That is a horse
+ * that was unraced when the debut rating shipped (2026-11-20), or one made at racing age from a
+ * foal's spec (a Premium Pack juvenile). A horse made at racing age (a starter) or grown up since
+ * is seated when that happens, so its stored rating is already right. Rows without a real genome
+ * never count (they keep the database's own rules).
+ */
+export function isDebutantRow(row: HorseRow): boolean {
+  const dyn = (row.dynamics ?? {}) as HorseDynamics;
+  return row.rating === gc.INITIAL_OR && row.starts === 0 && (dyn.ratedRuns ?? 0) === 0 && row.careSessions >= gc.CARE_TO_RACING && isGenome(row.genome);
+}
+
+/**
+ * The rating a horse races off: its stored rating, or for an unseated debutant (isDebutantRow) its
+ * real ability mark today (game-core debutRating). Entering its first race writes that to the row
+ * (services/races.ts), so the card, the band checks and the result all read the same number.
+ */
+export function ratingOf(row: HorseRow): number {
+  return isDebutantRow(row) ? gc.debutRating(toHorseState(row)) : row.rating;
+}
+
 /** A complete HorseSpec for a genome (look, current stats, maturity) via game-core. */
 export function specFromGenome(input: {
   genome: gc.Genome;
@@ -170,7 +192,10 @@ export function specFromGenome(input: {
     appearance: gc.appearanceOf(input.genome, { racingAge: input.careSessions >= gc.CARE_TO_RACING, starts: 0, retired: false, young: gc.youngHead(input.careSessions) }, silks),
     stats: gc.currentStats(state),
     maturityType: gc.maturityType(input.genome),
-    rating: gc.INITIAL_OR,
+    // Made at racing age (a starter): seated at its real ability mark, as its row will read it (a
+    // new row's care quality is the column default, 0: no care bonus yet). A foal keeps the
+    // placeholder until it grows up (horseLife.ts) or enters its first race (races.ts).
+    rating: input.careSessions >= gc.CARE_TO_RACING ? gc.debutRating({ ...state, care: { ...state.care, quality: 0 } }) : gc.INITIAL_OR,
     careSessions: input.careSessions,
   };
 }
@@ -290,5 +315,7 @@ export { gc };
 export function bandRatingOf(h: HorseRow): gc.BandCheck {
   const dyn = (h.dynamics ?? {}) as { peakOr?: number };
   const mark = isGenome(h.genome) ? gc.abilityMark(toHorseState(h)) : 0;
+  // A debutant is judged at its debut rating (its mark): the placeholder it may still carry is not a peak.
+  if (isDebutantRow(h)) return gc.bandCheck({ or: mark, peakOr: mark }, mark);
   return gc.bandCheck({ or: h.rating, peakOr: Math.max(dyn.peakOr ?? 0, h.rating) }, mark);
 }

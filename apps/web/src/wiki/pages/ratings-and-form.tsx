@@ -18,7 +18,7 @@ function ratingExample() {
   const field = [
     { horseId: "Copper Lark", or: 58, ratedRuns: 12, position: 1 },
     { horseId: "Velvet Echo", or: 64, ratedRuns: 20, position: 2 },
-    { horseId: "First Timer", or: gc.INITIAL_OR, ratedRuns: 0, position: 3 },
+    { horseId: "First Timer", or: 47, ratedRuns: 0, position: 3 },
     { horseId: "Harbour Tide", or: 55, ratedRuns: 9, position: 4 },
     { horseId: "Quiet Banner", or: 61, ratedRuns: 15, position: 5 },
     { horseId: "Paper Comet", or: 50, ratedRuns: 7, position: 6 },
@@ -123,9 +123,10 @@ export default function RatingsAndFormPage() {
 
       <H2 id="or">The official rating</H2>
       <P>
-        Every horse starts on <b>{gc.INITIAL_OR}</b>, whatever its breeding. After each race it is compared with every other runner in the field: finishing ahead of a horse rated above you
-        earns more than beating one rated below, and losing to a lower-rated horse costs more than losing to a higher-rated one. Over a few races, the rating settles where the horse really
-        belongs.
+        A horse gets its <b>first rating</b> before it has raced: the handicapper&rsquo;s honest guess from how it gallops at home, which is the rating a horse of its ability today would
+        settle at (its <b>ability mark</b>, see <a href="#newcomers">below</a>). A typical starter begins in the low thirties, a well-bred one higher. After each race it is compared with
+        every other runner in the field: finishing ahead of a horse rated above you earns more than beating one rated below, and losing to a lower-rated horse costs more than losing to a
+        higher-rated one. Over a few races, the rating settles where the horse really belongs, and it rises as the horse matures and trains on.
       </P>
       <List
         items={[
@@ -146,7 +147,7 @@ export default function RatingsAndFormPage() {
       <Facts
         rows={[
           ["Rating scale", `${gc.OR_MIN}–${gc.OR_MAX}`],
-          ["First rating", gc.INITIAL_OR],
+          ["First rating", "the horse's ability mark that day"],
           ["Provisional for", `${gc.PROVISIONAL_RUNS} rated runs`],
           ["Most gained in one race", `+${gc.MAX_GAIN_PER_RACE}`],
           ["Most lost in one race", `−${gc.MAX_LOSS_PER_RACE}`],
@@ -187,8 +188,10 @@ export default function RatingsAndFormPage() {
 
       <H2 id="newcomers">Where a newcomer belongs</H2>
       <P>
-        Because every horse starts on {gc.INITIAL_OR}, a strong newcomer could beat up the lowest bands until its rating caught up. The ability floor stops that: the game works out the rating
-        a horse of its current ability would settle at (its <b>ability mark</b>), and checks the band against that too, give or take {gc.ABILITY_MARGIN}.
+        The game works out the rating a horse of its current ability would settle at: its <b>ability mark</b>. That is a newcomer&rsquo;s first rating, so a strong newcomer starts in the
+        band it belongs in and a modest one isn&rsquo;t marked down race after race for a rating it never earned. (Until 20 November 2026 every horse started on {gc.INITIAL_OR}; horses that
+        were still unraced then get their mark when they enter their first race.) The same mark is a floor for the band checks, give or take {gc.ABILITY_MARGIN}: a horse can&rsquo;t slip
+        into a band below its ability, whatever its rating says.
       </P>
       <Table
         head={["Running ability (speed, stamina, burst)", "Settles at about", "Belongs in"]}

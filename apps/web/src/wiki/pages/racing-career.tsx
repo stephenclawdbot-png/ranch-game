@@ -82,7 +82,8 @@ export default function RacingCareerPage() {
             fine: nothing decays while you are away. A string of several horses keeps you racing every day while each one rests.
           </>,
           <>
-            After {gc.BREED_FROM_STARTS} starts a racing horse may also breed, and a colt becomes a stallion, a filly a mare. See <WikiLink slug="breeding-basics" />.
+            After {count(gc.BREED_FROM_STARTS, "start")} a racing horse may also breed. Once it is out of the juvenile stage ({gc.JUVENILE_MAX_STARTS + 1} starts), a colt is called a stallion and a
+            filly a mare. See <WikiLink slug="breeding-basics" />.
           </>,
         ]}
       />
@@ -156,7 +157,7 @@ export default function RacingCareerPage() {
           ["Veteran", `${gc.PRIME_MAX_STARTS + 1}–${gc.CAREER_MAX_STARTS} starts`],
           ["Live starts per day, at most", gc.MAX_LIVE_STARTS_PER_DAY],
           ["Shortest possible career", `${Math.ceil(gc.CAREER_MAX_STARTS / gc.MAX_LIVE_STARTS_PER_DAY)} days`],
-          ["May breed while racing from", `${gc.BREED_FROM_STARTS} starts`],
+          ["May breed while racing after", count(gc.BREED_FROM_STARTS, "start")],
         ]}
       />
       <Callout tone="rule">

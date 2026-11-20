@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { allowedWorkouts, nextPlannedWorkout, peakAfter, previewTraining, readyInHours, realisationGain, slotsFor, train, DEFAULT_PLAN, WORKOUTS } from "./training";
 import { FATIGUE_RECOVERY_PER_HOUR, TIRED_THRESHOLD } from "./condition";
 import { STAT_KEYS, WorkoutSchema, type Workout } from "./types";
+import { CARE_TO_WEAN, CARE_TO_YEARLING } from "./lifecycle";
 import { DAY, HOUR, T0, makeHorse } from "./test-helpers";
 import { weekStartMs, weekIndex } from "./time";
 
@@ -72,9 +73,9 @@ describe("training", () => {
   });
 
   it("foals can't train; yearlings only light work; plan picks the next slot", () => {
-    expect(allowedWorkouts(makeHorse("f", { care: 2 }))).toEqual([]);
-    expect(allowedWorkouts(makeHorse("y", { care: 8 })).sort()).toEqual(["gate_practice", "rest", "swimming"]);
-    expect(train(makeHorse("y", { care: 8 }), "speed_work", ctx).block).toBe("not_light");
+    expect(allowedWorkouts(makeHorse("f", { care: CARE_TO_WEAN - 1 }))).toEqual([]);
+    expect(allowedWorkouts(makeHorse("y", { care: CARE_TO_YEARLING })).sort()).toEqual(["gate_practice", "rest", "swimming"]);
+    expect(train(makeHorse("y", { care: CARE_TO_YEARLING }), "speed_work", ctx).block).toBe("not_light");
     expect(nextPlannedWorkout(DEFAULT_PLAN, makeHorse("n"), MON)).toBe("speed_work");
   });
 

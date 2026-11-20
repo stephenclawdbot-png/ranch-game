@@ -297,9 +297,11 @@ export default function RaceTypesPage() {
       <H2 id="quick">Quick races and Story chapters</H2>
       <P>
         Under &ldquo;Race the Club now&rdquo; on the race card, <b>Quick Pick</b> finds your best-suited fresh horse and runs it straight away in a solo Story race against the rival stables of
-        your current chapter. You can also pick the horse and plan yourself. The race secretary usually finds a trip and surface that suit your horse. Until you finish chapter 1 the Club&rsquo;s
-        horses are drawn from {gc.STORY_OPEN_BELOW} marks below your horse&rsquo;s real ability upwards (not its official rating, which starts above a new horse&rsquo;s ability); after that the
-        field is matched to its rating.
+        your current chapter. You can also pick the horse and plan yourself. The race secretary usually finds a trip and surface that suit your horse. Until you finish chapter 1 these are small Club fields of {gc.STORY_CLUB_OPEN_RUNNERS[0]} or {gc.STORY_CLUB_OPEN_RUNNERS[1]} runners, and the Club&rsquo;s horses are drawn from{" "}
+        {gc.STORY_OPEN_BELOW} marks below your horse&rsquo;s real ability upwards ({gc.STORY_FIRST_BELOW} below for your stable&rsquo;s very first race): a Club runner is a seasoned
+        horse, and a young one needs that much start to be level with it. After a loss the Club sends a slightly easier field ({gc.STORY_OPEN_MARKS_PER_STEP} marks a loss in a row, up to{" "}
+        {Math.floor(gc.STORY_EASE_MAX / gc.STORY_EASE_PER_LOSS) * gc.STORY_OPEN_MARKS_PER_STEP}); after two wins in a row, a slightly stronger one. After chapter 1 the field is matched to
+        your horse&rsquo;s rating, {gc.STORY_OPEN_RUNNERS[0]} to {gc.STORY_OPEN_RUNNERS[1]} runners. Every race is an honest simulation: we choose the field, never the result.
       </P>
       <P>
         <GameLink href="/story">Story mode</GameLink> is a campaign of {gc.STORY_CHAPTER_DEFS.length} chapters, each with {gc.STORY_CHAPTER_DEFS[0]!.races.length} fixed races against named

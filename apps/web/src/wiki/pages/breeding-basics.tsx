@@ -1,7 +1,7 @@
 import * as gc from "@thoroughbred/game-core";
 import { usdgPolicy } from "@thoroughbred/db";
 import { formatCredits } from "@/lib/format";
-import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Steps, Table, WikiLink } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, Lead, List, P, Steps, Table, WikiLink, count } from "../kit";
 
 const HOURS = (ms: number) => Math.round(ms / 3_600_000);
 
@@ -24,7 +24,7 @@ export default function BreedingBasicsPage() {
             Horses must have reached <b>racing age</b> (all {gc.CARE_TO_RACING} care sessions as a youngster done).
           </>,
           <>
-            A racing horse can breed once it has run <b>{gc.BREED_FROM_STARTS} starts</b>. Any horse sent to stud (stallion) or made a broodmare (mare) can breed straight away. See{" "}
+            A racing horse can breed once it has run <b>{count(gc.BREED_FROM_STARTS, "Live race")}</b> (Story races don&rsquo;t count). Any horse sent to stud (stallion) or made a broodmare (mare) can breed straight away. See{" "}
             <WikiLink slug="stud-and-broodmares" />.
           </>,
           <>
@@ -49,7 +49,7 @@ export default function BreedingBasicsPage() {
           ["Mare: coverings per season", gc.MARE_PER_SEASON],
           ["Stallion: coverings per season", gc.STALLION_PER_SEASON],
           ["Breedings per lifetime", gc.BREEDINGS_LIFETIME],
-          ["Racing starts before a racing horse can breed", gc.BREED_FROM_STARTS],
+          ["Live races before a racing horse can breed", gc.BREED_FROM_STARTS],
           ["Pregnancy (the mare's rest)", `${HOURS(gc.PREGNANCY_MS)} hours`],
           ["Stallion's rest after a covering", `${HOURS(gc.STUD_COOLDOWN_MS)} hours`],
           ["A season lasts", `${gc.SEASON_DAYS} days`],

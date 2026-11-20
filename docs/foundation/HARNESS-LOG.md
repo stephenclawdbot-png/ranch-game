@@ -31,6 +31,7 @@ regenerate).
 | clubfill10 | clubfill9 with [P − 4, P + 8] | 85.7 | 203 / 49 | 27 | 55.3% / 9.0%; purses 483k (-20%); grinder median 954; injuries 17 / 19.3 |
 | clubfill11 | **final**: [P − 2, P + 10], race-day parity with matched condition (Club 985 / players 978 overall; 975 / 985 by mark) | 86.5 | 191 / 40 | 22 | **players won 52.8% of their races, 8.6% of starts**; purses 426k (-29% vs courses1, -26% vs dev140); created 1.01M (-15%), destroyed 745k (-18%); winner-to-last 31.5 m (courses era 48.2), winning margin 3.3 m; median balances casual 8.7k, grinder 649, breeder 3.2k, farmer 6.0k; injuries 18 / 18.7 expected |
 | clubfill12 | clubfill11 with [P − 4, P + 8] | 83.9 | 222 / 55 | 25 | 57.1% / 9.1%; **purses 491k (-18%)**; created 1.08M, destroyed 778k; winner-to-last 32.8 m; grinder median 715; injuries 18 / 19.5 |
+| firstweek1 (2026-11-20) | first-week pacing: breed after one Live race, foals race after 8 care days, debut rating from the ability mark, chapter-1 Story fields (section below) | **87.7** | 234 / 62 | 26 | players won 57.0% of their races, 8.9% of starts; 640 Live races (the card has changed since October: not comparable race for race); purses 631k, entry fees 365k, upkeep 265k; 34 foals bred, 117 pack, 50 gift; injuries 36 / 33.8 expected; median OR casual 38.5, grinder 38, breeder 35, farmer 34 (debutants no longer bring 40 into the pool); median balances casual 7.8k, grinder 823, breeder 3.7k, farmer 8.7k |
 
 Injuries with Club fill (2026-10-31): over the six runs with runner states, Live injuries per player start
 match the risk model (`injuryRisk` at the off): Club fill runs 104 injuries vs 95.3 expected, dev140s 12 vs
@@ -89,3 +90,89 @@ Compared after clubfill11 (the merged Club fill with race-day parity):
 C only lifts purses ~10% net because card entry fees are 5% of the purse. The owner wants Club
 fields to be a real challenge for players ("median and above"), so A stays; revisit purses if
 the beta shows stables going broke (grinder median balances swing 145-954 between runs).
+
+## 2026-11-20: first-week pacing (new stables)
+
+Week-one data (112 testers): 1 of 108 ever bred a horse, 24% came back on day 2, players held 329k
+of 424k credits created, first results read "Rating 40 → 37". Three probes, all through the real
+server code; the report with every table is `docs/reports/2026-11-20 first-week pacing.md`, the
+kept counts `tools/season-harness/results/2026-11-20-first-week/`.
+
+**First races probe** (`firstRaces.harness.ts`, new): 2,000 seeded new stables before (396ab71)
+and 2,000 after, "Race now" five times each (nine for part of them, so each starter has three
+starts), run as chunks of 200-400 stables whose counts add up (`FIRST_TALLY`).
+
+| | Before | After |
+|---|---:|---:|
+| Story race 1: win / top 3 / last | 20.8% / 50.0% / 5.6% | 33.0% / 66.9% / 6.0% |
+| Story race 2 | 14.3% / 39.3% / 10.6% | 23.6% / 52.9% / 9.1% |
+| Story race 3 | 17.2% / 41.5% / 8.8% | 28.6% / 61.0% / 7.2% |
+| A win within the first 5 | 65.1% | 88.8% |
+| Rating after 1 / 2 / 3 starts against the debut rating | −1.13 / −2.46 / −3.36 | +0.64 / +0.54 / +0.34 |
+| Debut rating (mean real ability mark) | 40 (32.1) | 32.1 (32.2) |
+
+Tuning steps on the way (200-300 stables each, same probe): window from 10 below with 7-8 runners
+(race 1 top 3 59.5%, last 8.0%, a win within five 71.6%); plus 12 below for the first race and
+easing from the first loss at 2 marks (65.5%, 4.0%, 81.3%); plus 3 marks a step (the table).
+Replaying the after-change races from a flat 40 still loses 3.1 points over three starts: the
+rating fix is the debut rating, the field knobs fix the finishing positions.
+
+**First-week scenario** (`firstWeek.harness.ts`, new): a casual stable (one visit a day) and an
+engaged one (two visits, 15-20 minutes) through 12 days with the Live card driven as the cron
+does. Median day (earliest-latest):
+
+| | Before (16 starts, 12 care days) | Breed from 2, care 8 | Breed from 1, care 8 (kept) |
+|---|---|---|---|
+| Engaged: first covering | never in 12 days | 2 (2-2) | 1 (1-2) |
+| Engaged: home-bred horse races | never | 11 (10-11) | 9 (9-10) |
+| Casual: first covering | never | 8 (4-11) | 3 (2-8) |
+| Casual: home-bred horse races | never | none inside 12 days | 11 (10-11), 7 of 13 inside 12 days |
+| The day-2 gift foal at racing age | day 13 | 9 | 9 |
+| Engaged: credits held on day 7 / spent days 1-7 | 7,834 / 2,180 | | 2,481 / 7,804 (covering, a pack, the vet) |
+| Casual: credits held on day 7 / spent days 1-7 | 5,884 / 1,327 | | 3,973 / 2,814 (covering) |
+
+A start is a Live race (Story never uses the career clock) and a horse runs one a day, so
+`BREED_FROM_STARTS` is the earliest day; the casual stable's filly runs Live every second or third
+day. That is why 1 and not the proposed 5 (day 5 at the earliest, about two weeks for a casual
+stable). The starter grant (3,000) and the covering fee (1,500) stay: a covering is affordable on
+day 1 and a covering, a pack and one upgrade cannot all be had in week one.
+
+**Season regression** (the standard 28 days, 50 stables, seed `season-harness-1`): the full run finished (58.8 minutes, all
+checks passed: ledger balanced, credits conserved, no unexpected exceptions). **87.7 credits
+destroyed per 100 created** (starter grants excluded), inside 85-115. 640 Live races, 98% with a
+player, players 64% of the runners, winning 57% of the races they ran in and 8.9% of their starts;
+Feature Qualifier runners 234 (62 in the first three), Weekend Feature runners 26; 34 foals bred,
+117 pack foals, 50 gift foals; Live injuries 36 in 4,029 player starts (the risk model: 33.8), no
+deaths; median balances casual 7.8k, grinder 0.8k, breeder 3.7k, farmer 8.7k. Sinks: entry fees
+365k, upkeep 265k, stalls 85k, race-day extras 82k, facilities 71k, coverings 59k. The baseline
+(396ab71) could only be run for the first 14 days (the machine restarted three times): over those
+days spending per 100 earned went from 81.5 to 84.4, player runners from 1,379 to 1,656 (foals
+race four days sooner), purses +14%, entry fees +15%, upkeep +24%, injuries 11 and 11. A 28-day
+baseline is a follow-up; details in
+`tools/season-harness/results/2026-11-20-first-week/season.md`.
+Player ratings now sit at the horses' real marks: median 34-38.5 by cohort, best 54 (on
+day 14: 34-37 against 39.5-43 at 396ab71, when every horse entered at 40), so fewer player horses
+reach the 50-75 band.
+
+### Decisions (2026-11-20)
+
+1. A racing horse may breed after one Live race (`BREED_FROM_STARTS` 16 → 1); a foal races after 8
+   care days (`CARE_TO_RACING` 12 → 8, wean 2, yearling 5). Existing horses only move forward.
+2. A horse makes its debut on its real ability mark (`debutRating`), not a flat 40. No migration:
+   unraced horses are seated when they enter their first race; raced horses are untouched.
+3. Open Story races in chapter 1: Club window from 10 marks below the horse (12 for the stable's
+   first race, both were 8), 7-8 runners (were 8-10), eased from the first loss at 3 marks a step.
+4. The first-week list puts breeding right after the Daily Cup and adds "Breed your first foal";
+   Wilf's bloodline nudge no longer asks a new stable to retire its filly.
+5. Story Quick Pick leaves out a mare in foal (it picked her and the entry failed).
+
+### Open after this pass
+
+- Injuries in an engaged first week: 7 of 13 engaged stables had an injured horse in days 1-7
+  after (1 of 10 before; the risk model says about a third at 60 starts a week; small samples).
+  No rule here changes injury risk. A gentler first week is a design decision.
+- A mare covers once a season: a new stable's second covering needs a second mare or the next season.
+- New starters' care quality starts at 0 in the database (game-core assumes 600).
+- The season harness is not bit-for-bit repeatable between two runs of the same code any more
+  (day 1 created 199,604 and 198,880 credits in two runs at 396ab71): compare runs with that
+  noise in mind (about 0.5% a day).

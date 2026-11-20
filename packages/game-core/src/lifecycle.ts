@@ -1,7 +1,7 @@
 /**
  * Life cycle on the career clock (§4a + amendments).
  *
- *   foal ──5 care──▶ weanling ──+7──▶ yearling ──+7──▶ juvenile (racing age)
+ *   foal ──2 care──▶ weanling ──+3──▶ yearling ──+3──▶ juvenile (racing age)
  *   juvenile 0–6 starts ▶ prime 7–28 ▶ veteran 29–40 ▶ racing retirement (40, or by choice)
  *   ▶ stud (while breedings remain) ▶ pasture / Legend on the Legacy Farm (permanent; a fatal race injury also ends here, in memoriam)
  *
@@ -27,16 +27,26 @@ import { clampInt } from "./rng";
  * Life clock (owner, 2026-11-01): a foal races after 12 days of care (was 19), careers last 34
  * starts (was 40, the stage bands and peak windows scaled by 34/40), and a racing horse may breed
  * from 16 starts (was 25), so a full generation fits a 4-week season at the game's normal pace.
+ *
+ * First-week pacing (2026-11-20): a foal races after 8 days of care (was 12; wean and yearling
+ * scaled, 2 and 5) and a racing horse may breed once it has run a Live race (BREED_FROM_STARTS 1,
+ * was 16). Week-one data: 1 tester of 108 ever bred a horse. A start is a Live race (Story races
+ * never use the career clock) and a horse runs one Live race a day, so 16 starts put a first
+ * covering more than two weeks away and a home-bred runner a month away; even 5 starts mean day 5
+ * at the earliest, and about two weeks for a stable that enters one Live race a day (its filly
+ * runs every third day). Measured (tools/season-harness firstWeek): see docs/foundation/HARNESS-LOG.md.
+ * Existing horses only move forward: a youngster with 8-11 care sessions is of racing age at
+ * once, a racing horse with 1-15 starts may breed.
  */
-export const CARE_TO_WEAN = 3;
-export const CARE_TO_YEARLING = 7;
-export const CARE_TO_RACING = 12;
+export const CARE_TO_WEAN = 2;
+export const CARE_TO_YEARLING = 5;
+export const CARE_TO_RACING = 8;
 
 export const CAREER_MAX_STARTS = 34;
 export const JUVENILE_MAX_STARTS = 5;
 export const PRIME_MAX_STARTS = 24;
-/** Racing horses may breed from this many starts; retired horses any time. */
-export const BREED_FROM_STARTS = 16;
+/** Racing horses may breed from this many starts (Live races); retired horses any time. */
+export const BREED_FROM_STARTS = 1;
 /** Hard cap on starts per horse per real day. */
 export const MAX_STARTS_PER_DAY = 3;
 /**
@@ -49,7 +59,11 @@ export const MAX_STARTS_PER_DAY = 3;
 export const MAX_LIVE_STARTS_PER_DAY = 1;
 export const BREEDINGS_LIFETIME = 4;
 export const PREGNANCY_MS = 24 * MS_PER_HOUR;
-/** Initial official rating on a horse's first start. */
+/**
+ * The placeholder rating of a horse that has not been seated yet (a foal in the nursery, a state
+ * built in a test or a sim). A racing-age horse is seated at its real ability mark instead
+ * (phenotype.ts debutRating): at founding, when it grows up, and again when it enters its first race.
+ */
 export const INITIAL_OR = 40;
 
 export function isRacingAge(state: Pick<HorseState, "care">): boolean {
@@ -109,10 +123,14 @@ export function isFemale(sex: Sex): boolean {
   return sex === "filly" || sex === "mare";
 }
 
-/** Colt/filly become stallion/mare once breeding-eligible. Geldings stay geldings. */
+/**
+ * Colt/filly become stallion/mare once out of the juvenile stage (more than JUVENILE_MAX_STARTS
+ * starts) or retired from racing. Geldings stay geldings. Until 2026-11-20 the name changed with
+ * breeding eligibility (16 starts); a horse may now breed after one Live race, still a colt or filly.
+ */
 export function sexLabel(state: Pick<HorseState, "sex" | "career" | "care">): Sex {
   if (state.sex === "gelding") return "gelding";
-  const grown = state.career.racingRetired !== null || state.career.starts >= BREED_FROM_STARTS;
+  const grown = state.career.racingRetired !== null || state.career.starts > JUVENILE_MAX_STARTS;
   if (isFemale(state.sex)) return grown ? "mare" : "filly";
   return grown ? "stallion" : "colt";
 }

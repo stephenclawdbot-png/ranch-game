@@ -227,6 +227,8 @@ async function careTx(tx: Tx, accountId: string, horse: HorseRow, day: string, n
         injury: patch.injury,
         injuredUntil: patch.injuredUntil,
         stats: patch.stats ?? horse.stats,
+        // Grown up today: seated at its real ability mark (game-core debutRating), like a starter.
+        ...(horse.careSessions < RULES.careToRacing && careSessions >= RULES.careToRacing && horse.starts === 0 ? { rating: gc.debutRating(next) } : {}),
         dynamics: { ...(horse.dynamics as Record<string, unknown>), lastCareDay: next.care.lastCareDay },
         updatedAt: now,
       })

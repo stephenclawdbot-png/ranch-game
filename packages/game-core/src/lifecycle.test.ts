@@ -29,7 +29,7 @@ import { PREGNANCY_MS } from "./lifecycle";
 import { seedFrom } from "./rng";
 
 describe("stages on the career clock", () => {
-  it("foal → weanling → yearling → juvenile by care sessions (3 / 4 / 5)", () => {
+  it("foal → weanling → yearling → juvenile by care sessions (2 / 3 / 3)", () => {
     const at = (care: number) => stageOf(makeHorse("s", { care }));
     expect(at(0)).toBe("foal");
     expect(at(CARE_TO_WEAN - 1)).toBe("foal");
@@ -38,7 +38,7 @@ describe("stages on the career clock", () => {
     expect(at(CARE_TO_YEARLING)).toBe("yearling");
     expect(at(CARE_TO_RACING - 1)).toBe("yearling");
     expect(at(CARE_TO_RACING)).toBe("juvenile");
-    expect([CARE_TO_WEAN, CARE_TO_YEARLING, CARE_TO_RACING]).toEqual([3, 7, 12]);
+    expect([CARE_TO_WEAN, CARE_TO_YEARLING, CARE_TO_RACING]).toEqual([2, 5, 8]);
   });
   it("juvenile 0–5, prime 6–24, veteran 25–34 starts; retired → stud → pasture", () => {
     const at = (starts: number) => stageOf(makeHorse("s", { starts }));
@@ -58,8 +58,10 @@ describe("stages on the career clock", () => {
     expect(displayAge(makeHorse("a", { care: CARE_TO_YEARLING }))).toBe(1);
     expect(displayAge(makeHorse("a", { starts: 0 }))).toBe(2);
     expect(displayAge(makeHorse("a", { starts: CAREER_MAX_STARTS }))).toBe(7);
-    expect(sexLabel(makeHorse("a", { sex: "filly", starts: BREED_FROM_STARTS - 1 }))).toBe("filly");
-    expect(sexLabel(makeHorse("a", { sex: "filly", starts: BREED_FROM_STARTS }))).toBe("mare");
+    expect(sexLabel(makeHorse("a", { sex: "filly", starts: JUVENILE_MAX_STARTS }))).toBe("filly");
+    expect(sexLabel(makeHorse("a", { sex: "filly", starts: JUVENILE_MAX_STARTS + 1 }))).toBe("mare");
+    // A filly may breed long before she is called a mare.
+    expect(BREED_FROM_STARTS).toBeLessThanOrEqual(JUVENILE_MAX_STARTS);
     expect(sexLabel(makeHorse("a", { sex: "colt", retired: true }))).toBe("stallion");
   });
 });
@@ -77,7 +79,7 @@ describe("care", () => {
     expect(r3.counted).toBe(true);
     expect(r3.state.care.sessions).toBe(2);
     h = r3.state;
-    expect(stageOf(h)).toBe("foal");
+    expect(stageOf(h)).toBe(CARE_TO_WEAN > 2 ? "foal" : "weanling");
   });
   it("right feed raises care quality and the care bonus (≤ +5%)", () => {
     let h = makeHorse("q", { care: 0 });

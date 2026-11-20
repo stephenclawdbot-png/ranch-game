@@ -95,17 +95,17 @@ async function ranLive(s: Session, position: number, at: Date) {
   return race.id;
 }
 
-describe("the day-3 bloodline nudge (Wilf)", () => {
-  it("from the third day suggests retiring the starter filly; after she retires, a stallion for her; 'Not now' is final", async () => {
+describe("the bloodline nudge (Wilf)", () => {
+  it("from the third day names the starter filly and the starts she needs; a mare that can breed gets a stallion; 'Not now' is final", async () => {
     const s = await founded();
     const [filly] = await q<{ id: string; name: string }>(`select id, name from horses where owner_stable_id = '${s.stable.id}' and sex = 'female'`);
     expect(filly).toBeDefined();
     expect((await onboardingView(h.db, s, T0))!.bloodline).toBeNull();
     expect((await onboardingView(h.db, s, new Date(T0.getTime() + gc.MS_PER_DAY)))!.bloodline).toBeNull();
     const day3 = new Date(T0.getTime() + gc.BLOODLINE_NUDGE_DAYS * gc.MS_PER_DAY);
-    expect((await onboardingView(h.db, s, day3))!.bloodline).toEqual({ horseId: filly!.id, name: filly!.name, retired: false });
+    expect((await onboardingView(h.db, s, day3))!.bloodline).toEqual({ horseId: filly!.id, name: filly!.name, retired: false, ready: false, startsToGo: gc.BREED_FROM_STARTS });
     await careerAction(h.db, s, filly!.id, "retire", day3);
-    expect((await onboardingView(h.db, s, day3))!.bloodline).toEqual({ horseId: filly!.id, name: filly!.name, retired: true });
+    expect((await onboardingView(h.db, s, day3))!.bloodline).toEqual({ horseId: filly!.id, name: filly!.name, retired: true, ready: true, startsToGo: 0 });
     await onboardingAction(h.db, s, { action: "coach", id: "bloodline" }, day3);
     expect((await onboardingView(h.db, s, new Date(day3.getTime() + gc.MS_PER_DAY)))!.bloodline).toBeNull();
   });

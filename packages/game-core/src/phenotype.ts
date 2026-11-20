@@ -88,6 +88,33 @@ export function abilityMark(state: HorseState): number {
 }
 
 /**
+ * The rating a horse makes its debut on (2026-11-20): its real ability mark today, not a flat
+ * INITIAL_OR. Every debutant used to start on 40 while a starter's real mark is about 31, so on the
+ * ratings it was expected to beat fields it couldn't, and the first results read "Rating 40 -> 37,
+ * down 3" (first races probe, tools/season-harness, 2,000 new stables: mean -3.4 over the first
+ * three starts on 40, +0.3 from the mark). Club runners have been rated at their mark since clubFill.ts; now a
+ * rating means the same thing on both sides from the first race.
+ */
+export function debutRating(state: HorseState): number {
+  return abilityMark(state);
+}
+
+/** True until the horse has run a rated race: its rating is still a seat, not a result. */
+export function isDebutant(state: Pick<HorseState, "rating">): boolean {
+  return state.rating.ratedRuns === 0;
+}
+
+/**
+ * The state with a debutant seated at its debut rating (rating and peak); any horse that has run a
+ * rated race is returned unchanged. The peak follows the seat: a 40 nobody earned is not a peak.
+ */
+export function seatDebutant(state: HorseState): HorseState {
+  if (!isDebutant(state)) return state;
+  const or = debutRating(state);
+  return state.rating.or === or && state.rating.peakOr === or ? state : { ...state, rating: { or, ratedRuns: 0, peakOr: or } };
+}
+
+/**
  * Current (resting, unmodified) stats: potential × maturity × training factor (incl. care bonus),
  * plus an improver's step-up once it has come (progressionOf).
  */

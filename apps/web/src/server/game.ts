@@ -132,7 +132,7 @@ import { houseOwnerFor, settleStoryRace, storyMetaOf } from "./storyField";
 import { afterResultWatched, onboardingView } from "./guide";
 import { stableNews } from "./moments";
 import { maybeSweepNotifications, unreadCount } from "./notifications";
-import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
+import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView, withoutMaresInFoal } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
@@ -1215,7 +1215,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
 export const STORY_INSTANT_BACKDATE_MS = 10 * 60_000;
 export const STORY_POST_DELAY_MS = 10_000;
 /** The first Story race's Club window starts this far below the horse's real ability mark (and runs gc.CLUB_ABOVE_MEDIAN_SPAN up from there). */
-export const FIRST_STORY_BELOW = gc.STORY_OPEN_BELOW;
+export const FIRST_STORY_BELOW = gc.STORY_FIRST_BELOW;
 const STORY_TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 /** Open Story races cover every trip a horse can prefer (1,000-3,200 m) on all three surfaces. */
 const STORY_DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
@@ -1337,7 +1337,7 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
     row = rows.find((r) => r.id === req.horseId);
     if (!row) throw new DomainError("NOT_OWNER", "that horse isn't in your stable");
   } else {
-    const p = storyPick(rows, silks, nowMs);
+    const p = storyPick(await withoutMaresInFoal(db, rows), silks, nowMs);
     if (!p) throw new DomainError("NOT_ELIGIBLE", "none of your horses can race right now");
     row = p.row;
     const h = p.view.horse;
@@ -1388,7 +1388,7 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
       name: `${track} ${chapterName} ${raceClass === "maiden" ? "Maiden" : raceClass === "novice" ? "Novice Stakes" : "Handicap"}`,
       raceClass,
       conditions: { distanceM, surface, going, weather, track, ...band, story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id), ...(open ? { field: { adjust: open.adjust, note } } : {}) } },
-      targetRunners: 8 + rand(3),
+      targetRunners: gc.storyOpenRunners({ club: firstRace || !!open, first: firstRace }, rand),
     },
     !!req.instant,
     now,
