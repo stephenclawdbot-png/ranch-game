@@ -42,6 +42,25 @@ export async function dbPage<T>(from: string | (() => string | Promise<string>),
   }
 }
 
+type PageProps = { params?: Promise<Record<string, string | string[] | undefined>> };
+
+/**
+ * Wraps a page's default export in dbPage. `route` is the page's route with its segment names
+ * ("/horse/[id]/care"); the way back is filled in from the request's params.
+ *
+ *   async function HorseCarePage({ params }: ...) { ... }
+ *   export default outagePage("/horse/[id]/care", HorseCarePage);
+ */
+export function outagePage<P extends object, T>(route: string, Page: (props: P) => Promise<T>): (props: P) => Promise<T> {
+  return function OutageGuardedPage(props: P): Promise<T> {
+    const from = async () => {
+      const params = (await (props as PageProps).params) ?? {};
+      return route.replace(/\[(\w+)\]/g, (_m, key: string) => encodeURIComponent(String(params[key] ?? "")));
+    };
+    return dbPage(from, () => Page(props));
+  };
+}
+
 /** For data a page can live without: the fallback when the database is unavailable (other errors still throw). */
 export async function orWhenDown<T>(load: () => Promise<T>, fallback: T, where = "page"): Promise<T> {
   try {

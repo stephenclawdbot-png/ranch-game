@@ -58,3 +58,10 @@ export function useOutage(): boolean {
     () => false,
   );
 }
+
+/** A same-site path to go back to ("/races"), or null: never an absolute or protocol-relative URL. */
+export function safeReturnPath(raw: string | null | undefined): string | null {
+  if (!raw || raw.length > 300) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\") || raw.startsWith("/outage")) return null;
+  return raw;
+}

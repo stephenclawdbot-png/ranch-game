@@ -8,12 +8,13 @@ const FINANCE_CATEGORY_KEYS = ["prize", "sales", "stud_earned", "leasing", "goal
 import { db } from "@/server/db";
 import { financesView, parseFinancePeriod } from "@/server/finances";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Finances" };
 
 /** The stable's books: ?period= this_week (default), last_week, season or all_time. */
-export default async function FinancesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+async function FinancesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const period = parseFinancePeriod(sp.period);
   const database = await db();
@@ -22,3 +23,6 @@ export default async function FinancesPage({ searchParams }: { searchParams: Pro
   const highlight = typeof sp.highlight === "string" && (FINANCE_CATEGORY_KEYS as readonly string[]).includes(sp.highlight) ? (sp.highlight as FinanceCategory) : null;
   return <FinancesScreen view={await financesView(database, session, period, new Date())} highlight={highlight} />;
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/stable/finances", FinancesPage);

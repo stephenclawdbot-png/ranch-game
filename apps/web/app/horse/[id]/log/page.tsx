@@ -6,11 +6,12 @@ import { db } from "@/server/db";
 import { horseLog } from "@/server/formBook";
 import { horseLifeView } from "@/server/horseLife";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Log" };
 
-export default async function HorseLogPage({ params }: { params: Promise<{ id: string }> }) {
+async function HorseLogPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const database = await db();
   const session = await getSession(database);
@@ -35,3 +36,6 @@ export default async function HorseLogPage({ params }: { params: Promise<{ id: s
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/horse/[id]/log", HorseLogPage);

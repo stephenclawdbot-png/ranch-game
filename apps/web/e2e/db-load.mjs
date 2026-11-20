@@ -111,11 +111,20 @@ async function idleTab(page, label, minutes) {
   log(`idle tab: ${label}: ${n} q in ${minutes} min`);
 }
 
+/** Requests wait up to three minutes (a busy machine must not turn a slow answer into a failed run). */
+function patient(ctx) {
+  for (const m of ["get", "post"]) {
+    const original = ctx.request[m].bind(ctx.request);
+    ctx.request[m] = (url, options = {}) => original(url, { timeout: 180_000, ...options });
+  }
+  return ctx;
+}
+
 async function main() {
   const browser = await chromium.launch({ args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"] });
   try {
     // ------------------------------------------------------------ signed out
-    const anon = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const anon = patient(await browser.newContext({ viewport: { width: 1280, height: 800 } }));
     log("warming up (first request creates the database and publishes the card)");
     await anon.request.get(`${BASE}/`, { timeout: 300_000 });
     await anon.request.get(`${BASE}/api/races`);
@@ -151,7 +160,7 @@ async function main() {
     await anonPage.close();
 
     // ------------------------------------------------------------ signed in
-    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const ctx = patient(await browser.newContext({ viewport: { width: 1280, height: 800 } }));
     const founded = await measure("POST /api/account (found a stable)", () =>
       ctx.request.post(`${BASE}/api/account`, { data: { stableName: `Load Lodge ${Date.now() % 100000}`, silks: { pattern: "solid", primary: "#1f6f4a", secondary: "#f2e8c9", cap: "#1f6f4a" }, timezone: "UTC" } }),
     );
@@ -256,16 +265,25 @@ async function main() {
     }
 
     // ------------------------------------------------------------ idle tabs
+    // Nobody touches the page: the first minutes after a load, then the minutes after that
+    // (pollers stop for an idle tab), then the same tab hidden, then /races.
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
-    await idleTab(page, "/ signed in, visible", IDLE_MIN);
-    await page.evaluate(() => {
+    await idleTab(page, "/ signed in, visible, minutes 0-3 after the load", IDLE_MIN);
+    await idleTab(page, "/ signed in, visible, minutes 3-6 (no input)", IDLE_MIN);
+    const hiddenPage = await ctx.newPage();
+    await hiddenPage.goto(`${BASE}/`, { waitUntil: "networkidle" });
+    await hiddenPage.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
       Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
       document.dispatchEvent(new Event("visibilitychange"));
     });
-    await idleTab(page, "/ signed in, hidden", IDLE_MIN);
-    await page.goto(`${BASE}/races`, { waitUntil: "networkidle" });
-    await idleTab(page, "/races signed in, visible", IDLE_MIN);
+    await page.close();
+    await idleTab(hiddenPage, "/ signed in, hidden", IDLE_MIN);
+    await hiddenPage.close();
+    const racesPage = await ctx.newPage();
+    await racesPage.goto(`${BASE}/races`, { waitUntil: "networkidle" });
+    await idleTab(racesPage, "/races signed in, visible", IDLE_MIN);
+    await racesPage.close();
 
     // ------------------------------------------------------------ crons
     if (CRON) {

@@ -7,6 +7,7 @@ import { EmptyState, SceneBand } from "@/components/ui/Page";
 import { db } from "@/server/db";
 import { legacyFarmView } from "@/server/moments";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "The Legacy Farm" };
@@ -16,7 +17,7 @@ export const metadata: Metadata = { title: "The Legacy Farm" };
  * record and the best win, one tap from its replay). A horse lost to a race injury gets a quiet
  * memorial instead: no celebration, no gamified tone.
  */
-export default async function LegacyFarmPage() {
+async function LegacyFarmPage() {
   const database = await db();
   const session = await getSession(database);
   if (!session) redirect("/play");
@@ -70,3 +71,6 @@ export default async function LegacyFarmPage() {
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/legacy", LegacyFarmPage);

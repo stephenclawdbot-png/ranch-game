@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { startRaceEarly } from "@thoroughbred/db";
 import { adminRoute } from "@/server/adminHttp";
+import { cardChanged } from "@/server/game";
 import { errorJson, readJson } from "@/server/http";
 
 export const runtime = "nodejs";
@@ -18,6 +19,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!parsed.success) return errorJson(400, "invalid_body");
   return adminRoute(async (db, now) => {
     const moved = await startRaceEarly(db, { raceId: id, now, minutes: parsed.data.minutes });
+    // The race's times moved: the lazy tick re-reads when it is next due (server/game.ts).
+    if (moved) cardChanged();
     return moved ? { moved: true, postTimeMs: moved.postTime.getTime() } : { moved: false };
   });
 }

@@ -117,10 +117,16 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   useEffect(() => {
     if (card.fieldLocked) return;
     let t: ReturnType<typeof setTimeout>;
+    let tries = 0;
     const tick = () => {
       // A hidden tab waits: the card is re-read the moment it shows again (the next tick).
-      if (document.visibilityState !== "hidden") router.refresh();
-      t = setTimeout(tick, 3000);
+      if (document.visibilityState !== "hidden") {
+        router.refresh();
+        tries++;
+      }
+      // The locked field normally arrives on the first or second try; if it does not (the card
+      // is paused, the server is struggling), ask less and less often instead of every 3 s forever.
+      t = setTimeout(tick, tries < 5 ? 3000 : tries < 15 ? 10_000 : 60_000);
     };
     t = setTimeout(tick, Math.max(1000, localClose - Date.now() + 1500));
     return () => clearTimeout(t);

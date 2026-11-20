@@ -918,6 +918,8 @@ export async function enterLive(db: Db, session: Session, raceId: string, horseI
     race = await loadRace(db, sister.id);
     entry = await enterRace(db, { accountId: session.accountId, raceId: race.id, horseId, tactic: plan.tactic, now, meta, raceDay, claimPrice });
   }
+  // A field that fills goes off sooner (startEarly.ts): the tick's next due time is re-read.
+  cardChanged();
   // Racing Live puts the stable in this week's league (idempotent; never blocks the entry).
   await ensureLeagueMembership(db, { accountId: session.accountId, now }).catch((e) => console.error("[game] league join failed", e));
   return { raceId: race.id, horseId: entry.horseId, postTimeMs: race.postTime.getTime(), entriesCloseAtMs: race.entriesCloseAt.getTime() };

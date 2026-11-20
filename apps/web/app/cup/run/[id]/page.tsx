@@ -4,11 +4,12 @@ import { CupRunScreen } from "@/components/competition/CupRunScreen";
 import { cupRunView } from "@/server/competition";
 import { db } from "@/server/db";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Cup Run" };
 
-export default async function CupRunPage({ params }: { params: Promise<{ id: string }> }) {
+async function CupRunPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const database = await db();
   const session = await getSession(database);
@@ -16,3 +17,6 @@ export default async function CupRunPage({ params }: { params: Promise<{ id: str
   if (!run) notFound();
   return <CupRunScreen run={run} />;
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/cup/run/[id]", CupRunPage);

@@ -24,17 +24,24 @@ import { db, type Db } from "./db";
 /** How old a visitor's copy may get before a visit refreshes it: at most 24 database wake-ups a day per view. */
 export const VISITOR_TTL_S = 60 * 60;
 
+/** For views that never change once made (a finished race): kept a week at a time, so a forgotten copy cannot live forever. */
+export const VISITOR_KEEP_S = 7 * 24 * 60 * 60;
+
 type Arg = string | number | null;
 
 /**
- * Wraps `load` (a public view built without a session) in the shared cache. `name` must be
- * unique per view and carry a version ("hall-v1"): bump it when the view's shape changes.
- * `ttlS: false` keeps a copy until the next deploy changes the code (for things that never
- * change, like a finished race).
+ * Copies belong to one deployment: a new deployment (whose views may have a different shape)
+ * starts with fresh ones instead of reading what older code stored.
  */
-export function visitorCached<A extends Arg[], T>(name: string, load: (database: Db, now: Date, ...args: A) => Promise<T>, ttlS: number | false = VISITOR_TTL_S): (...args: A) => Promise<T> {
+const DEPLOYMENT = process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
+
+/**
+ * Wraps `load` (a public view built without a session) in the shared cache. `name` must be
+ * unique per view ("hall-v1").
+ */
+export function visitorCached<A extends Arg[], T>(name: string, load: (database: Db, now: Date, ...args: A) => Promise<T>, ttlS: number = VISITOR_TTL_S): (...args: A) => Promise<T> {
   const run = async (...args: A): Promise<T> => load(await db(), new Date(), ...args);
-  const cached = unstable_cache(run, ["visitor", name], { revalidate: ttlS, tags: ["visitor", `visitor:${name}`] });
+  const cached = unstable_cache(run, ["visitor", name, DEPLOYMENT], { revalidate: ttlS, tags: ["visitor", `visitor:${name}`] });
   return async (...args: A): Promise<T> => {
     try {
       return await cached(...args);

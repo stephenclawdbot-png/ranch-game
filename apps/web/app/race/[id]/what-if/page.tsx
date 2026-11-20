@@ -7,6 +7,7 @@ import type { WhatIfView } from "@/lib/whatIf";
 import { db } from "@/server/db";
 import { getSession } from "@/server/session";
 import { whatIfSummary } from "@/server/whatIf";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "What if? (not official)", robots: { index: false } };
@@ -16,7 +17,7 @@ export const metadata: Metadata = { title: "What if? (not official)", robots: { 
  * seed) in the race viewer, badged "WHAT IF", with the comparison under it. Only a re-run your
  * stable has already made (the sheet makes it); never official, no finale, no credits.
  */
-export default async function WhatIfPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+async function WhatIfPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k]![0] : sp[k]) ?? "";
   const raceId = decodeURIComponent(id);
@@ -48,3 +49,6 @@ export default async function WhatIfPage({ params, searchParams }: { params: Pro
   }
   return <WhatIfReplay v={view} />;
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/race/[id]/what-if", WhatIfPage);

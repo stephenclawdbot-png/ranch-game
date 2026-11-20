@@ -13,6 +13,7 @@ import { PageHeader, Section } from "@/components/ui/Page";
 import { db } from "@/server/db";
 import { jockeyPage } from "@/server/jockeys";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jockey" };
@@ -23,7 +24,7 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]!);
 }
 
-export default async function JockeyPage({ params }: { params: Promise<{ id: string }> }) {
+async function JockeyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const database = await db();
   const session = await getSession(database);
@@ -140,3 +141,6 @@ export default async function JockeyPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/jockeys/[id]", JockeyPage);

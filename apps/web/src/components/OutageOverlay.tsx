@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { clearOutage, isOutageResponse, useOutage } from "@/lib/outage";
 import { refreshPlayer } from "@/lib/player";
@@ -22,7 +23,10 @@ async function databaseIsBack(): Promise<boolean> {
  * again. No polling: the screen waits for the player.
  */
 export function OutageOverlay() {
-  const down = useOutage();
+  // On the outage page itself the page is the screen: no second copy over it.
+  const reported = useOutage();
+  const pathname = usePathname();
+  const down = reported && pathname !== "/outage";
   useEffect(() => {
     if (!down) return;
     document.documentElement.setAttribute("data-outage", "1");

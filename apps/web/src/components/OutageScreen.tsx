@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { safeReturnPath } from "@/lib/outage";
 
 /**
  * "The yard is closed for a moment": what players see when the database cannot be reached or
@@ -22,7 +23,7 @@ const COPY: Record<Exclude<OutageVariant, "checking">, { title: string; body: Re
         lost.
       </>
     ),
-    note: "Try again in a little while. The guide is still open if you'd like something to read.",
+    note: "Try again in a little while. The guide is still open if you\u2019d like something to read.",
   },
   error: {
     title: "Something went wrong at the track",
@@ -34,13 +35,6 @@ const COPY: Record<Exclude<OutageVariant, "checking">, { title: string; body: Re
     note: "Try again, or head back to your yard.",
   },
 };
-
-/** A same-site path to go back to ("/races"), or null: never an absolute or protocol-relative URL. */
-export function safeReturnPath(raw: string | null | undefined): string | null {
-  if (!raw || raw.length > 300) return null;
-  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\") || raw.startsWith("/outage")) return null;
-  return raw;
-}
 
 export function OutageScreen({
   variant = "outage",
@@ -87,7 +81,7 @@ export function OutageScreen({
           <h1 className="t-h2">One moment&hellip;</h1>
         ) : (
           <>
-            <h1 className="t-h2 !text-[1.75rem] !leading-8 md:!text-[2.25rem] md:!leading-10" data-testid="outage-title">
+            <h1 className="t-h2 text-balance !text-[1.75rem] !leading-8 md:!text-[2.25rem] md:!leading-10" data-testid="outage-title">
               {copy.title}
             </h1>
             <p className="max-w-md text-cream-dim">{copy.body}</p>

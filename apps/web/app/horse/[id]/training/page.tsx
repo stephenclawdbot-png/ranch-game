@@ -5,11 +5,12 @@ import { HorseLifeHeader } from "@/components/horseLife/HorseLifeHeader";
 import { db } from "@/server/db";
 import { horseLifeView } from "@/server/horseLife";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Training" };
 
-export default async function HorseTrainingPage({ params }: { params: Promise<{ id: string }> }) {
+async function HorseTrainingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const database = await db();
   const session = await getSession(database);
@@ -23,3 +24,6 @@ export default async function HorseTrainingPage({ params }: { params: Promise<{ 
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/horse/[id]/training", HorseTrainingPage);

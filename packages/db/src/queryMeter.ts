@@ -8,6 +8,10 @@
  *
  * The meter wraps the driver client (PGlite or the Neon pool) in place; without the env
  * variable nothing is wrapped. Parameters are never logged.
+ *
+ * Outage drill, for local test runs with the meter on: while the file named by `DB_OUTAGE_FILE`
+ * exists, every statement is refused with Neon's over-quota error (SQLSTATE 53000), so the
+ * outage screen and the cached pages can be tried against a database that "goes down" mid-run.
  */
 export interface QueryTotals {
   queries: number;
@@ -51,7 +55,8 @@ export function meterClient<T extends object>(client: T, target: string): T {
   if (c[WRAPPED]) return client;
   c[WRAPPED] = true;
   const file = target === "1" ? null : target;
-  const fs = file ? process.getBuiltinModule("node:fs") : null;
+  const outageFile = process.env.DB_OUTAGE_FILE?.trim() || null;
+  const fs = file || outageFile ? process.getBuiltinModule("node:fs") : null;
   const record = (sql: string, started: number) => {
     const ms = performance.now() - started;
     const t = totals();
@@ -69,6 +74,11 @@ export function meterClient<T extends object>(client: T, target: string): T {
     const original = obj.query;
     if (typeof original !== "function") return;
     obj.query = (...args: unknown[]) => {
+      // Outage drill (local test runs only): while the file named by DB_OUTAGE_FILE exists,
+      // every statement fails the way Neon does when a project is over its quota.
+      if (fs && outageFile && fs.existsSync(outageFile)) {
+        return Promise.reject(Object.assign(new Error("Your account or project has exceeded the compute time quota. Upgrade your plan to increase limits."), { code: "53000", severity: "ERROR" }));
+      }
       const started = performance.now();
       const out = (original as Fn).apply(obj, args);
       if (out && typeof (out as Promise<unknown>).then === "function") {

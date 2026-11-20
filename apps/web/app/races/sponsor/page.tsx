@@ -6,11 +6,12 @@ import { formatCredits } from "@/lib/format";
 import { db } from "@/server/db";
 import { getSession } from "@/server/session";
 import { sponsorView } from "@/server/sponsor";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sponsor a race · Kestrel Downs" };
 
-export default async function SponsorPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+async function SponsorPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const date = Array.isArray(sp.date) ? sp.date[0] : sp.date;
   const database = await db();
@@ -34,3 +35,6 @@ export default async function SponsorPage({ searchParams }: { searchParams: Prom
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/races/sponsor", SponsorPage);
