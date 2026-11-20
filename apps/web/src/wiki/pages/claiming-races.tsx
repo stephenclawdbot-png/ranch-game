@@ -27,8 +27,8 @@ export default function ClaimingRacesPage() {
 
       <H2 id="when">When they run</H2>
       <P>
-        There is {gc.CLAIMING_RACES_PER_DAY === 1 ? "one claiming race" : `${gc.CLAIMING_RACES_PER_DAY} claiming races`} a day, in an evening meeting ({TIMES_TEXT}). It takes the place of the
-        day&rsquo;s last handicap in one band, and the band changes every day: 0-55, then 50-75, then 70-95. It runs to that handicap&rsquo;s conditions and purse and is called the
+        There is {gc.CLAIMING_RACES_PER_DAY === 1 ? "one claiming race" : `${gc.CLAIMING_RACES_PER_DAY} claiming races`} a day, in an evening meeting ({TIMES_TEXT}), on days when at least {gc.CLAIMING_MIN_ELIGIBLE} horses could be sold in one. It is a
+        handicap in one band, and the band changes every day: 0-55, then 50-75, then 70-95. It runs to that handicap&rsquo;s conditions and purse and is called the
         &ldquo;&lt;Course&gt; Claiming Stakes (band)&rdquo;. A calendar race always keeps its place: if one holds that day&rsquo;s band, the claiming race moves to the next band. The race list marks it <b>Claiming</b>.
       </P>
 

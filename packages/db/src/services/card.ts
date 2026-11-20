@@ -22,16 +22,17 @@
  *   3. return the races due for simulation + settlement; the web app runs the engine
  *      (getRaceForSimulation → simulateRace) and calls settleRace for each.
  */
-import { and, asc, eq, gte, inArray, isNotNull, like, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
-import { raceEntries, races, type RaceRow } from "../schema";
+import { accounts, horses, raceEntries, races, stables, type RaceRow } from "../schema";
 import { RULES, seasonNumberAt } from "../rules";
-import { gc } from "../gameCore";
+import { utcDay } from "../crypto";
+import { bandRatingOf, gc, genomeOf } from "../gameCore";
 import type { Db, Executor, Tx } from "../types";
 import { runMaintenance, type MaintenanceReport } from "./maintenance";
 import { claimingEligibleCount } from "./claiming";
-import { applyPendingSponsorships, baseRaceName, withoutSponsor } from "./sponsorship";
-import { audit } from "./tx";
+import { applyPendingSponsorships, baseRaceName, pendingSponsorshipSlots, withoutSponsor } from "./sponsorship";
+import { audit, runTx } from "./tx";
 import { lockField, publicRace, raceValues, type CreateRaceInput, type FieldHooks, type PublicRace, type RaceConditions } from "./races";
 import { noteRacesThatSuit } from "./notificationEvents";
 
@@ -428,13 +429,30 @@ export function cardSlotAt(index: number, opts: { claiming?: boolean } = {}): Cr
   return isCardSlot(index) ? defaultCardSlot(index, opts) : null;
 }
 
+/**
+ * How a meeting's ordinary races are chosen.
+ *   "demand" (the default): from the horses that exist (game-core cardPlan.ts), decided once when
+ *            the meeting is published and stored as its race rows.
+ *   "fixed": every slot of every meeting from the class pattern above (the card until 2026-11-20).
+ * LIVE_CARD_PLAN=fixed in the environment switches a deployment back to the fixed card at once:
+ * races already published run as published, and every empty slot inside the horizon is filled
+ * from the pattern on the next tick.
+ */
+export type CardPlanMode = "demand" | "fixed";
+
+export function cardPlanMode(env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {}): CardPlanMode {
+  return env.LIVE_CARD_PLAN === "fixed" ? "fixed" : "demand";
+}
+
 export interface CardHooks extends FieldHooks {
-  /** Conditions for a slot, null for no race (defaults to cardSlotAt: meetings and calendar races). */
+  /** Conditions for a slot, null for no race (defaults to cardSlotAt: meetings and calendar races). Implies the fixed card. */
   cardSlot?(index: number): CreateRaceInput | null;
+  /** Overrides cardPlanMode() (tests). */
+  plan?: CardPlanMode;
 }
 
 /** A claiming race is already published on the UTC day of `at` (any slot, any schedule). */
-async function claimingRaceOnDay(db: Db, at: Date): Promise<boolean> {
+async function claimingRaceOnDay(db: Executor, at: Date): Promise<boolean> {
   const day = Math.floor(at.getTime() / 86_400_000) * 86_400_000;
   const [row] = await db
     .select({ id: races.id })
@@ -445,6 +463,255 @@ async function claimingRaceOnDay(db: Db, at: Date): Promise<boolean> {
 }
 
 /**
+ * Whether the day's claiming-race candidate slot `index` is published as the claiming race: once
+ * per candidate slot, at publication (not on re-reads). Only when no claiming race is on that day
+ * yet (e.g. one published under the schedule before a change) and enough horses could enter one
+ * today (game-core CLAIMING_MIN_ELIGIBLE); otherwise the slot is an ordinary race. The kind lives
+ * on the published race row from then on, so it never flips.
+ */
+async function claimingDecision(ex: Executor, index: number, now: Date): Promise<boolean> {
+  const band = handicapDefOf(meetingRaceOf(index)!)!;
+  if (await claimingRaceOnDay(ex, slotPostTime(index))) return false;
+  return (await claimingEligibleCount(ex, { minRating: band.conditions.minRating, maxRating: band.conditions.maxRating, now })) >= gc.CLAIMING_MIN_ELIGIBLE;
+}
+
+// ---------------------------------------------------------------------------
+// The demand-aware card (game-core cardPlan.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Stored on every race the demand-aware card publishes (`conditions.card`): why the race is on
+ * the card. "demand" and "cover" races are the meeting's plan; "sponsor" and "claiming" are races
+ * the pattern fixed in their slot (a sponsor bought that race; the day's claiming race). A meeting
+ * with a marked race is planned: its other slots stay empty (marked races are only ever published
+ * with the plan, or into a meeting that has one). `stables` is how many active stables had a horse
+ * for it when it was published.
+ */
+export interface CardMark {
+  plan: number;
+  reason: "demand" | "cover" | "sponsor" | "claiming";
+  stables?: number;
+}
+export const CARD_PLAN_VERSION = 1;
+
+export function cardMarkOf(race: Pick<RaceRow, "conditions">): CardMark | null {
+  const m = ((race.conditions ?? {}) as RaceConditions).card as CardMark | undefined;
+  return m && typeof m === "object" && typeof m.reason === "string" ? m : null;
+}
+
+/** The classes the demand-aware card can publish, in card order (ties and turns follow it). */
+interface PlanClass {
+  key: string;
+  def: ClassDef;
+  tier: gc.RaceTier;
+  trips: readonly number[];
+  /** A class every new horse can enter. */
+  starter?: boolean;
+  /** Run as a Feature (double purse): in even-numbered meetings, or always. */
+  feature?: "even" | "always";
+}
+const PLAN_CLASSES: readonly PlanClass[] = [
+  { key: "maiden", def: MAIDEN, tier: "maiden", trips: JUVENILE_TRIPS, starter: true },
+  { key: "novice", def: NOVICE, tier: "novice", trips: JUVENILE_TRIPS, starter: true },
+  { key: "hcp55", def: HCP_55, tier: "hcp_0_55", trips: OPEN_TRIPS, starter: true },
+  { key: "hcp75", def: HCP_75, tier: "hcp_50_75", trips: OPEN_TRIPS },
+  { key: "hcp95", def: HCP_95, tier: "hcp_70_95", trips: OPEN_TRIPS },
+  { key: "listed", def: LISTED, tier: "listed", trips: OPEN_TRIPS, feature: "even" },
+  { key: "group3", def: GROUP3, tier: "g3", trips: OPEN_TRIPS, feature: "always" },
+];
+const isFeature = (c: PlanClass, meeting: number) => c.feature === "always" || (c.feature === "even" && meeting % 2 === 0);
+
+/** The plan's options: each class with its conditions and the licence it needs. */
+export function cardPlanOptions(meeting: number): gc.CardOption[] {
+  return PLAN_CLASSES.map((c) => ({
+    key: c.key,
+    maxWins: c.def.conditions.maxWins,
+    minRating: c.def.conditions.minRating,
+    maxRating: c.def.conditions.maxRating,
+    licence: gc.licenceForTier(c.tier, isFeature(c, meeting)),
+    trips: c.trips,
+    starter: c.starter,
+  }));
+}
+
+/** The conditions the plan checks, read back from a published race (class, band and licence). */
+function planConditionsOf(r: Pick<RaceRow, "kind" | "raceClass" | "conditions">): gc.FixedCardRace {
+  const c = (r.conditions ?? {}) as RaceConditions;
+  const max = c.maxRating ?? 140;
+  const tier: gc.RaceTier =
+    r.raceClass === "maiden" ? "maiden" : r.raceClass === "novice" ? "novice" : r.raceClass === "listed" ? "listed" : r.raceClass === "graded" ? "g3" : max <= 55 ? "hcp_0_55" : max <= 75 ? "hcp_50_75" : "hcp_70_95";
+  return { maxWins: c.maxWins, minRating: c.minRating, maxRating: c.maxRating, licence: gc.licenceForTier(tier, r.kind === "feature"), distanceM: Number(c.distanceM ?? 0) };
+}
+
+/** A planned race as the row to publish in card slot `index` (course, going and weather as every card race: placeRace). */
+export function plannedCardSlot(index: number, meeting: number, p: gc.PlannedRace): CreateRaceInput {
+  const c = PLAN_CLASSES.find((x) => x.key === p.key);
+  if (!c) throw new Error(`card plan: unknown class ${p.key}`);
+  const h = createHash("sha256").update(`card-slot:${index}`).digest();
+  const postTime = slotPostTime(index);
+  const feature = isFeature(c, meeting);
+  const where = placeRace(p.surface, postTime.getTime(), h[1]!);
+  const purse = feature ? c.def.purse * FEATURE_PURSE_MULTIPLIER : c.def.purse;
+  const mark: CardMark = { plan: CARD_PLAN_VERSION, reason: p.reason, stables: p.eligibleStables };
+  return {
+    kind: feature ? "feature" : "scheduled",
+    name: `${where.track} ${feature ? "Feature " : ""}${c.def.label}`,
+    raceClass: c.def.raceClass,
+    conditions: { ...c.def.conditions, distanceM: p.distanceM, surface: where.surface, going: where.going, weather: where.weather, track: where.track, card: mark },
+    postTime,
+    entriesCloseAt: new Date(postTime.getTime() - RULES.entriesCloseBeforePostMs),
+    purse,
+    entryFee: cardEntryFee(c.def.raceClass, { purse }),
+    maxRunners: RULES.maxField,
+    targetRunners: RULES.minField + (h[29]! % (RULES.maxField - RULES.minField + 1)),
+    seasonNumber: seasonNumberAt(postTime),
+    slotKey: slotKeyOf(index),
+  };
+}
+
+/** The pattern's race for a slot the plan must keep as it is (a sponsor bought it; the claiming race), marked. */
+function fixedCardSlot(index: number, reason: "sponsor" | "claiming", claiming: boolean): CreateRaceInput {
+  const input = defaultCardSlot(index, { claiming });
+  return { ...input, conditions: { ...input.conditions, card: { plan: CARD_PLAN_VERSION, reason } satisfies CardMark } };
+}
+
+/** A meeting's ordinary slots (card slot indices, in order): its races that are not calendar races. */
+export function ordinarySlotsOf(m: gc.Meeting): number[] {
+  const out: number[] = [];
+  for (let r = 0; r < m.races; r++) {
+    const index = slotIndexAt(new Date(m.startMs + r * m.spacingMs));
+    if (!isCalendarSlot(index)) out.push(index);
+  }
+  return out;
+}
+
+/**
+ * The player horses the card is planned for: racing horses that can race by `at`, kept by a
+ * stable whose account was seen, founded or played in the last gc.CARD_DEMAND_ACTIVE_MS. The most
+ * recently seen stables first, at most gc.CARD_DEMAND_READ_LIMIT horses (a world beyond that fills
+ * the whole card anyway).
+ */
+export async function cardDemand(ex: Executor, now: Date, at: Date = now): Promise<gc.DemandHorse[]> {
+  const since = new Date(now.getTime() - gc.CARD_DEMAND_ACTIVE_MS);
+  const rows = await ex
+    .select({ horse: horses, stableId: stables.id, licence: stables.licenceLevel })
+    .from(horses)
+    .innerJoin(stables, sql`${stables.id} = coalesce(${horses.lesseeStableId}, ${horses.ownerStableId})`)
+    .innerJoin(accounts, eq(accounts.id, stables.accountId))
+    .where(
+      and(
+        eq(horses.careerStatus, "racing"),
+        gte(horses.careSessions, RULES.careToRacing),
+        lt(horses.starts, RULES.maxStarts),
+        isNull(horses.releasedAt),
+        eq(accounts.isSystem, false),
+        or(isNull(horses.injuredUntil), lte(horses.injuredUntil, at)),
+        or(
+          gte(accounts.lastSeenAt, since),
+          gte(accounts.createdAt, since),
+          sql`exists (select 1 from account_play_days d where d.account_id = ${accounts.id} and d.day >= ${utcDay(since)})`,
+        ),
+      ),
+    )
+    .orderBy(desc(accounts.lastSeenAt), asc(horses.id))
+    .limit(gc.CARD_DEMAND_READ_LIMIT);
+  const out: gc.DemandHorse[] = [];
+  for (const r of rows) {
+    const g = genomeOf(r.horse.genome);
+    if (!g) continue;
+    out.push({
+      stable: r.stableId,
+      wins: r.horse.wins,
+      rating: r.horse.rating,
+      bandRating: bandRatingOf(r.horse).rating,
+      licence: r.licence,
+      distanceM: gc.preferredDistanceM(g),
+      surface: gc.preferredSurface(g),
+    });
+  }
+  return out;
+}
+
+/** Player entries in a meeting's ordinary races (sister courses included; a called-off race has none). */
+async function meetingPlayerEntries(ex: Executor, m: gc.Meeting): Promise<number> {
+  const keys = ordinarySlotsOf(m).flatMap((i) => [slotKeyOf(i), ...Array.from({ length: SISTER_MAX }, (_, n) => `${slotKeyOf(i)}:${n + 2}`)]);
+  if (!keys.length) return 0;
+  const [row] = await ex
+    .select({ n: sql<number>`count(*)::int` })
+    .from(raceEntries)
+    .innerJoin(races, eq(races.id, raceEntries.raceId))
+    .where(and(inArray(races.slotKey, keys), eq(raceEntries.status, "entered"), isNotNull(raceEntries.stableId)));
+  return Number(row?.n ?? 0);
+}
+
+/**
+ * The player entries a meeting can expect: what the same meeting of the day drew one and two
+ * days before it (the one a day before is at its first post time when this one is published, so
+ * its entries are nearly all in). Growth counts at once, a quiet day only by half.
+ */
+export async function expectedMeetingEntries(ex: Executor, m: gc.Meeting): Promise<number> {
+  const before = (days: number) => gc.meetingsOn(SEASON_CLOCK, m.startMs - days * 86_400_000)[m.ofDay];
+  const [d1, d2] = [before(1), before(2)];
+  const e1 = d1 ? await meetingPlayerEntries(ex, d1) : 0;
+  const e2 = d2 ? await meetingPlayerEntries(ex, d2) : 0;
+  return Math.max(e1, Math.floor((e1 + e2 + 1) / 2));
+}
+
+/** Serialises the planning of one meeting across instances (transaction-scoped advisory lock). */
+async function lockMeeting(tx: Tx, meeting: number): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`card-meeting:${meeting}`}))`);
+}
+
+/**
+ * Plans and publishes one meeting's ordinary races, exactly once: under the meeting's advisory
+ * lock it re-reads the meeting, and does nothing when it holds a race already (another instance
+ * planned it, or races of the fixed card: those meetings are completed from the pattern). Otherwise it
+ * reads the demand, runs game-core planMeeting and inserts the races into the meeting's earliest
+ * free slots (ON CONFLICT DO NOTHING on the slot key, as everywhere; each row's seed commitment is
+ * fixed by this insert). `forced` slots (a sponsor bought that race; the day's claiming race, when
+ * `claimingAt` says so) are published from the pattern in the same transaction and count as races
+ * the meeting already has. Returns the slot keys it inserted.
+ */
+async function planMeetingTx(db: Db, m: gc.Meeting, input: { now: Date; first: number; taken: ReadonlySet<number>; sponsored: ReadonlySet<number> }): Promise<string[]> {
+  const { now, first } = input;
+  const slots = ordinarySlotsOf(m);
+  return runTx(db, async (tx) => {
+    await lockMeeting(tx, m.number);
+    const existing = await tx.select().from(races).where(inArray(races.slotKey, slots.map(slotKeyOf)));
+    if (existing.length) return [];
+    const open = slots.filter((i) => i >= first && !input.taken.has(slotPostTime(i).getTime()));
+    // Slots the pattern fixes: a sponsor's race, and the day's claiming race when it is on.
+    const forced: CreateRaceInput[] = [];
+    for (const i of open) {
+      const claiming = isClaimingSlot(i) ? await claimingDecision(tx, i, now) : false;
+      if (input.sponsored.has(i)) forced.push(fixedCardSlot(i, "sponsor", claiming));
+      else if (claiming) forced.push(fixedCardSlot(i, "claiming", true));
+    }
+    const forcedKeys = new Set(forced.map((f) => f.slotKey));
+    const free = open.filter((i) => !forcedKeys.has(slotKeyOf(i)));
+    const rows = forced.map((f) => raceValues(f));
+    if (free.length) {
+      const before = gc.meetingOf(SEASON_CLOCK, m.startMs - 1);
+      const previous = before.number === m.number ? [] : await tx.select().from(races).where(inArray(races.slotKey, ordinarySlotsOf(before).map(slotKeyOf)));
+      const countsAsRace = (r: Pick<RaceRow, "conditions">) => !((r.conditions ?? {}) as RaceConditions).claiming; // a claiming race puts the horse up for sale
+      const plan = gc.planMeeting({
+        meeting: m.number,
+        slots: free.length,
+        horses: await cardDemand(tx, now, new Date(m.startMs)),
+        recentEntries: await expectedMeetingEntries(tx, m),
+        options: cardPlanOptions(m.number),
+        fixed: forced.map((f) => ({ kind: f.kind, raceClass: f.raceClass, conditions: f.conditions })).filter(countsAsRace).map(planConditionsOf),
+        previous: previous.filter(countsAsRace).map(planConditionsOf),
+      });
+      plan.forEach((p, j) => rows.push(raceValues(plannedCardSlot(free[j]!, m.number, p))));
+    }
+    if (!rows.length) return [];
+    const inserted = await tx.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey }).returning({ slotKey: races.slotKey });
+    return inserted.map((r) => r.slotKey!);
+  });
+}
+
+/**
  * Calendar races (Feature Qualifiers, the Weekend Feature, the Plate, Season Finals) publish on
  * the same day-ahead horizon as the meetings (they did before the meetings, when the rest of
  * the card was 6 h ahead). Kept as its own name for the callers that mean calendar races.
@@ -452,66 +719,107 @@ async function claimingRaceOnDay(db: Db, at: Date): Promise<boolean> {
 export const CALENDAR_HORIZON_MS = RULES.cardHorizonMs;
 
 /**
- * Publishes every card slot from now to now + horizon (idempotent) and returns the open card.
- * Cheap on the steady state: one read of the published card; only slots missing from it are
- * built and inserted (ON CONFLICT DO NOTHING keeps concurrent instances safe), which after the
- * first tick is the one new slot every 15 minutes.
+ * Publishes the card from now to now + horizon (idempotent) and returns the open card.
+ *
+ * Calendar races publish slot by slot as they enter the horizon. A meeting's ordinary races
+ * publish together, when its first slot enters the horizon (cardPlanMode "demand", the default):
+ * planMeetingTx decides them from the horses that exist, once, and the meeting's other slots stay
+ * empty. A meeting that already holds races of the fixed card (published before the switch to
+ * the demand-aware card, or while LIVE_CARD_PLAN=fixed) is completed from the pattern, slot by
+ * slot, as before. With cardPlanMode "fixed" (or a `cardSlot` hook) every slot is.
+ *
+ * Cheap on the steady state: one read of the published card and one of the pending
+ * sponsorships; only what is missing is built and inserted (ON CONFLICT DO NOTHING keeps
+ * concurrent instances safe; a meeting's plan also takes the meeting's advisory lock).
  */
 export async function ensureRaceCard(db: Db, now: Date, hooks: CardHooks = {}, horizonMs = RULES.cardHorizonMs): Promise<PublicRace[]> {
   const first = slotIndexAt(now) + 1;
   const last = slotIndexAt(new Date(now.getTime() + horizonMs));
+  const horizonEnd = new Date(now.getTime() + horizonMs);
+  const mode: CardPlanMode = hooks.cardSlot ? "fixed" : (hooks.plan ?? cardPlanMode());
+  // Demand-aware card: the meetings with a slot inside the horizon, and their ordinary slots.
+  const meetings = new Map<number, { meeting: gc.Meeting; slots: number[] }>();
+  if (mode === "demand") {
+    for (let i = first; i <= last; i++) {
+      const m = meetingRaceOf(i);
+      if (m && !meetings.has(m.number)) meetings.set(m.number, { meeting: m, slots: ordinarySlotsOf(m) });
+    }
+  }
+  const meetingKeys = [...meetings.values()].flatMap((m) => m.slots.map(slotKeyOf));
+  // The card inside the horizon, plus every race of those meetings wherever its post time is now
+  // (a meeting's later slots lie just beyond the horizon; a race that started early has moved).
+  const inHorizon = and(gte(races.postTime, now), lte(races.postTime, horizonEnd));
   const readCard = () =>
     db
       .select()
       .from(races)
-      .where(and(gte(races.postTime, now), lte(races.postTime, new Date(now.getTime() + horizonMs)), like(races.slotKey, LIVE_SLOT_KEY_LIKE)))
+      .where(and(like(races.slotKey, LIVE_SLOT_KEY_LIKE), meetingKeys.length ? or(inHorizon, inArray(races.slotKey, meetingKeys)) : inHorizon))
       .orderBy(asc(races.postTime), asc(races.slotKey)); // slotKey: sisters right after their original
-  let card = await readCard();
-  const published = new Set(card.map((r) => r.slotKey));
+  const onCard = (r: RaceRow) => r.postTime >= now && r.postTime <= horizonEnd;
+  let all = await readCard();
+  const published = new Set(all.map((r) => r.slotKey));
   // a post time that already has a card race (e.g. one published under an older slot length) is taken
-  const taken = new Set(card.filter((r) => !/:\d+:\d+$/.test(r.slotKey ?? "")).map((r) => r.postTime.getTime()));
-  // The claiming-race decision, once per candidate slot, at publication (not on re-reads): a
-  // candidate handicap only becomes the claiming race when enough horses could enter one
-  // today (game-core CLAIMING_MIN_ELIGIBLE); otherwise it is published as the ordinary handicap.
-  // The kind lives on the published race row from then on, so it never flips.
-  const claimingAt = new Map<number, boolean>();
-  if (!hooks.cardSlot) {
-    for (let i = first; i <= last; i++) {
-      if (published.has(slotKeyOf(i)) || taken.has(slotPostTime(i).getTime()) || !isClaimingSlot(i)) continue;
-      const band = handicapDefOf(meetingRaceOf(i)!)!;
-      // one claiming race a day: a day that already has one published (e.g. under the schedule
-      // before a change) keeps it, and this slot stays the ordinary handicap
-      if (await claimingRaceOnDay(db, slotPostTime(i))) {
-        claimingAt.set(i, false);
-        continue;
-      }
-      claimingAt.set(i, (await claimingEligibleCount(db, { minRating: band.conditions.minRating, maxRating: band.conditions.maxRating, now })) >= gc.CLAIMING_MIN_ELIGIBLE);
-    }
+  const taken = new Set(all.filter((r) => !/:\d+:\d+$/.test(r.slotKey ?? "")).map((r) => r.postTime.getTime()));
+  const free = (i: number) => i >= first && !published.has(slotKeyOf(i)) && !taken.has(slotPostTime(i).getTime());
+
+  // Which meetings the plan owns: all but those holding races of the fixed card.
+  const byKey = new Map(all.map((r) => [r.slotKey, r]));
+  const planSlots = new Set<number>();
+  const planMeetings = new Set<number>();
+  const toPlan: gc.Meeting[] = [];
+  for (const { meeting, slots } of meetings.values()) {
+    const rowsIn = slots.map((i) => byKey.get(slotKeyOf(i))).filter((r): r is RaceRow => !!r);
+    if (rowsIn.some((r) => !cardMarkOf(r))) continue; // a meeting of the fixed card: completed from the pattern below
+    for (const i of slots) planSlots.add(i);
+    planMeetings.add(meeting.number);
+    if (!rowsIn.length && slots.some(free)) toPlan.push(meeting);
   }
-  const make = hooks.cardSlot ?? ((i: number) => cardSlotAt(i, { claiming: claimingAt.get(i) ?? true }));
+  // Sponsorships bought before their slot was on the card (one indexed read when there are none).
+  const lastPlanSlot = Math.max(last, ...planSlots);
+  const pending = await pendingSponsorshipSlots(db, first, lastPlanSlot);
+  const sponsored = new Set(pending.map((p) => p.slotIndex).filter((i) => planSlots.has(i)));
+
+  // Slots published one by one from the pattern: calendar races, the fixed card, and a sponsor's
+  // race in a meeting that was planned before the sponsor bought it.
+  const planning = new Set(toPlan.flatMap((m) => ordinarySlotsOf(m)));
+  const single: number[] = [];
+  for (let i = first; i <= lastPlanSlot; i++) {
+    if (!free(i)) continue;
+    if (planSlots.has(i) ? sponsored.has(i) && !planning.has(i) : i <= last) single.push(i);
+  }
+  const claimingAt = new Map<number, boolean>();
+  if (!hooks.cardSlot) for (const i of single) if (isClaimingSlot(i)) claimingAt.set(i, await claimingDecision(db, i, now));
   const rows = [];
-  for (let i = first; i <= last; i++) {
-    if (published.has(slotKeyOf(i)) || taken.has(slotPostTime(i).getTime())) continue;
-    const input = make(i);
+  for (const i of single) {
+    const input = hooks.cardSlot ? hooks.cardSlot(i) : planSlots.has(i) ? fixedCardSlot(i, "sponsor", claimingAt.get(i) ?? false) : cardSlotAt(i, { claiming: claimingAt.get(i) ?? true });
     if (input) rows.push(raceValues({ ...input, slotKey: slotKeyOf(i) }));
   }
   const inserted = rows.length ? await db.insert(races).values(rows).onConflictDoNothing({ target: races.slotKey }).returning({ slotKey: races.slotKey }) : [];
-  // A meeting is complete once its last race is published: tell players which of its races suit
-  // their horses (one digest per meeting; this instance published it, so it runs once).
+  // A meeting is complete once its last race is published (fixed card) or once it is planned:
+  // tell players which of its races suit their horses (one digest per meeting; this instance
+  // published it, so it runs once).
+  const complete: gc.Meeting[] = [];
   for (const r of inserted) {
     const m = meetingRaceOf(slotIndexOf(r.slotKey) ?? -1);
-    if (!m || m.race !== m.races - 1) continue;
+    if (m && m.race === m.races - 1 && !planMeetings.has(m.number)) complete.push(m);
+  }
+  let planned = 0;
+  for (const m of toPlan) {
+    const keys = await planMeetingTx(db, m, { now, first, taken, sponsored });
+    planned += keys.length;
+    if (keys.length) complete.push(m);
+  }
+  for (const m of complete) {
     try {
       await noteRacesThatSuit(db, { meeting: m.number, fromMs: m.startMs, toMs: m.lastPostMs, now });
     } catch (e) {
       console.error("[card] race-suits notes failed", m.number, e);
     }
   }
-  // sponsorships bought before their slot was on the card take the name now (sponsorship.ts;
-  // one indexed read when there are none)
-  const named = await applyPendingSponsorships(db, first, last, now);
-  if (rows.length || named) card = await readCard();
-  return card.map(publicRace);
+  // sponsorships whose slot is on the card now take the name (sponsorship.ts)
+  const named = pending.length ? await applyPendingSponsorships(db, first, lastPlanSlot, now) : 0;
+  if (rows.length || planned || named) all = await readCard();
+  return all.filter(onCard).map(publicRace);
 }
 
 // ---------------------------------------------------------------------------

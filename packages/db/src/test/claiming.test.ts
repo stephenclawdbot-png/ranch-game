@@ -125,7 +125,8 @@ describe("the claiming gate (CLAIMING_MIN_ELIGIBLE)", () => {
   const c1 = hcp55Candidate(slotIndexAt(T0) + 1);
   const c2 = hcp55Candidate(c1 + 1);
   /** Publishes the card for the 24 h around a candidate slot and returns it. */
-  const publish = (i: number, horizonMs = RULES.cardHorizonMs) => ensureRaceCard(h.db, new Date(slotPostTime(i).getTime() - 60 * MIN), {}, horizonMs);
+  // The fixed card (the demand-aware card's claiming race is tested in card-demand.test.ts).
+  const publish = (i: number, horizonMs = RULES.cardHorizonMs) => ensureRaceCard(h.db, new Date(slotPostTime(i).getTime() - 60 * MIN), { plan: "fixed" }, horizonMs);
   const raceAt = (card: Awaited<ReturnType<typeof publish>>, i: number) => card.find((r) => r.slotKey === slotKeyOf(i))!;
 
   it("no eligible horses: the candidate slot is published as the ordinary handicap", async () => {

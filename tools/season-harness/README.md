@@ -41,6 +41,12 @@ HARNESS_TAG=purses-up HARNESS_DAYS=7 HARNESS_COMPARE=baseline npx vitest run --c
 # re-render a report (e.g. to compare two finished runs) without simulating
 HARNESS_TAG=purses-up HARNESS_COMPARE=baseline HARNESS_REPORT_ONLY=1 npx vitest run --config tools/season-harness/vitest.config.ts season
 
+# the real week-one population: 100 sign-ups, a steep drop-off, 14 days (src/beta.ts)
+HARNESS_SCENARIO=beta HARNESS_TAG=beta npx vitest run --config tools/season-harness/vitest.config.ts season
+
+# the same on the fixed Live card (the card before 2026-11-20), to compare against
+LIVE_CARD_PLAN=fixed HARNESS_SCENARIO=beta HARNESS_TAG=beta-fixed npx vitest run --config tools/season-harness/vitest.config.ts season
+
 # smoke test (about 40 s): 12 simulated hours, twice; sanity + credits conserved + determinism
 npx vitest run --config tools/season-harness/vitest.config.ts smoke
 ```
@@ -67,6 +73,22 @@ Type-check with `npx tsc -p tools/season-harness`.
 | `HARNESS_COMPARE` | | Tag of an earlier run to overlay and diff |
 | `HARNESS_REPORT_ONLY` | | `1` re-renders from `out/<tag>/metrics.json` |
 | `HARNESS_VERBOSE` | on | `0` silences the per-day progress lines |
+| `HARNESS_SCENARIO` | `season` | `beta`: the real week-one population (below). Defaults become 100 sign-ups (`HARNESS_STABLES`) and 14 days |
+
+`LIVE_CARD_PLAN=fixed` is the game's own switch (packages/db card.ts `cardPlanMode`), not a
+harness knob: it runs the season on the fixed Live card instead of the demand-aware one.
+
+### The beta scenario (`HARNESS_SCENARIO=beta`, `src/beta.ts`)
+
+The standard run founds 50 stables at the start and has all of them play every day. Real week
+one (2026-11: 112 testers, 12-38 playing a day) looked nothing like that, and the Live card has
+to work for it. The beta scenario: sign-ups arrive over the first two days (70% on day 1), each
+founds its stable when it arrives and plays its sign-up session; 70% never come back, 16% leave
+within ten days, 14% stay (10-15 stables playing a day after a week). Nearly all are casual
+(one evening visit, skipping a day in five); 4 of the stayers play like grinders; some never
+enter a Live race (30% of the one-day players, 15% of the rest). Knobs: the constants at the
+top of `src/beta.ts`. Cohort tables count the casuals and the engaged few as `casual` and
+`grinder`.
 
 Runtime is roughly 70–100 s per simulated day for 50 stables with the 15-minute card (the
 grinders' entry sheets take almost half; driving the card itself, with its engine runs and
@@ -105,6 +127,13 @@ settlements, about 15%), so a 7-day run is about 10 minutes and a full season ab
   ran a qualifier, qualified for a Weekend Feature, ran one, bred, sold, reached licence 3, were
   promoted, ended above their starting credits; average Live starts and visits.
 
+- **The Live card** (`src/cardMetrics.ts`; `card` in metrics.json, "Live card" in summary.md, with
+  a second column for day 3 on, after the beta scenario's sign-up wave): ordinary card races
+  published, run with a player and called off; real stables per race run; ordinary races per
+  meeting; the share of the active stables' racing horses with a race they may enter in a
+  meeting (class and licence, the entry sheet's own check), and in a meeting or the one before;
+  and how long a free horse waits for the next race it may enter (median, p90).
+
 ### Checks
 
 `checks.ok` needs the game's `ledgerHealth` clean (postings sum to zero, no drifted or
@@ -133,6 +162,8 @@ House and Club runners fill fields exactly as the game does at field lock.
 | `src/config.ts` | Env parsing, defaults, cohort split |
 | `src/determinism.ts` | Seeded replacement of the process's random sources |
 | `src/agents.ts` | The simulated players |
+| `src/beta.ts` | The beta scenario's sign-ups (arrival, how long each plays, Story only) |
+| `src/cardMetrics.ts` | Live card metrics (races run, real stables per race, horses with a race, waits) |
 | `src/run.ts` | The clock loop |
 | `src/metrics.ts` | Daily samples, outcomes, farmer channels, checks |
 | `src/report.ts` | `summary.md` and `report.html` (charts, compare mode) |

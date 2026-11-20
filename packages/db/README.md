@@ -104,6 +104,17 @@ backfill, and drop the old shape in a later release.
   `hallEntries`, `inductHallOfFame` (game-core `hallOfFameReasons`, idempotent),
   `ownerStats` / `syncAchievements` (game-core `ACHIEVEMENTS`), `rivalsOf` (game-core
   `detectRivalries`).
+- **Demand-aware Live card (`services/card.ts`, game-core `cardPlan.ts`; since 2026-11-20):**
+  `ensureRaceCard` plans each meeting's ordinary races once, when the meeting enters the 24 h
+  horizon (`planMeetingTx`, under a per-meeting advisory lock): `cardDemand` reads the racing
+  horses of the stables active in the last 3 days, `expectedMeetingEntries` what the same
+  meeting drew the day before, and game-core `planMeeting` picks how many races (one per 4
+  expected stables, at least 1, at most 4), which classes (the ones most horses may enter; none
+  for a band nobody is in), cover races for horses in a band of their own, and trips and
+  surfaces the horses suit. Planned races carry `conditions.card` (`cardMarkOf`). Calendar
+  races, the claiming race and sponsored slots keep their pattern slot. `LIVE_CARD_PLAN=fixed`
+  (`cardPlanMode`) publishes every slot from the class pattern again. Tests:
+  `test/card-demand.test.ts`.
 - **Live card calendar (`services/card.ts`):** `defaultCardSlot` runs every surface (synthetic
   included) and 1,000–3,200 m. 12 of every 20 slots are maiden/novice races that cycle through
   all 12 (surface, trip zone) pairs, so every new horse has a suitable race within the hour;

@@ -57,7 +57,8 @@ describe("/api/races/sponsor", () => {
     for (const s of v.slots) {
       expect(isCalendarSlot(s.slot)).toBe(false);
       expect(s.price).toBe(sponsorshipPrice(s.purse));
-      expect(s.purse).toBe(defaultCardSlot(s.slot).purse);
+      // a slot not on the card yet is sold as the card's class pattern has it; a published race at its own purse
+      if (!s.published) expect(s.purse).toBe(defaultCardSlot(s.slot).purse);
       expect(s.sponsoredName).toMatch(/^The Glenmorrow House /);
     }
     // another day by its date; an unknown date falls back to the first

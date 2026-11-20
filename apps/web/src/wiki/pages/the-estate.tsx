@@ -134,7 +134,7 @@ export default function TheEstatePage() {
             it suits Saturday and whether it has already raced today. It also shows your League gap to promotion, one suggested next step, and the ground and weather at every course with a few days&rsquo; outlook.
           </>,
           <>
-            <GameLink href="/races">Race card</GameLink>: the Live card all stables share, {gc.MEETINGS_PER_DAY} race meetings a day of {gc.RACES_PER_MEETING} races, published{" "}
+            <GameLink href="/races">Race card</GameLink>: the Live card all stables share, {gc.MEETINGS_PER_DAY} race meetings a day of {gc.CARD_MIN_RACES_PER_MEETING} to {gc.RACES_PER_MEETING} races, published{" "}
             {Math.round(RULES.cardHorizonMs / gc.MS_PER_HOUR)} hours ahead, with how many stables have entered each race. Entries close {Math.round(gc.ENTRY_CLOSE_BEFORE_MS / 1000)} seconds before the off. Live races use stable entries,
             and each horse can run {count(gc.MAX_LIVE_STARTS_PER_DAY, "Live race")} a day.
           </>,

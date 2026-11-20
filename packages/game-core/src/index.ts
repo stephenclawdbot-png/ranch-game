@@ -47,6 +47,7 @@ export * from "./clubFill";
 export * from "./claiming";
 export * from "./stablePhoto";
 export * from "./meetings";
+export * from "./cardPlan";
 export * from "./courses";
 export * from "./climate";
 export * from "./formBook";

@@ -343,17 +343,22 @@ async function refundTx(tx: Tx, s: RaceSponsorshipRow, now: Date, why: string): 
   await audit(tx, { actor: null, action: "race.sponsor.refund", entityType: "race_sponsorship", entityId: s.id, data: { why, price: s.price } });
 }
 
+/** Sponsorships bought for the slots [firstIndex, lastIndex] that no race carries yet (one indexed read). */
+export async function pendingSponsorshipSlots(ex: Executor, firstIndex: number, lastIndex: number): Promise<{ id: string; slotIndex: number }[]> {
+  return ex
+    .select({ id: raceSponsorships.id, slotIndex: raceSponsorships.slotIndex })
+    .from(raceSponsorships)
+    .where(and(gte(raceSponsorships.slotIndex, firstIndex), lte(raceSponsorships.slotIndex, lastIndex), isNull(raceSponsorships.raceId), isNull(raceSponsorships.refundedAt)))
+    .orderBy(asc(raceSponsorships.slotIndex));
+}
+
 /**
  * Applies sponsorships bought before their slot was published (ensureRaceCard calls it for the
  * slots it publishes). Idempotent; a race whose entries already closed (a purchase that raced
  * publication and missed every tick) refunds instead.
  */
 export async function applyPendingSponsorships(db: Db, firstIndex: number, lastIndex: number, now: Date): Promise<number> {
-  const pending = await db
-    .select({ id: raceSponsorships.id, slotIndex: raceSponsorships.slotIndex })
-    .from(raceSponsorships)
-    .where(and(gte(raceSponsorships.slotIndex, firstIndex), lte(raceSponsorships.slotIndex, lastIndex), isNull(raceSponsorships.raceId), isNull(raceSponsorships.refundedAt)))
-    .orderBy(asc(raceSponsorships.slotIndex));
+  const pending = await pendingSponsorshipSlots(db, firstIndex, lastIndex);
   let applied = 0;
   for (const p of pending) {
     await runTx(db, async (tx) => {

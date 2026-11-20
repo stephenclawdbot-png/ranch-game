@@ -14,8 +14,8 @@ const SAMPLE_RACES = gc
   .meetingsBetween(SEASON_CLOCK, RULES.seasonEpochMs, RULES.seasonEpochMs + gc.MS_PER_DAY)
   .flatMap((m) => Array.from({ length: m.races }, (_, i) => slotAt(m.startMs + i * m.spacingMs)))
   .slice(0, SAMPLE_RUNS * gc.CARD_PATTERN_RACES);
-/** Runs of the class pattern a day. */
-const RUNS_A_DAY = gc.LIVE_RACES_PER_DAY / gc.CARD_PATTERN_RACES;
+/** "1 to 4": the ordinary races a meeting can have. */
+const MEETING_SIZE = `${gc.CARD_MIN_RACES_PER_MEETING} to ${gc.RACES_PER_MEETING}`;
 /** The meeting start times, "01:00, 04:00, … and 22:00 UTC". */
 const MEETING_TIMES = `${gc.MEETING_START_TIMES_UTC.slice(0, -1).join(", ")} and ${gc.MEETING_START_TIMES_UTC.at(-1)} UTC`;
 /** "every 3 hours", when the meetings are evenly spaced. */
@@ -35,9 +35,8 @@ function whoCanEnter(c: RaceConditions): string {
 }
 
 /**
- * The Live card, grouped by race type (the same calendar the game publishes): two real runs of
- * the class pattern (the top race alternates between a Feature and a Listed race), plus both
- * kinds of Feature. `count` is per SAMPLE_RUNS runs.
+ * The Live card's classes (their conditions, purses and entry costs, read from the card's own
+ * class definitions), plus both kinds of Feature.
  */
 function liveCycle() {
   const slots = SAMPLE_RACES.map((i) => defaultCardSlot(i));
@@ -117,13 +116,14 @@ export default function RaceTypesPage() {
         <b>Story chapters</b> are solo races against the Club&rsquo;s rival stables that you can run whenever you like. On top of that sit the card&rsquo;s Features and the scheduled big
         days: the weekday Qualifiers, the Weekend Feature, the Saturday Plate and the Season Final.
       </Lead>
-      <Figure src="/art/scenes/wiki-meeting-day.png" alt="A country race meeting seen from the hill: picnics, tents and the parade ring" caption={`Kestrel Downs on a meeting day: ${gc.RACES_PER_MEETING} Live races, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart.`} focus={0.45} />
+      <Figure src="/art/scenes/wiki-meeting-day.png" alt="A country race meeting seen from the hill: picnics, tents and the parade ring" caption={`Kestrel Downs on a meeting day: ${MEETING_SIZE} Live races, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart.`} focus={0.45} />
 
       <H2 id="live">Live races</H2>
       <P>
         The <GameLink href="/races">race card</GameLink> runs in <b>race meetings</b>: {gc.MEETINGS_PER_DAY} a day{MEETING_EVERY}, starting at {MEETING_TIMES}, each of{" "}
-        {gc.RACES_PER_MEETING} races {gc.MEETING_RACE_SPACING_MS / MIN} minutes apart ({gc.LIVE_RACES_PER_DAY} Live races a day), so the next Live race is never more than about{" "}
-        {Math.round((gc.LONGEST_MEETING_WAIT_MS / gc.MS_PER_HOUR) * 4) / 4} hours away. The card is published{" "}
+        {MEETING_SIZE} races {gc.MEETING_RACE_SPACING_MS / MIN} minutes apart, so the next meeting is never more than about{" "}
+        {gc.MEETING_INTERVAL_MS / gc.MS_PER_HOUR} hours away. How many races a meeting has, and which, depends on the horses in training: see{" "}
+        <a href="#classes" className="link">Race classes on the card</a>. The card is published{" "}
         {RULES.cardHorizonMs / gc.MS_PER_HOUR} hours ahead: entries open as soon as a race is on the card, so one visit a day is enough to enter any meeting before your next visit. Fewer,
         busier races mean you race against other stables, not just the Club. Each race is shared: every stable that enters runs in the same field, and every viewer sees the same race at
         the same moment. The race card shows how many stables have entered each race. Entries close {RULES.entriesCloseBeforePostMs / 1000} seconds before the off; then the Club fills
@@ -160,8 +160,8 @@ export default function RaceTypesPage() {
       <Facts
         rows={[
           ["Race meetings a day", `${gc.MEETINGS_PER_DAY}${MEETING_EVERY}, from ${MEETING_TIMES}`],
-          ["Races in a meeting", `${gc.RACES_PER_MEETING}, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart`],
-          ["Live races a day", gc.LIVE_RACES_PER_DAY],
+          ["Races in a meeting", `${MEETING_SIZE}, ${gc.MEETING_RACE_SPACING_MS / MIN} minutes apart (plus the big-day races)`],
+          ["Stables a race is sized for", gc.CARD_TARGET_STABLES_PER_RACE],
           ["Card published ahead", `${RULES.cardHorizonMs / gc.MS_PER_HOUR} hours`],
           ["Entries close before the off", `${RULES.entriesCloseBeforePostMs / 1000} seconds`],
           ["Runners in a Live field", `${RULES.minField}–${RULES.maxField}`],
@@ -172,24 +172,44 @@ export default function RaceTypesPage() {
 
       <H2 id="classes">Race classes on the card</H2>
       <P>
-        The card runs one pattern of {gc.CARD_PATTERN_RACES} races over and over, {RUNS_A_DAY} times a day, from one meeting into the next. It opens with a top race: every other
-        time the <b>Feature</b>, a Listed race or a Group 3 with double prize money, and a Listed race otherwise. Then Maiden and Novice races, which every new horse can run, alternate
-        with the three Handicap bands. Each day&rsquo;s card runs Maidens and Novices over every trip and surface. In the {gc.CALENDAR_MEETING_START_UTC} UTC meeting a big-day race (a
-        Qualifier, the Weekend Feature or the Saturday Plate) takes the place of the top race or a Handicap, and one Handicap a day is a claiming race, where every runner is for sale
-        (see <WikiLink slug="claiming-races" />). These are real races from the card:
+        The card is drawn up for the horses in training. When a meeting is published, a day ahead, the racing office looks at the horses of every stable that has played in the last{" "}
+        {gc.CARD_DEMAND_ACTIVE_MS / gc.MS_PER_DAY} days and decides three things:
+      </P>
+      <List
+        items={[
+          <>
+            <b>How many races.</b> One race for every {gc.CARD_TARGET_STABLES_PER_RACE} stables the same meeting drew the day before, at least {gc.CARD_MIN_RACES_PER_MEETING} and at most{" "}
+            {gc.RACES_PER_MEETING}. A quiet hour gets one busy race instead of four empty ones; a busy hour gets the full card. A race that fills still opens a sister course, so a
+            small card never turns anyone away.
+          </>,
+          <>
+            <b>Which classes.</b> Each race goes to the class that gives the most horses a race they may enter, counting each race&rsquo;s conditions and the licence it needs. Classes
+            that suit about as many horses take turns from meeting to meeting. A class is put on only when at least {gc.CARD_MIN_ELIGIBLE_STABLES} stables have a horse for it, so a
+            band nobody is in (a Listed race while no horse is rated high enough, say) is not on the card until horses reach it.
+          </>,
+          <>
+            <b>Nobody left out.</b> A horse in a band of its own, with no race it may enter in {gc.CARD_COVER_EVERY_MEETINGS} meetings running, gets one in the next meeting, as an extra
+            race.
+          </>,
+        ]}
+      />
+      <P>
+        Trips and surfaces take turns too, so every horse&rsquo;s trip and surface come round, and a trip that suits no horse in the class is skipped. A <b>Feature</b> is a Listed race or
+        a Group 3 with double prize money. In the {gc.CALENDAR_MEETING_START_UTC} UTC meeting the big-day races (a Qualifier, the Weekend Feature or the Saturday Plate) run as well, at
+        their fixed times, and on a day when enough horses could be sold in one, one Handicap is a claiming race, where every runner is for sale (see{" "}
+        <WikiLink slug="claiming-races" />). A race a stable has sponsored always runs as it was sold. These are the classes:
       </P>
       <Table
-        head={["Race", "Who can enter", "Purse", "Entries", "A day", "Licence"]}
+        head={["Race", "Who can enter", "Purse", "Entries", "Licence"]}
         rows={[
           [
             "Feature (Listed or Group 3)",
             feats.map((f) => whoCanEnter(f.conditions)).join(" / "),
             feats.map((f) => formatCredits(f.purse ?? 0)).join(" / "),
             [...new Set(feats.map((f) => entryCostFor(f.kind, f.raceClass)))].join(" / "),
-            `${RUNS_A_DAY / 2} (every other top race)`,
             licenceName("listed", true),
           ],
-          ...hour.map((h) => [h.label, whoCanEnter(h.conditions), formatCredits(h.purse), h.cost, (h.count / SAMPLE_RUNS) * RUNS_A_DAY, licenceName(h.tier, h.feature)]),
+          ...hour.map((h) => [h.label, whoCanEnter(h.conditions), formatCredits(h.purse), h.cost, licenceName(h.tier, h.feature)]),
         ]}
         caption="Purses in credits. Entries: stable entries spent to run."
       />

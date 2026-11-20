@@ -37,15 +37,19 @@ it("a visit between meetings sees the whole day of race meetings, with the stabl
   const a = await mk("Evening Stable A");
   const b = await mk("Evening Stable B");
   const list = await raceList(h.db, t, a.stable.id, { upcoming: 120, recent: 0 });
-  // the published day: a day of meeting races (tomorrow's 07:00 meeting included), grouped by meeting
-  expect(list.upcoming.length).toBe(gc.LIVE_RACES_PER_DAY);
+  // the published day: every meeting of the next 24 h (tomorrow's 07:00 meeting included), grouped by
+  // meeting. The demand-aware card sizes a meeting to its players (game-core cardPlan.ts): with two
+  // new stables each has its one race, and the evening meeting the day's Feature Qualifier as well.
+  const calendar = list.upcoming.filter((r) => r.name.includes("Feature Qualifier"));
+  expect(calendar).toHaveLength(1);
+  expect(list.upcoming.length).toBe(gc.MEETINGS_PER_DAY * gc.CARD_MIN_RACES_PER_MEETING + calendar.length);
   const meetings = [...new Set(list.upcoming.map((r) => r.meetingStartMs))];
   expect(meetings).toEqual(gc.meetingsBetween(clock, t.getTime(), t.getTime() + RULES.cardHorizonMs + 1).map((m) => m.startMs));
   expect(meetings).toHaveLength(gc.MEETINGS_PER_DAY);
   expect(new Date(meetings.at(-1)!).getUTCHours()).toBe(7);
   for (const r of list.upcoming) expect(r.postTimeMs - r.meetingStartMs).toBeLessThan(gc.RACES_PER_MEETING * gc.MEETING_RACE_SPACING_MS);
   const evening = list.upcoming.filter((r) => new Date(r.meetingStartMs).getUTCHours() === 19);
-  expect(evening).toHaveLength(gc.RACES_PER_MEETING);
+  expect(evening).toHaveLength(gc.CARD_MIN_RACES_PER_MEETING + calendar.length);
   expect(evening.every((r) => r.stables === 0 && r.phase === "open")).toBe(true);
 
   // both stables enter the same evening race: the card shows "2 stables entered"

@@ -44,6 +44,14 @@ async function bank(accountId: string, now = T0) {
   return getEntryBank(h.db, { accountId, now });
 }
 
+/**
+ * The fixed card: every slot of every meeting from the class pattern. It is what LIVE_CARD_PLAN=fixed
+ * publishes and what completes a meeting that already holds fixed races; the demand-aware card (the
+ * default) has its own tests in card-demand.test.ts. Slot keys, idempotency, the call-off and the
+ * schedule-change safety below are the same in both.
+ */
+const FIXED = { plan: "fixed" } as const;
+
 describe("race card", () => {
   it("publishes meetings over a card left by an older slot length (3-minute keys) without clashing or doubling", async () => {
     const now = at(60 * DAY);
@@ -61,7 +69,7 @@ describe("race card", () => {
     // ...and one race the old card published at what is now a meeting slot's post time
     const takenSlot = meeting[3]!;
     await old(`live:${takenSlot * 5}`, slotPostTime(takenSlot));
-    const card = await ensureRaceCard(h.db, now);
+    const card = await ensureRaceCard(h.db, now, FIXED);
     const keys = new Set(card.map((r) => r.slotKey));
     for (const i of meeting.filter((i) => i !== takenSlot)) expect(keys.has(`${SLOT_KEY_PREFIX}${i}`)).toBe(true);
     // the old race keeps its time: no second race at the same post time
@@ -71,7 +79,7 @@ describe("race card", () => {
 
   it("publishes the next day's race meetings (and calendar races), one race per slot, idempotently across concurrent instances", async () => {
     const now = at(30 * DAY);
-    const cards = await Promise.all([ensureRaceCard(h.db, now), ensureRaceCard(h.db, now), ensureRaceCard(h.db, now)]);
+    const cards = await Promise.all([ensureRaceCard(h.db, now, FIXED), ensureRaceCard(h.db, now, FIXED), ensureRaceCard(h.db, now, FIXED)]);
     const first = slotIndexAt(now) + 1;
     const window = Array.from({ length: RULES.cardHorizonMs / RULES.slotMs }, (_, i) => first + i);
     const expected = window.filter(isCardSlot);
@@ -91,10 +99,10 @@ describe("race card", () => {
       expect(r.entryCost).toBe(r.kind === "feature" || r.kind === "final" || r.raceClass === "graded" ? 2 : 1);
     }
     // Deterministic conditions per slot.
-    const again = await ensureRaceCard(h.db, now);
+    const again = await ensureRaceCard(h.db, now, FIXED);
     expect(again.map((r) => [r.name, r.conditions])).toEqual(cards[0]!.map((r) => [r.name, r.conditions]));
     // A later tick publishes only the new slots.
-    const later = await ensureRaceCard(h.db, new Date(now.getTime() + 6 * 60 * MIN));
+    const later = await ensureRaceCard(h.db, new Date(now.getTime() + 6 * 60 * MIN), FIXED);
     expect(later.filter((r) => r.postTime > now).length).toBe(later.length);
     expect(later.length).toBe(gc.LIVE_RACES_PER_DAY);
   });
@@ -150,8 +158,8 @@ describe("race card", () => {
 
   it("calls off an ordinary race that no player entered; a race with players gets Club horses up to its target; calendar races always run", async () => {
     const now = at(40 * DAY);
-    await ensureRaceCard(h.db, now);
-    const card = await ensureRaceCard(h.db, now);
+    await ensureRaceCard(h.db, now, FIXED);
+    const card = await ensureRaceCard(h.db, now, FIXED);
     const ordinary = card.filter((r) => !(r.conditions as { calendar?: unknown }).calendar);
     const [empty, entered] = [ordinary[0]!, ordinary.find((r) => r.raceClass === "maiden" || r.raceClass === "novice")!];
     expect(empty.id).not.toBe(entered.id);
@@ -163,14 +171,14 @@ describe("race card", () => {
     // a calendar race with no player runner still runs (published on the same horizon)
     let calendarIndex = slotIndexAt(now) + 1;
     while (!isCalendarSlot(calendarIndex)) calendarIndex++;
-    await ensureRaceCard(h.db, new Date(slotPostTime(calendarIndex).getTime() - RULES.cardHorizonMs + MIN));
+    await ensureRaceCard(h.db, new Date(slotPostTime(calendarIndex).getTime() - RULES.cardHorizonMs + MIN), FIXED);
     const [calendar] = await h.db.select().from(races).where(eq(races.slotKey, `${SLOT_KEY_PREFIX}${calendarIndex}`));
 
     // (a tick locks at most 50 fields; earlier tests left other days' cards open, so tick until done)
     const tickAt = entered.entriesCloseAt.getTime() > empty.entriesCloseAt.getTime() ? entered.entriesCloseAt : empty.entriesCloseAt;
     const tick = { calledOff: [] as string[], locked: [] as string[] };
     for (let k = 0; k < 10; k++) {
-      const t = await tickRaceCard(h.db, tickAt);
+      const t = await tickRaceCard(h.db, tickAt, FIXED);
       tick.calledOff.push(...t.calledOff);
       tick.locked.push(...t.locked);
       if (!t.calledOff.length && !t.locked.length) break;
@@ -235,8 +243,8 @@ describe("schedule change on a live database", () => {
 
     // The new code goes live at 18:00 and its publisher runs over the old card's last 12 hours.
     const now1 = new Date(D + 18 * 60 * MIN);
-    const card = await ensureRaceCard(h.db, now1);
-    expect(await ensureRaceCard(h.db, now1)).toEqual(card); // idempotent
+    const card = await ensureRaceCard(h.db, now1, FIXED);
+    expect(await ensureRaceCard(h.db, now1, FIXED)).toEqual(card); // idempotent
     const edge = D + DAY + 6 * 60 * MIN; // where the old card stopped
     // every old race still in the window runs as published (same row, seed commitment, time, name)
     const byId = new Map(card.map((r) => [r.id, r]));
@@ -266,7 +274,7 @@ describe("schedule change on a live database", () => {
     const dayD = await h.db.select().from(races).where(and(gte(races.postTime, new Date(D)), lt(races.postTime, new Date(D + DAY)), like(races.slotKey, "live%:%")));
     expect(dayD.filter((r) => (r.conditions as { claiming?: boolean }).claiming)).toHaveLength(1);
     // the old-only race keeps its entry and runs: it locks with the player in it, and the bell rings
-    for (let k = 0; k < 10; k++) if (!(await tickRaceCard(h.db, oldOnly.entriesCloseAt)).locked.length) break;
+    for (let k = 0; k < 10; k++) if (!(await tickRaceCard(h.db, oldOnly.entriesCloseAt, FIXED)).locked.length) break;
     const [ran] = await h.db.select().from(races).where(eq(races.id, oldOnly.id));
     expect(ran!.status).toBe("locked");
     expect((ran!.field as { runners: { horseId: string }[] }).runners.map((r) => r.horseId)).toContain(horse.id);

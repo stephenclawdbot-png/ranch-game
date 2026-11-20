@@ -56,7 +56,7 @@ export function SponsorBoard({ view }: { view: SponsorView }) {
           <p className="tag tag-ready w-fit">Sponsored</p>
           <p className="t-hero">{done.raceName}</p>
           <p className="t-meta">
-            {formatCredits(done.price)} credits spent. {done.raceId ? "The race carries your name now." : "The race carries your name when it is published on the card, 6 hours before the off."}
+            {formatCredits(done.price)} credits spent. {done.raceId ? "The race carries your name now." : "The race goes on the card with your name a day before the off, and runs as you bought it."}
           </p>
           {done.raceId && (
             <Link href={`/race/${done.raceId}`} className="btn btn-sm w-fit">
@@ -129,6 +129,7 @@ export function SponsorBoard({ view }: { view: SponsorView }) {
                   <div className="surface-2 grid gap-2 p-3" role="group" aria-label={`Sponsor the ${s.name}`} data-testid="sponsor-confirm">
                     <p className="text-sm text-cream">
                       The {formatClock(s.postTimeMs)} becomes <b>{s.sponsoredName}</b>, with your silks on the racecard. {formatCredits(s.price)} credits, spent for good (back only if the race is abandoned).
+                      {!s.published && " This race is not on the card yet: sponsoring it puts it on, exactly as shown."}
                     </p>
                     {!affordable && <p className="text-sm font-bold text-negative">You have {formatCredits(view.credits)} credits.</p>}
                     <div className="flex flex-wrap gap-2">

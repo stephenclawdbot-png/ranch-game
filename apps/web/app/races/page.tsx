@@ -4,7 +4,7 @@ import { AutoRefresh } from "@/components/AutoRefresh";
 import { QuickRacePanel } from "@/components/QuickRacePanel";
 import { EmptyState, HowItWorks, SceneBand, Section } from "@/components/ui/Page";
 import { LivePickBar, RaceBoard, RecentRaceRow, UpcomingCard } from "@/components/RaceList";
-import { MEETING_RACE_SPACING_MS, MEETING_START_TIMES_UTC, MEETINGS_PER_DAY, RACES_PER_MEETING } from "@thoroughbred/game-core";
+import { CARD_MIN_RACES_PER_MEETING, CARD_TARGET_STABLES_PER_RACE, MEETING_RACE_SPACING_MS, MEETING_START_TIMES_UTC, MEETINGS_PER_DAY, RACES_PER_MEETING } from "@thoroughbred/game-core";
 import { db } from "@/server/db";
 import { raceList } from "@/server/game";
 import { getSession } from "@/server/session";
@@ -32,9 +32,9 @@ export default async function RacesPage() {
         <LivePickBar />
         <HowItWorks className="mt-3">
           <p>
-            Live races run in race meetings: {MEETINGS_PER_DAY} a day, one {MEETING_CADENCE} ({MEETING_START_TIMES_UTC.join(", ")} UTC; the card shows your own time), {RACES_PER_MEETING} races{" "}
-            {MEETING_RACE_SPACING_MS / 60_000} minutes apart. Everyone watches
-            the same race at the same time. The card is published a day ahead: enter now for any meeting before your next visit, and look for the races other stables have entered.
+            Live races run in race meetings: {MEETINGS_PER_DAY} a day, one {MEETING_CADENCE} ({MEETING_START_TIMES_UTC.join(", ")} UTC; the card shows your own time), {CARD_MIN_RACES_PER_MEETING} to {RACES_PER_MEETING} races{" "}
+            {MEETING_RACE_SPACING_MS / 60_000} minutes apart. Each meeting&rsquo;s races are chosen for the horses in training, about one race for every {CARD_TARGET_STABLES_PER_RACE} stables it
+            draws, so you meet other stables instead of an empty field. Everyone watches the same race at the same time. The card is published a day ahead: enter now for any meeting before your next visit, and look for the races other stables have entered.
           </p>
           <p>
             Enter your horses until 30 seconds before the off (one stable entry each; you get +10 at local midnight). Then the Club fills the empty gates with its own horses; an
