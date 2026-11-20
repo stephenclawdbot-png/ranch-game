@@ -59,12 +59,26 @@ the cron does. Casual: one visit a day (care, the Daily Cup, one Story race, one
 Engaged: two visits (15-20 minutes in all; up to three Story races a visit, three Live entries a
 day). Both cover a mare as soon as the barn allows and they can pay. Day 1 is the founding day.
 
-FIRSTWEEK_TABLE
+| Median day (earliest-latest), stables reaching it | Casual before | Casual after | Engaged before | Engaged after |
+|---|---|---|---|---|
+| A racing mare may be covered | never in 12 days (0/10) | **3** (2-8), 13/13 | never (0/10) | **1** (1-2), 13/13 |
+| First covering paid | never | **3** (2-8), 13/13 | never | **1** (1-2), 13/13 |
+| Foal born | never | 4 (3-8) | never | **2** (2-3) |
+| The day-2 gift foal at racing age | day 13 (after the run) | 9 | day 13 | 9 |
+| A home-bred horse at racing age, and raced that day | never | 11 (10-11), 7/13 inside 12 days | never | **9** (9-10), 13/13 |
+| First win (any race) | 1 (1-4) | 1 (1-6) | 1 (1-2) | 1 (1-1) |
+| Story chapter 1 finished | 6 (3-12) | 5 (3-12) | 5 (1-6) | 3 (1-4) |
+
+Before: 396ab71, 10 stables per persona. After: 13 per persona (two runs, 6 and 7). The casual
+stable's filly gets her Live race when Quick Pick sends her (it enters the best-fitting fresh
+horse), on day 3 for the median stable and day 8 for the slowest; the nudge on Home tells a stable
+whose filly hasn't run yet to enter her. With a covering on day 3 the casual stable's home-bred
+horse races on day 11.
 
 The first sensible pair for a starter stable (colt, filly, colt) is its own Thoroughbred filly and
 one of its own colts: a colt that has run a Live race covers for the covering fee alone, 1,500 of
 the 3,000 starter credits. A Club house stud costs 1,750 to 2,200 (1,500 plus his fee). In the
-scenario SIRES.
+scenario 23 of 26 stables used their own colt (1,500) and 3 a Club stud (1,750-1,900).
 
 Why 1 and not 5 (the proposed starting point): starts are Live races. At 5 the engaged stable
 covers on day 5 at the earliest and the casual one, whose filly runs every third day, about day
@@ -80,7 +94,26 @@ tapping "Race now" (Story Quick Pick) five times on the founding day; half of th
 next day so every starter has three starts. Read back from `race_entries`: what the result page
 showed.
 
-FIRSTRACES_TABLE
+| 2,000 new stables each | Target | Before (396ab71) | After |
+|---|---|---|---|
+| Story race 1: win / top 3 / last | top 3 ≥ 55%, last < 8% | 20.8% / **50.0%** / 5.6% (9 runners) | 33.0% / **66.9%** / 6.0% (7 runners) |
+| Story race 2: win / top 3 / last | | 14.3% / 39.3% / 10.6% | 23.6% / 52.9% / 9.1% |
+| Story race 3: win / top 3 / last | | 17.2% / 41.5% / 8.8% | 28.6% / 61.0% / 7.2% |
+| Story race 4 | | 18.7% / 43.2% / 8.8% | 30.7% / 61.4% / 5.8% |
+| Story race 5 | | 19.1% / 45.6% / 7.6% | 32.3% / 63.3% / 5.9% |
+| A win within the first 5 races | ≥ 80% | **65.1%** | **88.8%** |
+| A win within the first 3 | | 44.9% | 67.1% |
+| No top-3 finish in the first 3 | | 18.5% | 4.1% |
+| Rating before the debut (real ability mark) | | 40 (32.1) | 32.1 (32.2) |
+| Rating after 1 / 2 / 3 starts, against the rating before the debut | within about ±1 | −1.13 / −2.46 / **−3.36** | +0.64 / +0.54 / **+0.34** |
+| Horses rated lower after 3 starts | | 66.2% | 42.0% |
+| Story credits over the first 5 races (mean) | | 416 | 597 |
+
+Runs and the per-chunk counts: `tools/season-harness/results/2026-11-20-first-week/first-races.md`
+and `first-races.jsonl` (8 chunks of seeds each side; every stable's first five races, and nine
+races for 1,000 of the stables before and 600 after). The last place was already under 8% in the
+first race before; it is the second and third race, each a different starter's debut, where it
+was over 8% and still is in the second (9.1%).
 
 The rating fix is the debut rating, not the fields: the same after-change races replayed from a
 flat 40 still lose 3.3 points over three starts. Races stay honest simulations: only the field
@@ -100,15 +133,29 @@ What happens to horses already in the database (no migration):
 
 Same scenario, medians per persona, credits.
 
-CREDITS_TABLE
+| End of day | Casual before | Casual after | Engaged before | Engaged after |
+|---|---|---|---|---|
+| 1 | 3,787 | 3,762 | 4,522 | 2,002 (covering 1,500, a Paddock Pack 1,200) |
+| 3 | 4,697 | 3,872 (covering 1,500) | 6,282 | 2,674 |
+| 5 | 5,476 | 4,257 | 7,611 | 2,188 (vet upgrade 3,000 on day 3-6) |
+| 7 (the week's upkeep, 900, is charged) | 5,884 | 3,973 | 7,834 | 2,481 |
+| 12 | 8,746 | 6,281 | 13,141 | 8,998 |
+| Earned, days 1-7 (with the 3,000 grant) | 7,185 | 6,762 | 10,040 | 10,222 |
+| Spent, days 1-7 | 1,327 | 2,814 | 2,180 | 7,804 |
+| What the spending was (mean) | upkeep 900, entry fees 420 | covering 1,465, upkeep 900, entry fees 414 | entry fees 1,305, upkeep 900 | vet 3,000, covering 1,500, pack 1,200, entry fees 1,185, upkeep 892 |
+
+Income per day after the grant: about 350-600 for the casual stable (Story rewards, the three
+daily goals at 45 each, the Daily Cup's 80, a share of a Live purse), about 850-1,000 for the
+engaged one. Full tables: `tools/season-harness/results/2026-11-20-first-week/first-week-before.md`
+and `first-week-after.md`.
 
 Before, a new stable had nothing it wanted: by day 7 the casual stable had spent 1,327 (900 of it
 the week's upkeep) and held 5,884; the engaged one held 7,834. That is the tester data (329k of
 424k held). After, the first covering is the first real purchase on day 1-3, and an engaged
-stable that also buys a Paddock Pack and the first vet upgrade is down to about 2,000-3,000 for
-most of the week. It can afford, in order: a covering from day 1 (1,500 of 3,000), a Paddock Pack
-the same day (1,200) but then nothing else until day 4-5, the vet (3,000) around day 5, a seventh
-stall (2,000) instead of the vet; the trainer (6,000) not inside the first week. Covering, a pack
+stable that also buys a Paddock Pack and the first vet upgrade holds about 2,000-2,700 for the
+whole week. It can afford, in order: a covering from day 1 (1,500 of 3,000), a Paddock Pack the
+same day (1,200) but then nothing else until day 3-4, the vet (3,000) around day 4, or a seventh
+stall (2,000) instead; the trainer (6,000) not inside the first week. Covering, a pack
 and one upgrade cannot all be had in week one: a choice, neither trivial nor out of reach. So the
 starter grant and the covering fee stay as they are.
 
@@ -120,7 +167,12 @@ Standard season (28 days, 50 stables, seed `season-harness-1`): SEASON_LINE
   and the Story screen could choose her and the entry then failed ("mares in foal do not race").
   Rare while only retired mares bred; with racing mares in foal it showed up in the scenario at
   once (8 refusals in 20 stables over 12 days). Quick Picks now leave her out.
-- **Listed: injuries in an engaged first week.** INJURY_LINE A race or a training session costs
+- **Listed: injuries in an engaged first week.** In the after-change scenario 7 of 13 engaged stables had an
+injured horse at the end of some day in days 1-7 (casual: 0 of 13); in the before run it was 1 of
+10 for each. Nothing in this pass touches injury risk (it depends on soundness, tiredness, runs
+that day, the going and the ride), and the risk model alone predicts about a third for a stable
+that makes 60 starts in a week, so the before run was probably the lucky one and these samples
+are small. A race or a training session costs
   about a day's recovery (fatigue +250 to +420; recovery 288 a day), the game lets a horse run
   three times a day, and risk doubles when tired. A minor injury is 2-4 days and a moderate one
   6-12 with three horses in the yard. Not changed here (it is a rule, not a knob); a gentler first
