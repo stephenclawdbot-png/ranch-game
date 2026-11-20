@@ -7,8 +7,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
 
 import { POST } from "../../app/api/events/route";
-import { resetDbSingleton, schema, type DbHandle } from "@thoroughbred/db";
+import { createAccount, resetDbSingleton, schema, type DbHandle } from "@thoroughbred/db";
 import { dbHandle } from "./db";
+import { trackClientBatch, visitorEventsWaiting } from "./playtest";
 
 let h: DbHandle;
 
@@ -66,5 +67,40 @@ describe("POST /api/events", () => {
     expect(bad.status).toBe(400);
     const still = await post([{ name: "session_start" }]);
     expect(still.status).toBe(202);
+  });
+
+  it("a visitor's page view never writes; their session start waits for the next write and goes out with it", async () => {
+    const all = async () => (await h.db.select().from(schema.telemetryEvents)).length;
+    const count = async (name: string) => (await h.db.select().from(schema.telemetryEvents)).filter((r) => r.name === name).length;
+    // flush whatever earlier tests left waiting
+    await trackClientBatch(h.db, null, [{ name: "race_watched", props: { raceId: "flush" } }]);
+    const [views, starts, total] = [await count("page_view"), await count("session_start"), await all()];
+
+    expect((await post([{ name: "page_view", route: "/" }, { name: "session_start", route: "/" }, { name: "page_view", route: "/races" }])).status).toBe(202);
+    // nothing reached the database: no row of any kind
+    expect(await all()).toBe(total);
+    expect(visitorEventsWaiting()).toBe(1);
+
+    // the next batch that is written anyway (here a race watched) carries the waiting session start
+    expect((await post([{ name: "race_watched", raceId: "11111111-2222-4333-8444-555555555555" }])).status).toBe(202);
+    expect(visitorEventsWaiting()).toBe(0);
+    expect(await count("session_start")).toBe(starts + 1);
+    expect(await count("page_view")).toBe(views);
+    expect(await all()).toBe(total + 2);
+  });
+
+  it("a signed-in player's batch is written whole, with the visitors' waiting events", async () => {
+    const acc = await createAccount(h.db, { stableName: `Batch Lodge ${Date.now() % 100000}`, silks: { primary: "#112233", secondary: "#445566", pattern: "solid", cap: "#778899" }, starterHorses: 0, now: new Date() });
+    await post([{ name: "session_start", route: "/wiki" }]);
+    expect(visitorEventsWaiting()).toBe(1);
+    const before = (await h.db.select().from(schema.telemetryEvents)).length;
+    const out = await trackClientBatch(h.db, acc.accountId, [{ name: "session_start", props: { route: "/" } }, { name: "page_view", props: { route: "/" } }, { name: "page_view", props: { route: "/stable" } }]);
+    expect(out).toEqual({ written: 4, deferred: 0, dropped: 0 });
+    expect(visitorEventsWaiting()).toBe(0);
+    const rows = (await h.db.select().from(schema.telemetryEvents)).slice(before);
+    expect(rows).toHaveLength(4);
+    expect(rows.filter((r) => r.accountId === acc.accountId).map((r) => r.name).sort()).toEqual(["page_view", "page_view", "session_start"]);
+    // the visitor's session start stays nobody's
+    expect(rows.filter((r) => r.accountId === null).map((r) => r.name)).toEqual(["session_start"]);
   });
 });

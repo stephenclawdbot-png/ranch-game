@@ -1,22 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { LocalTime } from "@/components/competition/LocalTime";
 import { StableBadge } from "@/components/StableBadge";
 import { NewsList } from "@/components/social/NewsList";
 import { scoreLine } from "@/components/social/RivalsPanel";
 import { EmptyState, PageHeader, Section } from "@/components/ui/Page";
 import { db } from "@/server/db";
-import { getSession } from "@/server/session";
+import { dbPage } from "@/server/outage";
+import { getSession, hasSessionCookie } from "@/server/session";
 import { publicStable } from "@/server/social";
+import { visitorStable } from "@/server/visitorViews";
 
 export const dynamic = "force-dynamic";
 
-async function load(id: string) {
-  const database = await db();
-  const session = await getSession(database);
-  return publicStable(database, decodeURIComponent(id), session, new Date());
-}
+/** Once per request (the page and its metadata share it). A visitor reads the shared copy (no database). */
+const load = cache((id: string) =>
+  dbPage(`/stables/${id}`, async () => {
+    const session = (await hasSessionCookie()) ? await getSession(await db()) : null;
+    return session ? publicStable(await db(), decodeURIComponent(id), session, new Date()) : visitorStable(decodeURIComponent(id).slice(0, 40));
+  }),
+);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const v = await load((await params).id);

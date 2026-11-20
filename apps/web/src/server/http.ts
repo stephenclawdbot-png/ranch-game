@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { httpStatusFor, isDomainError, type DomainErrorCode } from "@thoroughbred/db";
+import { DB_UNAVAILABLE, httpStatusFor, isDbUnavailable, isDomainError, type DomainErrorCode } from "@thoroughbred/db";
 import { isUsdgPracticeMode, practiceUsdgText } from "@thoroughbred/game-core";
 import { RaceNotFoundError, TooEarlyError, UnauthorizedError } from "./errors";
+import { logOutage } from "./outage";
 
 export function json(data: unknown, init?: ResponseInit & { cache?: string }): NextResponse {
   const res = NextResponse.json(data, init);
@@ -44,8 +45,25 @@ export const FRIENDLY: Record<string, string> = {
   no_pick: "None of your horses can race right now.",
 };
 
+/** What players read when the database is unreachable or over quota (the outage screen says the same). */
+export const OUTAGE_MESSAGE = "The yard is closed for a moment: we can't reach the stable records right now. Your stable is safe. Try again in a little while.";
+
+/**
+ * The outage answer for API routes: HTTP 503, `{ error: "db_unavailable", message }`, never
+ * cached. The client shows the outage screen when it sees this (lib/outage.ts).
+ */
+export function outageJson(): NextResponse {
+  const res = errorJson(503, DB_UNAVAILABLE, { message: OUTAGE_MESSAGE });
+  res.headers.set("Retry-After", "120");
+  return res;
+}
+
 /** Maps service errors to HTTP responses; rethrows anything unexpected. */
 export function handleError(err: unknown): NextResponse {
+  if (isDbUnavailable(err)) {
+    logOutage("api", err);
+    return outageJson();
+  }
   if (err instanceof UnauthorizedError) return errorJson(401, "unauthorized");
   if (err instanceof RaceNotFoundError) return errorJson(404, "race_not_found");
   if (err instanceof TooEarlyError) {

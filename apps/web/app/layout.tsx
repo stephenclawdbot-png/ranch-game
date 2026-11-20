@@ -11,6 +11,8 @@ import { ArtProvider } from "@/components/pixel/ArtProvider";
 import { listArt } from "@/lib/art.server";
 import { SETTINGS_BOOT_SCRIPT } from "@/lib/settingsBoot";
 import { DeviceTierBoot } from "@/components/DeviceTierBoot";
+import { OutageOverlay } from "@/components/OutageOverlay";
+import { RaceAlarms } from "@/components/RaceAlarms";
 import "./globals.css";
 
 // Faces (design system v3.2 "Pixel arcade"): Jersey 25 for titles, buttons and labels, Jersey 10 for
@@ -70,7 +72,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <EntryProvider>
             <SiteNav />
             <Telemetry />
+            <RaceAlarms />
             <main id="main" className="relative mx-auto w-full max-w-[75rem] px-[var(--gutter)] pb-[140px] pt-4 md:pb-16 md:pt-8">
+              {/* The database is down (an API call said so): the outage screen replaces the page. */}
+              <OutageOverlay />
               {children}
             </main>
           </EntryProvider>

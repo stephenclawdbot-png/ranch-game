@@ -5371,3 +5371,9 @@ a.pill:hover,
   outline: 3px solid var(--color-brass);
   outline-offset: 2px;
 }
+
+/* The outage screen (components/OutageOverlay.tsx): while the database is down the page under
+   it is hidden, not left half-working. The top bar stays (the guide still opens). */
+html[data-outage="1"] #main > :not(.outage-overlay) {
+  display: none !important;
+}

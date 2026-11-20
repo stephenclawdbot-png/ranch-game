@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HorseDetail } from "@/components/horse/HorseDetail";
@@ -9,10 +10,14 @@ import { horseDetail } from "@/server/game";
 import { horseHighlights } from "@/server/moments";
 import { getSession } from "@/server/session";
 import { stablePlan } from "@/server/social";
+import { dbPage, outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 
-async function load(id: string) {
+/** Once per request: the page and its metadata share one load (it used to run twice). */
+const load = cache((id: string) => dbPage(`/horse/${encodeURIComponent(id)}`, () => loadHorse(id)));
+
+async function loadHorse(id: string) {
   const database = await db();
   const session = await getSession(database);
   const now = new Date();
@@ -30,7 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: view?.horse.name ?? "Horse not found" };
 }
 
-export default async function HorsePage({ params }: { params: Promise<{ id: string }> }) {
+async function HorsePage({ params }: { params: Promise<{ id: string }> }) {
   const view = await load((await params).id);
   if (!view) notFound();
   const highlights = view.highlights.length ? <MomentHighlights moments={view.highlights} horseId={view.horse.id} /> : null;
@@ -49,3 +54,6 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
     />
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/horse/[id]", HorsePage);

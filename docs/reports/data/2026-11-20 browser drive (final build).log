@@ -1,0 +1,49 @@
+PASS  A: found a stable  (3 horses)
+PASS  A: Home shows the yard
+PASS  A: enter a Story race  (HTTP 201)
+PASS  A: Story race page renders
+PASS  A: the race card lists races  (32 race links)
+PASS  A: enter a Live race  (HTTP 201)
+PASS  A: the race card marks A's own entry
+PASS  A: the Live race page shows A's horse
+PASS  B: /api/me is B's own stable
+PASS  A: /api/me is still A's own stable
+PASS  visitor: /api/me has no player
+PASS  isolation /races: B and a visitor never get A's view
+PASS  isolation /: B and a visitor never get A's view
+PASS  isolation /race/d31cfa85-a7a0-4752-a60b-6480a30a5807: B and a visitor never get A's view
+PASS  isolation /hall: B and a visitor never get A's view
+PASS  isolation /league: B and a visitor never get A's view
+PASS  isolation /news: B and a visitor never get A's view
+PASS  isolation /api/races: A sees its entry, B and a visitor do not  (A 1, B 0, visitor 0)
+PASS  isolation /api/races/d31cfa85-a7a0-4752-a60b-6480a30a5807: A sees its entry, B and a visitor do not  (A 1, B 0, visitor 0)
+PASS  personal API answers are never cacheable  (no-store)
+PASS  visitor: landing page renders
+PASS  visitor: race card lists races
+PASS  visitor: a finished race page renders
+PASS  no page errors in the flows
+PASS  outage: API answers 503 db_unavailable, no-store  (503 {"error":"db_unavailable","message":"The yard is closed for a moment: we can't reach the stable records right now. Your )
+PASS  outage: a write answers 503 too (nothing half-done)  (HTTP 503)
+PASS  outage: signed-in /races goes to the outage page (503, no-store)  (307 -> /outage?from=%2Fraces -> 503 no-store)
+PASS  outage: signed-in /horse/485a3d42-63f3-4ba0-a1b5-8e20e7382cb7 goes to the outage page (503, no-store)  (307 -> /outage?from=%2Fhorse%2F485a3d42-63f3-4ba0-a1b5-8e20e7382cb7 -> 503 no-store)
+PASS  outage: signed-in /hall goes to the outage page (503, no-store)  (307 -> /outage?from=%2Fhall -> 503 no-store)
+PASS  outage: signed-in /cup goes to the outage page (503, no-store)  (307 -> /outage?from=%2Fcup -> 503 no-store)
+PASS  outage: signed-in /race/d31cfa85-a7a0-4752-a60b-6480a30a5807 goes to the outage page (503, no-store)  (307 -> /outage?from=%2Frace%2Fd31cfa85-a7a0-4752-a60b-6480a30a5807 -> 503 no-store)
+PASS  outage: a visitor's / still works  (HTTP 200)
+PASS  outage: a visitor's /wiki still works  (HTTP 200)
+PASS  outage: a visitor's /wiki/quick-start still works  (HTTP 200)
+PASS  outage: a visitor's /races still works  (HTTP 200)
+PASS  outage: a visitor's /race/cc844de3-aeda-4adf-afe4-e984677baee1 still works  (HTTP 200)
+PASS  outage: a visitor's /hall still works  (HTTP 200)
+PASS  outage: a visitor's /news still works  (HTTP 200)
+PASS  outage: a visitor's /api/races still works  (HTTP 200)
+PASS  outage page 390x844: designed screen, HTTP 503  (HTTP 503 /outage?from=%2Fraces)
+PASS  outage on Home 390x844: the outage screen takes over
+PASS  outage: Try again while still down keeps the screen
+PASS  recovery: Try again brings the yard back
+PASS  recovery: Try again on the outage page returns to /races  (http://localhost:3391/races)
+PASS  outage page 1440x900: designed screen, HTTP 503  (HTTP 503 /outage?from=%2Fraces)
+PASS  outage on Home 1440x900: the outage screen takes over
+PASS  recovery: the API answers again
+
+47/47 passed

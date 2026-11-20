@@ -1,0 +1,142 @@
+[
+  {
+    "label": "POST /api/account (found a stable)",
+    "queries": 88,
+    "dbMs": 79.8,
+    "writes": 17,
+    "wallMs": 123,
+    "status": 201,
+    "cache": "no-store"
+  },
+  {
+    "label": "POST /api/races/quick (Story, instant)",
+    "queries": 193,
+    "dbMs": 185.4,
+    "writes": 55,
+    "wallMs": 307,
+    "status": 201,
+    "cache": "no-store"
+  },
+  {
+    "label": "page view: / (signed in)",
+    "queries": 173,
+    "dbMs": 190.2,
+    "writes": 5,
+    "wallMs": 3544,
+    "path": "/",
+    "page": true,
+    "calls": {
+      "GET /": 1,
+      "GET /api/me": 1,
+      "GET /api/home": 1,
+      "GET /api/races/live-wait": 1,
+      "GET /api/picks/today": 1,
+      "GET /api/engage": 1
+    }
+  },
+  {
+    "label": "page view: /races (signed in)",
+    "queries": 61,
+    "dbMs": 77,
+    "writes": 1,
+    "wallMs": 2868,
+    "path": "/races",
+    "page": true,
+    "calls": {
+      "POST /api/events": 1,
+      "GET /races": 1,
+      "GET /api/me": 1
+    }
+  },
+  {
+    "label": "page view: /stable",
+    "queries": 50,
+    "dbMs": 56.5,
+    "writes": 1,
+    "wallMs": 2452,
+    "path": "/stable",
+    "page": true,
+    "calls": {
+      "GET /stable": 1,
+      "GET /api/me": 1,
+      "GET /api/social/home": 1
+    }
+  },
+  {
+    "label": "page view: /horse/[id]",
+    "queries": 140,
+    "dbMs": 174.2,
+    "writes": 1,
+    "wallMs": 2616,
+    "path": "/horse/3790f873-94c3-486d-9706-8388f7584941",
+    "page": true,
+    "calls": {
+      "GET /horse/[id]": 1,
+      "GET /api/me": 1,
+      "GET /api/plans/candidates": 1,
+      "GET /api/leases": 1,
+      "GET /api/usdg/horses/[id]": 1,
+      "GET /api/wallet": 1
+    }
+  },
+  {
+    "label": "page view: /me",
+    "queries": 59,
+    "dbMs": 85.3,
+    "writes": 2,
+    "wallMs": 2367,
+    "path": "/me",
+    "page": true,
+    "calls": {
+      "GET /me": 1,
+      "GET /api/me": 1,
+      "GET /api/push": 1,
+      "GET /api/notifications/prefs": 1,
+      "GET /api/account/devices": 1,
+      "GET /api/wallet": 2
+    }
+  },
+  {
+    "label": "page view: /race/[id] (Story, finished)",
+    "queries": 117,
+    "dbMs": 195.9,
+    "writes": 2,
+    "wallMs": 3369,
+    "path": "/race/90942cc9-6852-43a2-98b1-02af33a7b538",
+    "page": true,
+    "calls": {
+      "GET /race/[id]": 1,
+      "GET /api/me": 2,
+      "GET /api/races/[id]/live": 1,
+      "GET /api/races/[id]/me": 1
+    }
+  },
+  {
+    "label": "idle tab: / signed in, visible, minutes 0-3 after the load",
+    "queries": 48,
+    "perMinute": 24,
+    "minutes": 2,
+    "idle": true
+  },
+  {
+    "label": "idle tab: / signed in, visible, minutes 3-6 (no input)",
+    "queries": 0,
+    "perMinute": 0,
+    "minutes": 2,
+    "idle": true
+  },
+  {
+    "label": "idle tab: / signed in, hidden",
+    "queries": 0,
+    "perMinute": 0,
+    "minutes": 2,
+    "idle": true
+  },
+  {
+    "label": "idle tab: /races signed in, visible",
+    "queries": 17,
+    "perMinute": 8.5,
+    "minutes": 2,
+    "idle": true
+  }
+]

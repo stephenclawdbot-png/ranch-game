@@ -293,7 +293,50 @@ export async function track(db: Db, input: { accountId: string | null; name: Tel
     props: cleanProps(input.props, input.maxProps),
     createdAt: input.now ?? new Date(),
   });
-  if (tester) await db.update(testers).set({ lastSeenAt: input.now ?? new Date() }).where(eq(testers.id, tester.id));
+  // "Last seen" a few minutes stale is fine (the admin list also reads the latest event's time): not a write per event.
+  const at = input.now ?? new Date();
+  if (tester && (!tester.lastSeenAt || at.getTime() - tester.lastSeenAt.getTime() >= TESTER_SEEN_THROTTLE_MS)) {
+    await db.update(testers).set({ lastSeenAt: at }).where(eq(testers.id, tester.id));
+  }
+}
+
+/** Tester "last seen" is refreshed at most this often (telemetry arrives far more often than it matters). */
+export const TESTER_SEEN_THROTTLE_MS = 5 * 60_000;
+
+export interface TrackRow {
+  name: TelemetryEvent;
+  props?: Record<string, unknown>;
+  maxProps?: number;
+  /** When it happened (default: now). */
+  at?: Date;
+  /** Whose event it is (default: the batch's account). Null: a visitor without a stable. */
+  accountId?: string | null;
+}
+
+/**
+ * Records a batch of events with one insert (and one tester lookup for the batch's account),
+ * instead of a lookup, an insert and an update per event. Returns the rows written.
+ */
+export async function trackMany(db: Db, input: { accountId: string | null; events: TrackRow[]; now?: Date }): Promise<number> {
+  if (input.events.length === 0) return 0;
+  const now = input.now ?? new Date();
+  const tester = input.accountId ? await testerForAccount(db, input.accountId) : null;
+  await db.insert(telemetryEvents).values(
+    input.events.map((e) => {
+      const accountId = e.accountId === undefined ? input.accountId : e.accountId;
+      return {
+        accountId,
+        testerId: accountId && accountId === input.accountId ? (tester?.id ?? null) : null,
+        name: e.name,
+        props: cleanProps(e.props, e.maxProps),
+        createdAt: e.at ?? now,
+      };
+    }),
+  );
+  if (tester && (!tester.lastSeenAt || now.getTime() - tester.lastSeenAt.getTime() >= TESTER_SEEN_THROTTLE_MS)) {
+    await db.update(testers).set({ lastSeenAt: now }).where(eq(testers.id, tester.id));
+  }
+  return input.events.length;
 }
 
 export interface PlaytestMetrics {

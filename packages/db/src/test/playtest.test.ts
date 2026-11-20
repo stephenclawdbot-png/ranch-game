@@ -28,6 +28,8 @@ import {
   testerBetaProgress,
   testerForAccount,
   track,
+  trackMany,
+  TESTER_SEEN_THROTTLE_MS,
   updateFeedback,
   type TelemetryEvent,
   FEEDBACK_PER_HOUR,
@@ -353,5 +355,48 @@ describe("beta metrics: real players per Live race", () => {
     } finally {
       await h3.close();
     }
+  });
+});
+
+describe("trackMany (one request's batch of client events)", () => {
+  it("writes the batch with one insert, keeps each event's time and owner, and throttles the tester's last-seen", async () => {
+    const [code] = await generateInviteCodes(h.db, { count: 1 });
+    const t0 = at(400 * DAY);
+    const me = await join(code!, `Batch Lodge ${randomUUID().slice(0, 6)}`, 10_000, t0);
+    const when = new Date(t0.getTime() + 1000);
+    const earlier = new Date(t0.getTime() - 5000);
+
+    const n = await trackMany(h.db, {
+      accountId: me.accountId,
+      now: when,
+      events: [
+        { name: "session_start", props: { route: "/" } },
+        { name: "page_view", props: { route: "/stable" } },
+        // a visitor's event that waited in memory: its own time, nobody's account
+        { name: "session_start", props: { route: "/" }, at: earlier, accountId: null },
+      ],
+    });
+    expect(n).toBe(3);
+    const rows = (await h.db.select().from(telemetryEvents)).filter((r) => r.createdAt.getTime() === when.getTime() || r.createdAt.getTime() === earlier.getTime());
+    expect(rows).toHaveLength(3);
+    const mine = rows.filter((r) => r.accountId === me.accountId);
+    expect(mine.map((r) => r.name).sort()).toEqual(["page_view", "session_start"]);
+    expect(mine.every((r) => r.testerId === me.testerId)).toBe(true);
+    const visitor = rows.find((r) => r.accountId === null)!;
+    expect(visitor.testerId).toBeNull();
+    expect(visitor.props).toEqual({ route: "/" });
+
+    // last-seen: not rewritten within the throttle (by a batch or a single event), rewritten after it
+    const seen = async () => (await testerForAccount(h.db, me.accountId))!.lastSeenAt!.getTime();
+    const seen0 = await seen();
+    await trackMany(h.db, { accountId: me.accountId, now: new Date(seen0 + 60_000), events: [{ name: "page_view" }] });
+    expect(await seen()).toBe(seen0);
+    await track(h.db, { accountId: me.accountId, name: "page_view", now: new Date(seen0 + 120_000) });
+    expect(await seen()).toBe(seen0);
+    const later = new Date(seen0 + TESTER_SEEN_THROTTLE_MS + 1000);
+    await trackMany(h.db, { accountId: me.accountId, now: later, events: [{ name: "page_view" }] });
+    expect(await seen()).toBe(later.getTime());
+
+    expect(await trackMany(h.db, { accountId: me.accountId, events: [] })).toBe(0);
   });
 });

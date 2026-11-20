@@ -24,6 +24,11 @@ export async function sessionToken(): Promise<string | null> {
   return v && /^[A-Za-z0-9_-]{20,200}$/.test(v) ? v : null;
 }
 
+/** True when the request carries a session cookie at all (no database): a visitor has none. */
+export async function hasSessionCookie(): Promise<boolean> {
+  return (await sessionToken()) !== null;
+}
+
 /** The signed-in player for this request, or null. */
 export async function getSession(database?: Db): Promise<Session | null> {
   const token = await sessionToken();

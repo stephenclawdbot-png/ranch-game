@@ -6,12 +6,13 @@ import type { QuickRaceView } from "@/lib/quickRaces";
 import { db } from "@/server/db";
 import { quickRaceView } from "@/server/quickRaces";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Quick race (unofficial)", robots: { index: false } };
 
 /** A quick race (match, ghost or daily challenge attempt) in the viewer, with its result. Never official. */
-export default async function QuickRacePage({ params }: { params: Promise<{ id: string }> }) {
+async function QuickRacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let view: QuickRaceView | null = null;
   let message = "We couldn't find that quick race.";
@@ -36,3 +37,6 @@ export default async function QuickRacePage({ params }: { params: Promise<{ id: 
   }
   return <QuickReplay v={view} />;
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/quick/[id]", QuickRacePage);

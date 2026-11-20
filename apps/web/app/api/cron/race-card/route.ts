@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { db } from "@/server/db";
 import { driveCard } from "@/server/game";
-import { errorJson, json } from "@/server/http";
+import { errorJson, handleError, json } from "@/server/http";
 import { kickPush } from "@/server/push";
 
 export const runtime = "nodejs";
@@ -18,10 +18,15 @@ export async function GET(req: Request) {
   if (!secret) return errorJson(503, "cron_not_configured", { message: "Set CRON_SECRET to enable the cron route." });
   if (!sameSecret(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) return errorJson(401, "unauthorized", { message: "Bad cron secret." });
   const started = Date.now();
-  const report = await driveCard(await db(), new Date(), { force: true, maintenance: true });
-  // Notes written by maintenance (horses back, mares ready to foal) go out as phone alerts too.
-  await kickPush();
-  return json({ ok: true, ms: Date.now() - started, locked: report?.locked ?? 0, settled: report?.settled.length ?? 0 });
+  try {
+    const report = await driveCard(await db(), new Date(), { force: true, maintenance: true });
+    // Notes written by maintenance (horses back, mares ready to foal) go out as phone alerts too.
+    await kickPush();
+    return json({ ok: true, ms: Date.now() - started, locked: report?.locked ?? 0, settled: report?.settled.length ?? 0 });
+  } catch (err) {
+    // The database unreachable or over quota: a clear 503 (anything else still fails loudly).
+    return handleError(err);
+  }
 }
 
 /** Constant-time comparison (hashes first so lengths never leak). */

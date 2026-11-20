@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePoll } from "@/lib/attention";
 import { usePlayerState } from "@/lib/player";
 import { CATEGORY_ICON, badgeText, bellLabel, groupByDay, timeOfDay } from "@/lib/notifications";
 import type { NotificationView, NotificationsView } from "@/lib/types";
@@ -15,7 +16,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
 
 /**
  * The top-bar bell: unread count (the player state carries it; a light count endpoint polls while
- * the tab is visible), and a panel of recent notifications grouped by day: a full-width sheet on
+ * the tab is visible and the player active), and a panel of recent notifications grouped by day: a full-width sheet on
  * phones, a dropdown on desktop. Escape or the close button closes it and focus returns to the
  * bell; Tab stays inside the panel while it's open.
  */
@@ -44,26 +45,24 @@ export function NotificationBell() {
     prev.current = unread;
   }, [unread]);
 
-  // Light poll while the tab is visible.
+  // Light poll while the player is here (tab visible, active in the last few minutes: lib/attention).
+  const mounted = useRef(true);
   useEffect(() => {
-    let stopped = false;
-    const tick = async () => {
-      if (document.visibilityState !== "visible") return;
-      try {
-        const r = await fetch("/api/notifications/count");
-        if (!r.ok || stopped) return;
-        const { unread: n } = (await r.json()) as { unread: number };
-        if (!stopped) setUnread(n);
-      } catch {
-        /* offline: keep the last count */
-      }
-    };
-    const t = setInterval(tick, BELL_POLL_MS);
+    mounted.current = true;
     return () => {
-      stopped = true;
-      clearInterval(t);
+      mounted.current = false;
     };
   }, []);
+  usePoll(async () => {
+    try {
+      const r = await fetch("/api/notifications/count");
+      if (!r.ok || !mounted.current) return;
+      const { unread: n } = (await r.json()) as { unread: number };
+      if (mounted.current) setUnread(n);
+    } catch {
+      /* offline: keep the last count */
+    }
+  }, BELL_POLL_MS);
 
   const load = useCallback(async () => {
     setError(false);

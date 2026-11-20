@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { HomeTiles } from "@/lib/homeTypes";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { WaitAction } from "@/lib/whileYouWait";
+import { usePoll } from "@/lib/attention";
+import { fetchHomeTiles } from "@/lib/homeTiles";
 import { useNow } from "@/lib/clock";
 import { localClockText, utcClockText, waitText } from "@/lib/meetings";
 
@@ -47,7 +48,7 @@ export interface LiveWaitData {
 }
 
 /** Refresh the wait card this often (entries and the race to watch move). */
-const REFRESH_MS = 60_000;
+const REFRESH_MS = 2 * 60_000;
 const cache = new Map<string, { at: number; data: Promise<LiveWaitData | null> }>();
 
 function fetchWait(raceId: string | null): Promise<LiveWaitData | null> {
@@ -61,19 +62,22 @@ function fetchWait(raceId: string | null): Promise<LiveWaitData | null> {
   return data;
 }
 
-/** The wait card's data, fetched after mount and every minute (null until then, or signed out). */
+/**
+ * The wait card's data, fetched after mount and every two minutes while the player is here (visible
+ * and active: lib/attention). Null until then, or signed out.
+ */
 export function useLiveWait(raceId: string | null): LiveWaitData | null {
   const [data, setData] = useState<LiveWaitData | null>(null);
+  const alive = useRef(true);
+  const load = useCallback(() => void fetchWait(raceId).then((d) => alive.current && d && setData(d)), [raceId]);
   useEffect(() => {
-    let alive = true;
-    const load = () => void fetchWait(raceId).then((d) => alive && d && setData(d));
+    alive.current = true;
     load();
-    const t = setInterval(load, REFRESH_MS);
     return () => {
-      alive = false;
-      clearInterval(t);
+      alive.current = false;
     };
-  }, [raceId]);
+  }, [load]);
+  usePoll(load, REFRESH_MS);
   return data;
 }
 
@@ -93,9 +97,7 @@ function useCupOpen(): boolean {
     if (!cupCache || Date.now() - cupCache.at > 60_000) {
       cupCache = {
         at: Date.now(),
-        canRun: fetch("/api/home", { cache: "no-store" })
-          .then(async (r) => (r.ok ? (((await r.json()) as { tiles: HomeTiles }).tiles.cup?.canRun ?? false) : false))
-          .catch(() => false),
+        canRun: fetchHomeTiles().then((tiles) => tiles?.cup?.canRun ?? false),
       };
     }
     void cupCache.canRun.then((v) => alive && setOpen(v));

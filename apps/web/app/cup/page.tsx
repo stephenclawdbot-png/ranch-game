@@ -4,11 +4,12 @@ import { CupScreen } from "@/components/competition/CupScreen";
 import { cupView } from "@/server/competition";
 import { db } from "@/server/db";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Daily Cup" };
 
-export default async function CupPage() {
+async function CupPage() {
   const database = await db();
   const session = await getSession(database);
   const now = new Date();
@@ -21,3 +22,6 @@ export default async function CupPage() {
     </>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/cup", CupPage);

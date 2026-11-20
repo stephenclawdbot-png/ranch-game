@@ -1,0 +1,108 @@
+[db-load 05:46:10] warming up (first request creates the database and publishes the card)
+[db-load 05:46:19] GET / (signed out) [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:46:20] GET / (signed out): 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:46:25] GET /races (signed out) [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:46:26] GET /races (signed out): 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:46:31] GET /api/me (signed out) [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:46:32] GET /api/me (signed out): 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:46:37] GET /api/races (signed out) [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:46:37] GET /api/races (signed out): 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:46:42] GET /wiki [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, s-maxage=31536000
+[db-load 05:46:43] GET /wiki: 0 q (0 writes), 0 ms db, HTTP 200, s-maxage=31536000
+[db-load 05:46:48] GET /wiki/quick-start [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, s-maxage=31536000
+[db-load 05:46:49] GET /wiki/quick-start: 0 q (0 writes), 0 ms db, HTTP 200, s-maxage=31536000
+[db-load 05:46:54] GET /hall [tick due]: 10 q (0 writes), 16.1 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:46:55] GET /hall: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:00] GET /api/hall [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:00] GET /api/hall: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:06] GET /league [tick due]: 4 q (0 writes), 24.6 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:06] GET /league: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:11] GET /api/league [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:12] GET /api/league: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:17] GET /news [tick due]: 1 q (0 writes), 2.6 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:18] GET /news: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:23] GET /api/news [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:24] GET /api/news: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:29] GET /tipsters [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:30] GET /tipsters: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:35] GET /api/tipsters [tick due]: 5 q (0 writes), 8.8 ms db, HTTP 200, no-store
+[db-load 05:47:35] GET /api/tipsters: 0 q (0 writes), 0 ms db, HTTP 200, no-store
+[db-load 05:47:40] GET /play [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:41] GET /play: 0 q (0 writes), 0 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:46] GET /race/<unknown> [tick due]: 10 q (0 writes), 15.4 ms db, HTTP 404, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:47] GET /race/<unknown>: 1 q (0 writes), 1.2 ms db, HTTP 404, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:47:52] POST /api/events (signed out, 1 page_view) [tick due]: 0 q (0 writes), 0 ms db, HTTP 202, no-store
+[db-load 05:47:53] POST /api/events (signed out, 1 page_view): 0 q (0 writes), 0 ms db, HTTP 202, no-store
+[db-load 05:48:01] page view: / (signed out): 0 q (0 writes), 0 ms db
+[db-load 05:48:01]   requests: GET /, GET /api/me
+[db-load 05:48:09] page view: /races (signed out): 0 q (0 writes), 0 ms db
+[db-load 05:48:09]   requests: GET /races, GET /api/me
+[db-load 05:48:17] page view: /wiki (signed out): 0 q (0 writes), 0 ms db
+[db-load 05:48:17]   requests: GET /wiki, GET /api/me
+[db-load 05:50:18] idle tab: / signed out, visible: 0 q in 2 min
+[db-load 05:50:19] POST /api/account (found a stable): 100 q (18 writes), 190 ms db, HTTP 201, no-store
+[db-load 05:50:24] GET / (signed in) [tick due]: 3 q (0 writes), 17 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:50:25] GET / (signed in): 3 q (0 writes), 14.2 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:50:30] GET /api/me [tick due]: 46 q (0 writes), 62.8 ms db, HTTP 200, no-store
+[db-load 05:50:31] GET /api/me: 42 q (0 writes), 48.3 ms db, HTTP 200, no-store
+[db-load 05:50:36] GET /api/home [tick due]: 106 q (18 writes), 158.4 ms db, HTTP 200, no-store
+[db-load 05:50:37] GET /api/home: 75 q (4 writes), 79.8 ms db, HTTP 200, no-store
+[db-load 05:50:42] GET /api/engage [tick due]: 19 q (0 writes), 26.6 ms db, HTTP 200, no-store
+[db-load 05:50:43] GET /api/engage: 19 q (0 writes), 23.3 ms db, HTTP 200, no-store
+[db-load 05:50:48] GET /api/social/home [tick due]: 4 q (0 writes), 11.4 ms db, HTTP 200, no-store
+[db-load 05:50:49] GET /api/social/home: 4 q (0 writes), 19 ms db, HTTP 200, no-store
+[db-load 05:50:54] GET /api/notifications/count [tick due]: 7 q (0 writes), 12.9 ms db, HTTP 200, private, max-age=15
+[db-load 05:50:55] GET /api/notifications/count: 3 q (0 writes), 3.4 ms db, HTTP 200, private, max-age=15
+[db-load 05:51:00] GET /api/notifications [tick due]: 4 q (0 writes), 5 ms db, HTTP 200, no-store
+[db-load 05:51:00] GET /api/notifications: 4 q (0 writes), 4.5 ms db, HTTP 200, no-store
+[db-load 05:51:06] GET /races (signed in) [tick due]: 3 q (0 writes), 7.9 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:51:06] GET /races (signed in): 3 q (0 writes), 15.5 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:51:11] GET /api/races (signed in) [tick due]: 3 q (0 writes), 9.9 ms db, HTTP 200, no-store
+[db-load 05:51:12] GET /api/races (signed in): 3 q (0 writes), 6.8 ms db, HTTP 200, no-store
+[db-load 05:51:17] GET /api/races/live-wait [tick due]: 32 q (0 writes), 65 ms db, HTTP 200, no-store
+[db-load 05:51:18] GET /api/races/live-wait: 32 q (0 writes), 59.8 ms db, HTTP 200, no-store
+[db-load 05:51:23] GET /stable [tick due]: 0 q (0 writes), 0 ms db, HTTP 200, s-maxage=31536000
+[db-load 05:51:24] GET /stable: 0 q (0 writes), 0 ms db, HTTP 200, s-maxage=31536000
+[db-load 05:51:29] GET /horse/[id] [tick due]: 20 q (0 writes), 61.3 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:51:30] GET /horse/[id]: 20 q (0 writes), 148.8 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:51:35] GET /api/horses/[id] [tick due]: 16 q (0 writes), 58.2 ms db, HTTP 200, no-store
+[db-load 05:51:36] GET /api/horses/[id]: 16 q (0 writes), 36.1 ms db, HTTP 200, no-store
+[db-load 05:51:41] GET /api/story [tick due]: 7 q (0 writes), 22.8 ms db, HTTP 200, no-store
+[db-load 05:51:42] GET /api/story: 7 q (0 writes), 11.7 ms db, HTTP 200, no-store
+[db-load 05:51:47] GET /api/picks/today [tick due]: 8 q (0 writes), 20.7 ms db, HTTP 200, no-store
+[db-load 05:51:47] GET /api/picks/today: 8 q (0 writes), 22.2 ms db, HTTP 200, no-store
+[db-load 05:51:52] POST /api/events (signed in, 1 page_view) [tick due]: 3 q (1 writes), 4.4 ms db, HTTP 202, no-store
+[db-load 05:51:53] POST /api/events (signed in, 1 page_view): 3 q (1 writes), 3.5 ms db, HTTP 202, no-store
+[db-load 05:51:54] POST /api/races/quick (Story, instant): 235 q (69 writes), 284.3 ms db, HTTP 201, no-store
+[db-load 05:52:01] GET /race/[id] (Story, finished) [tick due]: 14 q (0 writes), 119.6 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:52:02] GET /race/[id] (Story, finished): 4 q (0 writes), 7.9 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:52:07] GET /api/races/[id] (Story, finished) [tick due]: 4 q (0 writes), 6.7 ms db, HTTP 200, no-store
+[db-load 05:52:08] GET /api/races/[id] (Story, finished): 4 q (0 writes), 6.4 ms db, HTTP 200, no-store
+[db-load 05:52:13] GET /api/races/[id]/replay (finished) [tick due]: 1 q (0 writes), 3.1 ms db, HTTP 200, public, max-age=31536000, immutable
+[db-load 05:52:13] GET /api/races/[id]/replay (finished): 1 q (0 writes), 1.6 ms db, HTTP 200, public, max-age=31536000, immutable
+[db-load 05:52:18] GET /api/races/[id]/live?w=0 (finished) [tick due]: 1 q (0 writes), 1.5 ms db, HTTP 200, public, max-age=31536000, immutable
+[db-load 05:52:19] GET /api/races/[id]/live?w=0 (finished): 1 q (0 writes), 1.6 ms db, HTTP 200, public, max-age=31536000, immutable
+[db-load 05:52:24] GET /api/races/[id]/me (finished) [tick due]: 10 q (1 writes), 15 ms db, HTTP 200, no-store
+[db-load 05:52:25] GET /api/races/[id]/me (finished): 10 q (1 writes), 35.5 ms db, HTTP 200, no-store
+[db-load 05:52:34] page view: / (signed in): 256 q (9 writes), 295.7 ms db
+[db-load 05:52:34]   requests: GET /, GET /api/me, GET /api/home x2, GET /api/races/live-wait, GET /api/picks/today, GET /api/engage
+[db-load 05:52:43] page view: /races (signed in): 47 q (0 writes), 93.4 ms db
+[db-load 05:52:43]   requests: GET /races, GET /api/me
+[db-load 05:52:50] page view: /stable: 55 q (1 writes), 106.1 ms db
+[db-load 05:52:50]   requests: POST /api/events, GET /stable, GET /api/me, GET /api/social/home
+[db-load 05:52:58] page view: /horse/[id]: 146 q (1 writes), 207.7 ms db
+[db-load 05:52:58]   requests: GET /horse/[id], GET /api/me, GET /api/plans/candidates, GET /api/leases, GET /api/usdg/horses/[id], GET /api/wallet
+[db-load 05:53:06] page view: /me: 64 q (2 writes), 63 ms db
+[db-load 05:53:06]   requests: GET /me, GET /api/me, GET /api/push, GET /api/notifications/prefs, GET /api/account/devices, GET /api/wallet x2
+[db-load 05:53:14] page view: /race/[id] (Story, finished): 106 q (2 writes), 158 ms db
+[db-load 05:53:14]   requests: GET /race/[id], GET /api/me x2, GET /api/races/[id]/live, GET /api/races/[id]/me
+[db-load 05:53:15] POST /api/races/live-pick (enter a Live race): 120 q (17 writes), 210.6 ms db, HTTP 201, no-store
+[db-load 05:53:15] live race 95989ecd-6871-4179-8de4-cc019af10bcc off at 2026-11-20T05:59:00.000Z
+[db-load 05:53:21] GET /race/[id] (Live, entries open) [tick due]: 13 q (0 writes), 37.4 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:53:22] GET /race/[id] (Live, entries open): 6 q (0 writes), 50.9 ms db, HTTP 200, private, no-cache, no-store, max-age=0, must-revalidate
+[db-load 05:53:27] GET /api/races/[id] (Live, entries open) [tick due]: 6 q (0 writes), 5.5 ms db, HTTP 200, no-store
+[db-load 05:53:27] GET /api/races/[id] (Live, entries open): 6 q (0 writes), 5.4 ms db, HTTP 200, no-store
+[db-load 05:53:33] GET /api/races/live-wait (entered) [tick due]: 12 q (0 writes), 34.5 ms db, HTTP 200, no-store
+[db-load 05:53:33] GET /api/races/live-wait (entered): 12 q (0 writes), 19.3 ms db, HTTP 200, no-store
+[db-load 05:53:42] page view: /race/[id] (Live, entries open): 154 q (5 writes), 186.3 ms db
+[db-load 05:53:42]   requests: GET /race/[id], GET /api/me, GET /api/races/[id]/pick x2, GET /api/home, GET /api/races/live-wait

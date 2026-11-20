@@ -183,6 +183,43 @@ The stateless demo repository can be replaced with Postgres without changing pag
 - **Live viewing is synchronized playback** of stored checkpoints against `postTimeMs`.
 - **PixelLab runs at build time only.** It never runs per request or per frame.
 
+### 9a. Database time (Neon bills for every minute the database is awake)
+
+The database falls asleep after about five minutes without a query, and it is billed while awake.
+So the rule is: **nothing may query it unless a signed-in player is actually there.**
+
+- **Visitors never reach the database on an ordinary hit.** A request without a session cookie
+  gets the race card, results, finished race pages, the Hall of Fame, the league, the news, the
+  tipsters and public stable pages from shared copies (`apps/web/src/server/visitorCache.ts`,
+  `visitorViews.ts`: Next's data cache, refreshed at most once an hour, stale copy served while it
+  refreshes). Only views built with no session go in there; anything that depends on the session
+  cookie is computed per request. The copies are made by the same code as the live views, so the
+  no-spoiler rule holds at the moment they are made, and a copy can only be behind the present.
+  A race that is still to run or running is always computed live. `app/robots.ts` keeps crawlers
+  out of `/api/` and the per-race, per-horse pages.
+- **The lazy card tick is guarded** (`driveCard` in `server/game.ts`): after a tick it works out
+  when the next one has real work (the next field to lock, the next off, every 4 s while a race
+  runs, at the latest every 60 s) and returns before any query until then.
+- **Background refreshes follow attention** (`apps/web/src/lib/attention.ts`): a poller runs only
+  while the tab is visible and the player did something in the last three minutes; a hidden or
+  idle tab asks for nothing and catches up when the player returns. Use `usePoll` / `startPoll`
+  for any new poller, never a bare `setInterval`. `RaceAlarms` sets single timers for the bell
+  before a player's own Live race.
+- **Telemetry is batched** (`lib/telemetry.ts`, `trackClientBatch`): one request and one insert
+  per batch; a visitor's page views are never written.
+- **Measuring**: `DB_QUERY_LOG` turns on the query meter (`packages/db/src/queryMeter.ts`) and
+  `apps/web/e2e/db-load.mjs` prints queries and database time per request and per page view.
+
+### 9b. When the database is down
+
+`isDbUnavailable` (`packages/db/src/outage.ts`) recognises "unreachable or over quota" (SQLSTATE
+53000, connection failures). API routes then answer `503 { error: "db_unavailable" }` with
+`Cache-Control: no-store` (`handleError`); server-rendered pages redirect to `/outage`
+(`dbPage` / `outagePage` in `server/outage.ts`), a static page that `middleware.ts` serves with
+HTTP 503; the client shows the same screen over the page when an API call reports the outage
+(`OutageOverlay`). `app/error.tsx` and `app/global-error.tsx` are the designed fallback for any
+other failure. The landing page, the guide and visitors' cached pages keep working.
+
 ## 10. Optional web3: Robinhood Chain (EVM)
 
 The chain is Robinhood Chain, an Arbitrum-based L2: mainnet 4663, testnet 46630. **It's off by

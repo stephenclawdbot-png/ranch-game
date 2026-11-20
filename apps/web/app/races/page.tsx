@@ -7,19 +7,25 @@ import { LivePickBar, RaceBoard, RecentRaceRow, UpcomingCard } from "@/component
 import { CARD_MIN_RACES_PER_MEETING, CARD_TARGET_STABLES_PER_RACE, MEETING_RACE_SPACING_MS, MEETING_START_TIMES_UTC, MEETINGS_PER_DAY, RACES_PER_MEETING } from "@thoroughbred/game-core";
 import { db } from "@/server/db";
 import { raceList } from "@/server/game";
-import { getSession } from "@/server/session";
+import { dbPage } from "@/server/outage";
+import { getSession, hasSessionCookie } from "@/server/session";
+import { visitorRaceLists } from "@/server/visitorViews";
 import { MEETING_CADENCE } from "@/lib/meetings";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Race card · Kestrel Downs" };
 
-export default async function RacesPage() {
+export default function RacesPage() {
+  return dbPage("/races", renderRaces);
+}
+
+async function renderRaces() {
   const now = new Date();
   const nowMs = now.getTime();
-  const database = await db();
-  const session = await getSession(database);
+  // A visitor (no session cookie) gets the shared copy of the card: no database on the way.
+  const session = (await hasSessionCookie()) ? await getSession(await db()) : null;
   // the whole published card: a day of race meetings (sister courses included)
-  const { upcoming, recent } = await raceList(database, now, session?.stable.id ?? null, { upcoming: 120 });
+  const { upcoming, recent } = session ? await raceList(await db(), now, session.stable.id, { upcoming: 120 }) : await visitorRaceLists(now).then((v) => ({ upcoming: v.upcoming, recent: [...(v.live ? [v.live] : []), ...v.recent.filter((r) => r.id !== v.live?.id)].slice(0, 6) }));
   // Refresh when the next field locks or goes off; every 10 s while one is live (no public end time).
   const marks = upcoming.flatMap((r) => [r.entriesCloseAtMs, r.postTimeMs]).filter((t) => t > nowMs);
   const nextChange = Math.min(...marks, recent.some((r) => r.phase === "live") ? nowMs + 10_000 : Infinity);

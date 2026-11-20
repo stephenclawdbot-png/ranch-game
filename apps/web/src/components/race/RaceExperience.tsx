@@ -117,9 +117,16 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
   useEffect(() => {
     if (card.fieldLocked) return;
     let t: ReturnType<typeof setTimeout>;
+    let tries = 0;
     const tick = () => {
-      router.refresh();
-      t = setTimeout(tick, 3000);
+      // A hidden tab waits: the card is re-read the moment it shows again (the next tick).
+      if (document.visibilityState !== "hidden") {
+        router.refresh();
+        tries++;
+      }
+      // The locked field normally arrives on the first or second try; if it does not (the card
+      // is paused, the server is struggling), ask less and less often instead of every 3 s forever.
+      t = setTimeout(tick, tries < 5 ? 3000 : tries < 15 ? 10_000 : 60_000);
     };
     t = setTimeout(tick, Math.max(1000, localClose - Date.now() + 1500));
     return () => clearTimeout(t);
@@ -168,7 +175,9 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
     const res = (await r.json()) as MyRaceResult;
     const x = res.runners.find((y) => y.horseId === mineHorseId) ?? res.runners[0];
     if (!x) throw new Error("no runner");
-    void refreshPlayer().catch(() => undefined);
+    // The first look at a result changes the player state (the inbox item is read, the reward
+    // shows); a later visit changes nothing, so it does not reload it.
+    if (res.firstView) void refreshPlayer().catch(() => undefined);
     return { prize: x.prize + x.storyReward, position: x.position, fresh: res.firstView, storyReward: x.storyReward, firstWin: x.firstWin, ratingBefore: x.ratingBefore, ratingAfter: x.ratingAfter, ratingWhy: x.ratingWhy ?? null, atOff: x.atOff ?? null, injury: x.injury ?? null, firstWinOf: x.firstWinOf ?? null };
   }, [card.id, mineHorseId]);
   const settled = useLoad(phase === "result" && replay && mine ? fetchSettlement : null, card.id, SETTLEMENT_RETRY);

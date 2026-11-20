@@ -4,12 +4,15 @@
  * settled on the server. A copy of the last response is cached in localStorage purely so pages
  * paint instantly; it is never trusted and is replaced by the server's answer on every load.
  */
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import type { Silks } from "@thoroughbred/shared";
 import type { ApiError, PlayerView, StableHorse } from "./types";
 import { conditionRating } from "./aptitude";
+import { usePoll } from "./attention";
 import { LOAD_MACHINE, type LoadStatus } from "./machines/load";
 import { moveOr } from "./machines/guard";
+import { OUTAGE_CODE, clearOutage, isOutageResponse, reportOutage } from "./outage";
+import { setTelemetrySignedIn } from "./telemetry";
 
 export type PlayerState = PlayerView;
 
@@ -21,6 +24,10 @@ type Snapshot = PlayerView | null | undefined;
 let current: Snapshot = undefined;
 let loaded = false;
 let inflight: Promise<PlayerView | null> | null = null;
+/** When the last /api/me answer arrived (this browser's clock). */
+let loadedAt = 0;
+/** A tab regaining focus refreshes the player, unless the last answer is younger than this. */
+const FOCUS_REFRESH_MIN_MS = 15_000;
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -51,6 +58,8 @@ function writeCache(v: PlayerView | null): void {
 export function setPlayer(v: PlayerView | null): void {
   current = v;
   loaded = true;
+  loadedAt = Date.now();
+  setTelemetrySignedIn(!!v);
   writeCache(v);
   emit();
 }
@@ -77,8 +86,14 @@ export function refreshPlayer(): Promise<PlayerView | null> {
     const timer = ctrl ? setTimeout(() => ctrl.abort(), API_TIMEOUT_MS) : null;
     inflight = fetch("/api/me", { cache: "no-store", ...(ctrl ? { signal: ctrl.signal } : {}) })
       .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) {
+          // The database is unreachable or over quota: the outage screen takes over (components/OutageOverlay).
+          if (await isOutageResponse(r)) reportOutage();
+          throw new Error(`HTTP ${r.status}`);
+        }
         const { player } = (await r.json()) as { player: PlayerView | null };
+        // A signed-in answer came from the database: any outage is over.
+        if (player) clearOutage();
         setPlayer(player);
         setLoadStatus("ready");
         return player;
@@ -105,7 +120,11 @@ function subscribe(cb: () => void): () => void {
     }
   }
   if (!loaded && !inflight) refreshPlayer().catch(() => undefined);
-  const onFocus = () => refreshPlayer().catch(() => undefined);
+  // Coming back to the tab: fresh state, but not a request per focus event (or per subscriber).
+  const onFocus = () => {
+    if (Date.now() - loadedAt < FOCUS_REFRESH_MIN_MS) return;
+    refreshPlayer().catch(() => undefined);
+  };
   window.addEventListener("focus", onFocus);
   return () => {
     listeners.delete(cb);
@@ -115,16 +134,13 @@ function subscribe(cb: () => void): () => void {
 
 /**
  * undefined while unknown (first load), null when this browser has no stable yet.
- * `pollMs` refreshes periodically while mounted (e.g. while a race is pending).
+ * `pollMs` refreshes periodically while mounted and the tab is visible (e.g. while one of your
+ * races is running): never in a hidden tab, and never for a browser without a stable.
  */
 export function usePlayerState(opts: { pollMs?: number } = {}): PlayerState | null | undefined {
   const state = useSyncExternalStore<Snapshot>(subscribe, () => current, () => undefined);
-  const { pollMs } = opts;
-  useEffect(() => {
-    if (!pollMs) return;
-    const t = setInterval(() => refreshPlayer().catch(() => undefined), pollMs);
-    return () => clearInterval(t);
-  }, [pollMs]);
+  // A race in progress is watched without touching anything: the idle rule is waived (lib/attention).
+  usePoll(() => refreshPlayer().catch(() => undefined), opts.pollMs, !!opts.pollMs && !!state, { evenWhenIdle: true });
   return state;
 }
 
@@ -191,7 +207,10 @@ export async function api<T>(url: string, init: { method?: string; body?: unknow
     if (timer) clearTimeout(timer);
   }
   const data = (await res.json().catch(() => ({}))) as Partial<ApiError> & { player?: PlayerView | null };
-  if (!res.ok) throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? `Something went wrong (HTTP ${res.status}).`, data.details);
+  if (!res.ok) {
+    if (res.status === 503 && data.error === OUTAGE_CODE) reportOutage();
+    throw new ApiFailure(res.status, data.error ?? `http_${res.status}`, data.message ?? `Something went wrong (HTTP ${res.status}).`, data.details);
+  }
   if (data.player !== undefined) setPlayer(data.player);
   return data as T;
 }

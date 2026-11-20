@@ -3,7 +3,9 @@ import Link from "next/link";
 import { NewsList } from "@/components/social/NewsList";
 import { EmptyState, SceneBand } from "@/components/ui/Page";
 import { db } from "@/server/db";
-import { getSession } from "@/server/session";
+import { dbPage } from "@/server/outage";
+import { getSession, hasSessionCookie } from "@/server/session";
+import { visitorNews } from "@/server/visitorViews";
 import { newsFeed } from "@/server/social";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +16,19 @@ export const metadata: Metadata = { title: "Racing news" };
  * jockeys' milestones, sales and claims, Hall of Fame entries. Written from facts when they
  * happen; a race's news appears only once its broadcast is over.
  */
-export default async function NewsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default function NewsPage(props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  return dbPage("/news", () => renderNews(props));
+}
+
+async function renderNews({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const tab = sp.tab === "mine" ? "mine" : "all";
   const before = Number(Array.isArray(sp.before) ? sp.before[0] : sp.before);
-  const database = await db();
-  const session = await getSession(database);
+  const session = (await hasSessionCookie()) ? await getSession(await db()) : null;
   const now = new Date();
-  const items = await newsFeed(database, session, tab, now, Number.isFinite(before) && before > 0 ? before : null);
+  const beforeMs = Number.isFinite(before) && before > 0 ? before : null;
+  // A visitor's first page of news is the shared copy (no database); "My stable" needs a stable anyway.
+  const items = !session && tab === "mine" ? [] : !session && beforeMs === null ? await visitorNews() : await newsFeed(await db(), session, tab, now, beforeMs);
   const older = items.length >= 50 ? items[items.length - 1]!.atMs : null;
   return (
     <div className="grid gap-5">

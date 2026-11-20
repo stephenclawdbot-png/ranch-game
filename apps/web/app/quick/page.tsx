@@ -5,6 +5,7 @@ import { SceneBand } from "@/components/ui/Page";
 import { db } from "@/server/db";
 import { quickHub } from "@/server/quickRaces";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Quick races" };
@@ -15,7 +16,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
  * Quick races: the daily challenge, match races and ghost races. Instant and unofficial: a race in
  * a two-minute visit, with nothing on the books moving.
  */
-export default async function QuickRacesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+async function QuickRacesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k]![0] : sp[k]) ?? "";
   const database = await db();
@@ -35,3 +36,6 @@ export default async function QuickRacesPage({ searchParams }: { searchParams: P
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/quick", QuickRacesPage);

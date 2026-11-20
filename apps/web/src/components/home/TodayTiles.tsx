@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { HomeTiles } from "@/lib/homeTypes";
 import { formatCountdown, formatDistance, ordinal } from "@/lib/format";
 import { useNow } from "@/lib/clock";
+import { usePoll } from "@/lib/attention";
+import { fetchHomeTiles } from "@/lib/homeTiles";
 import { PixelIcon, type IconName } from "../icons";
 import { Section } from "../ui/Page";
 
@@ -25,8 +27,12 @@ interface Tile {
   done?: boolean;
 }
 
-/** Re-check the tiles this often while Home is open (and whenever the tab regains focus). */
-const POLL_MS = 60_000;
+/**
+ * Re-check the tiles this often while the player is on Home (visible and active: lib/attention),
+ * and when they come back. Five minutes: the tiles also reload on every change of the player
+ * state, and one answer costs the server about 75 queries.
+ */
+const POLL_MS = 5 * 60_000;
 
 /**
  * "Today" on Home: the few things worth doing, in priority order (the Daily Cup, the gift foal,
@@ -37,25 +43,16 @@ export function TodayTiles({ refreshKey, hide, title = "Today" }: { refreshKey?:
   const now = useNow(1000);
 
   const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/home", { cache: "no-store" });
-      if (!res.ok) throw new Error(String(res.status));
-      setTiles(((await res.json()) as { tiles: HomeTiles }).tiles);
-    } catch {
-      setTiles((t) => (t === undefined ? null : t));
-    }
+    // One request for everything on the page that reads the tiles (lib/homeTiles).
+    const next = await fetchHomeTiles();
+    if (next) setTiles(next);
+    else setTiles((t) => (t === undefined ? null : t));
   }, []);
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => void load(), POLL_MS);
-    const onFocus = () => void load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.clearInterval(id);
-      window.removeEventListener("focus", onFocus);
-    };
   }, [load, refreshKey]);
+  usePoll(load, POLL_MS);
 
   if (tiles === undefined) {
     // In the first week only a few tiles can show: no skeleton holding space for a list that may be empty.

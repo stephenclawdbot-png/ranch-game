@@ -7,6 +7,7 @@ import { JOCKEY_POOL_PER_ACTIVE_STABLE, JOCKEYS_PER_STABLE_MAX } from "@thorough
 import { db } from "@/server/db";
 import { jockeysPage, type JockeyFilter } from "@/server/jockeys";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Jockeys" };
@@ -18,7 +19,7 @@ const FILTERS: { key: JockeyFilter; label: string }[] = [
   { key: "mine", label: "My jockeys" },
 ];
 
-export default async function JockeysPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+async function JockeysPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const sp = await searchParams;
   const filter = (FILTERS.find((f) => f.key === sp.filter)?.key ?? "all") as JockeyFilter;
   const database = await db();
@@ -85,3 +86,6 @@ export default async function JockeysPage({ searchParams }: { searchParams: Prom
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/jockeys", JockeysPage);

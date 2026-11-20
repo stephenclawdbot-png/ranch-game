@@ -49,12 +49,18 @@ const FIRST_WEEK_COVERS = ["cup", "care", "story", "challenge"];
 /** A race you're in counts as "yours to watch" from entry until a few minutes after the off. */
 const WATCH_WINDOW_MS = 4 * 60_000;
 
+/** One of your races counts as "running" from a minute before the off until this long after it (the result lands inside it). */
+const RESULT_WINDOW_MS = 10 * 60_000;
+
 /** Home: your yard (scene), the one next action, Today, your horses, then what's on the course. */
 export function HomeView(props: ClubProps) {
   const state = usePlayerState();
-  // While one of your races is pending, refresh so results land without a reload.
-  const pending = !!state && (state.active.length > 0 || state.inbox.some((i) => !i.read && i.raceId));
-  usePlayerState({ pollMs: pending ? 10_000 : undefined });
+  // While one of your races is running (not merely entered for later), refresh so the result
+  // lands without a reload. Outside that window Home asks for nothing on a timer: a race entered
+  // for tonight must not keep the server busy all day (lib/raceAlarms wakes the tab for the off).
+  const clock = useNow(15_000);
+  const running = !!state && clock !== null && state.active.some((a) => a.postTimeMs - 60_000 <= clock && clock <= a.postTimeMs + RESULT_WINDOW_MS);
+  usePlayerState({ pollMs: running ? 15_000 : undefined });
   if (state === undefined) return <div className="min-h-[60vh]" aria-busy />;
   if (state === null) return <Welcome {...props} />;
   return <Yard state={state} {...props} />;

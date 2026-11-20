@@ -9,13 +9,14 @@ import { formatCredits } from "@/lib/format";
 import { db } from "@/server/db";
 import { transferWindowPage } from "@/server/jockeys";
 import { getSession } from "@/server/session";
+import { outagePage } from "@/server/outage";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Transfer window" };
 
 const STATUS: Record<string, string> = { open: "Open", won: "Signed", lost: "Not taken", withdrawn: "Withdrawn" };
 
-export default async function TransferWindowPage() {
+async function TransferWindowPage() {
   const database = await db();
   const session = await getSession(database);
   const view = await transferWindowPage(database, session, new Date());
@@ -129,3 +130,6 @@ export default async function TransferWindowPage() {
     </div>
   );
 }
+
+// The database unreachable or over quota: the outage page (HTTP 503), not an error page.
+export default outagePage("/jockeys/window", TransferWindowPage);

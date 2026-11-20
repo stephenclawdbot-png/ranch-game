@@ -12,6 +12,7 @@ import { welcomeBackNext } from "@/lib/welcomeBackNext";
 import { PixelIcon } from "../icons";
 import { STEP_COPY } from "../onboarding/guide";
 import { stepHref } from "../onboarding/StableSteps";
+import { fetchHomeTiles } from "@/lib/homeTiles";
 
 /** Whether this page load came from a sign-in (?back=1). */
 export function useJustSignedIn(): [boolean, () => void] {
@@ -39,10 +40,7 @@ export function SignedInBack({ state, onClose }: { state: PlayerState; onClose: 
   useEffect(() => {
     setNow(Date.now());
     let live = true;
-    fetch("/api/home", { cache: "no-store" })
-      .then((r) => (r.ok ? (r.json() as Promise<{ tiles: HomeTiles }>) : null))
-      .then((d) => live && setStory(d?.tiles?.story ?? null))
-      .catch(() => live && setStory(null));
+    void fetchHomeTiles().then((tiles) => live && setStory(tiles?.story ?? null));
     return () => {
       live = false;
     };
