@@ -26,11 +26,14 @@ const LIVE_KINDS = "('scheduled','feature','final')";
 
 export async function createCohortTable(world: World): Promise<void> {
   await world.db.execute("create table harness_cohort (account_id uuid primary key, stable_id uuid not null, cohort text not null, role text, grp int, name text not null)");
-  for (const a of world.agents) {
-    await world.db.execute(
-      `insert into harness_cohort values ('${a.accountId}', '${a.stableId}', '${a.cohort}', ${a.role ? `'${a.role}'` : "null"}, ${a.group ?? "null"}, '${a.name.replace(/'/g, "''")}')`,
-    );
-  }
+  for (const a of world.agents) await addToCohortTable(world, a);
+}
+
+/** A stable founded after the start (the beta scenario's later sign-ups). */
+export async function addToCohortTable(world: World, a: Agent): Promise<void> {
+  await world.db.execute(
+    `insert into harness_cohort values ('${a.accountId}', '${a.stableId}', '${a.cohort}', ${a.role ? `'${a.role}'` : "null"}, ${a.group ?? "null"}, '${a.name.replace(/'/g, "''")}')`,
+  );
 }
 
 // ---------------------------------------------------------------------------

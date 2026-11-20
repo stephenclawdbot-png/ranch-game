@@ -159,6 +159,10 @@ export interface Agent {
   role: "main" | "alt" | null;
   detected: boolean;
   stats: AgentStats;
+  /** Beta scenario (src/beta.ts): when the player arrived, the first UTC day it no longer plays (null: stays), and whether it never enters Live races. */
+  joinMs?: number;
+  quitMs?: number | null;
+  storyOnly?: boolean;
 }
 
 export interface UnexpectedError {
@@ -230,7 +234,10 @@ function visitPlan(cohort: Cohort, role: "main" | "alt" | null, rng: gc.Rng, off
 }
 
 /** Founds a stable through the same path as POST /api/account (founding.ts). */
-export async function foundAgent(world: World, input: { index: number; cohort: Cohort; group: number | null; role: "main" | "alt" | null; detected: boolean; now: Date }): Promise<Agent> {
+export async function foundAgent(
+  world: World,
+  input: { index: number; cohort: Cohort; group: number | null; role: "main" | "alt" | null; detected: boolean; now: Date; beta?: { joinMs: number; quitMs: number | null; storyOnly: boolean; skipPermille: number } },
+): Promise<Agent> {
   const rng = new gc.Rng(gc.seedFrom("season-harness", world.seed, "agent", input.index));
   const [timezone, offset] = TIMEZONES[rng.int(TIMEZONES.length)]!;
   const name = `${rng.pick(NAME_A)} ${rng.pick(NAME_B)} ${input.index + 1}`;
@@ -245,11 +252,12 @@ export async function foundAgent(world: World, input: { index: number; cohort: C
     timezone,
     rng,
     visitMinutes: visitPlan(input.cohort, input.role, rng, offset).sort((a, b) => a - b),
-    skipPermille: input.cohort === "casual" ? 150 : input.cohort === "breeder" ? 50 : 0,
+    skipPermille: input.beta ? input.beta.skipPermille : input.cohort === "casual" ? 150 : input.cohort === "breeder" ? 50 : 0,
     group: input.group,
     role: input.role,
     detected: input.detected,
     stats: emptyStats(),
+    ...(input.beta ? { joinMs: input.beta.joinMs, quitMs: input.beta.quitMs, storyOnly: input.beta.storyOnly } : {}),
   };
   // A detected farmer group shares one wallet (the signal betaMoney records on wallet link).
   if (input.detected && input.group !== null) {
@@ -262,6 +270,15 @@ export async function foundAgent(world: World, input: { index: number; cohort: C
 export function visitsOn(world: World, a: Agent, dayStartMs: number): number[] {
   // Its own stream per (agent, day): the schedule never shifts when a decision draws more.
   const rng = new gc.Rng(gc.seedFrom("season-harness", world.seed, "visits", a.index, dayStartMs));
+  // Beta scenario: nothing before the player arrives or after it leaves; the sign-up day is the
+  // sign-up session itself (two minutes after founding), then whatever of its usual day is left.
+  if (a.quitMs != null && dayStartMs >= a.quitMs) return [];
+  if (a.joinMs !== undefined && a.joinMs >= dayStartMs) {
+    if (a.joinMs >= dayStartMs + DAY) return [];
+    const first = Math.max(a.joinMs, Math.min(a.joinMs + 2 * MIN, dayStartMs + DAY - MIN));
+    const later = a.cohort === "casual" ? [] : a.visitMinutes.map((m) => dayStartMs + m * MIN).filter((t) => t > first + HOUR);
+    return [first, ...later].filter((t) => t < dayStartMs + DAY);
+  }
   if (a.skipPermille && rng.chance(a.skipPermille)) return [];
   return a.visitMinutes.map((m) => dayStartMs + Math.max(0, Math.min(1439, m + rng.range(-20, 20))) * MIN);
 }
@@ -784,6 +801,12 @@ export async function visit(world: World, a: Agent, now: Date, first: boolean, l
     case "casual":
       await careAll(c, s, horses);
       if (a.rng.chance(700)) await dailyCup(c, s);
+      // Beta scenario: some players never enter a Live race (care, the Cup and Story only).
+      if (a.storyOnly) {
+        await storyRaces(c, s, 1 + a.rng.int(2));
+        await freePack(c, s);
+        return;
+      }
       if (a.rng.chance(500)) await storyRaces(c, s, 1);
       // Now and then a casual opens the entry sheet instead and adds a vet check (rarely more).
       if (a.rng.chance(CASUAL_SHEET_PERMILLE)) await sheetEntries(c, s, view, { lookaheadMs: meetingsAheadMs(now, 1), tiredOk: false, raceDay: casualRaceDay, maxEntries: 1 });

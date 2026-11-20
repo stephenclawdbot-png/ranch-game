@@ -16,8 +16,10 @@ import { driveCard } from "@/server/game";
 import { foundAgent, visit, visitsOn, World, type Agent, type UnexpectedError } from "./agents";
 import { COHORTS, type HarnessConfig } from "./config";
 import { installDeterministicRandom } from "./determinism";
-import { activity, checks, claimingTotals, guideTotals, type GuideTotals, toteTotals, type ToteTotals, jockeyTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, runnerStates, sampleDay, snapshot, type RunnerStates, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type JockeyTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
+import { addToCohortTable, activity, checks, claimingTotals, guideTotals, type GuideTotals, toteTotals, type ToteTotals, jockeyTotals, createCohortTable, farmerReport, leasingTotals, notables, outcomes, runnerStates, sampleDay, snapshot, type RunnerStates, type ByCohort, type Checks, type CohortOutcome, type DaySample, type ClaimingTotals, type JockeyTotals, type FarmerReport, type LeasingTotals, type Snapshot } from "./metrics";
 import { median, sum } from "./stats";
+import { betaSignUps, type BetaSignUp } from "./beta";
+import { CardProbe, type CardReport } from "./cardMetrics";
 
 const DAY = 86_400_000;
 
@@ -36,6 +38,8 @@ export interface RunMeta {
   slotMs: number;
   cardHorizonMs: number;
   engineVersion: string;
+  /** "beta": the real week-one population (src/beta.ts); absent for the standard season run. */
+  scenario?: "beta";
   runtimeMs: number;
   /** Wall time split: card driving, agent visits by cohort, metric sampling. */
   timing: Record<string, number>;
@@ -98,6 +102,8 @@ export interface RunResult {
   notables: Awaited<ReturnType<typeof notables>>;
   /** Race-day state and injury exposure of Live runners, players vs Club (absent before 2026-10-30). */
   runners?: RunnerStates;
+  /** Does the Live card fit the horses that exist (src/cardMetrics.ts; absent before 2026-11-20). */
+  card?: CardReport;
   checks: Checks;
   activity: ReturnType<typeof activity>;
   errors: UnexpectedError[];
@@ -186,13 +192,17 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
     const end = cfg.startMs + cfg.days * DAY;
     const empty = await snapshot(world);
 
-    // Found every stable (POST /api/account's path) at the start of the season.
+    // Found every stable (POST /api/account's path) at the start of the season. The beta scenario
+    // founds each stable when its player arrives instead (below, in the loop).
+    const beta = cfg.scenario === "beta";
+    const arrivals: BetaSignUp[] = beta ? betaSignUps(cfg.seed, cfg.startMs, sum(Object.values(cfg.cohorts))) : [];
+    const cohorts = beta ? { casual: arrivals.filter((s) => s.cohort === "casual").length, grinder: arrivals.filter((s) => s.cohort === "grinder").length, breeder: 0, farmer: 0 } : cfg.cohorts;
     let index = 0;
     for (const cohort of COHORTS) {
-      if (cohort === "farmer") continue;
+      if (cohort === "farmer" || beta) continue;
       for (let i = 0; i < cfg.cohorts[cohort]; i++) world.agents.push(await foundAgent(world, { index: index++, cohort, group: null, role: null, detected: false, now: start }));
     }
-    const groups = cfg.cohorts.farmer / (cfg.altsPerMain + 1);
+    const groups = beta ? 0 : cfg.cohorts.farmer / (cfg.altsPerMain + 1);
     for (let g = 0; g < groups; g++) {
       const detected = g < cfg.detectedFarmerGroups;
       for (let i = 0; i <= cfg.altsPerMain; i++) {
@@ -201,6 +211,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
     }
     await createCohortTable(world);
     const mainOf = new Map(world.agents.filter((a) => a.role === "main").map((a) => [a.group!, a]));
+    const probe = new CardProbe();
     log(`founded ${world.agents.length} stables at ${start.toISOString()} (season ${seasonNumberAt(start)}); slot ${RULES.slotMs / 60_000} min, step ${cfg.stepMs / 60_000} min, ${cfg.days} days`);
 
     const days: DaySample[] = [];
@@ -227,6 +238,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
       while (t >= dayStart + DAY) {
         const cur = await timed("sample", () => snapshot(world));
         const sample = await timed("sample", () => sampleDay(world, days.length + 1, dayStart, dayStart + DAY, prev, cur));
+        await timed("sample", () => probe.endDay(world, days.length + 1, dayStart, dayStart + DAY));
         days.push(sample);
         prev = cur;
         log(
@@ -240,11 +252,25 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
       }
       if (t >= end) break;
       const next = Math.min(t + cfg.stepMs, end);
+      // Beta scenario: players who arrive in this step found their stable now; their sign-up
+      // session is their first visit.
+      while (arrivals.length && arrivals[0]!.joinMs < next) {
+        const s = arrivals.shift()!;
+        const joinMs = Math.max(t, s.joinMs);
+        const agent = await foundAgent(world, { index: s.index, cohort: s.cohort, group: null, role: null, detected: false, now: new Date(joinMs), beta: { ...s, joinMs } });
+        world.agents.push(agent);
+        await addToCohortTable(world, agent);
+        const times = visitsOn(world, agent, dayStart);
+        times.forEach((atMs, i) => visits.push({ atMs, agent, first: i === 0, last: i === times.length - 1 }));
+        visits.sort((x, y) => x.atMs - y.atMs || x.agent.index - y.agent.index);
+      }
+      await timed("sample", () => probe.atStep(world, t, cfg.stepMs));
       const due = visits.filter((v) => v.atMs < next);
       visits = visits.filter((v) => v.atMs >= next);
       for (const v of due) {
         const at = new Date(Math.max(t, v.atMs));
         try {
+          await timed("sample", () => probe.onVisit(world, v.agent, at, v.first));
           await timed(v.agent.cohort, () => visit(world, v.agent, at, v.first, v.last, v.agent.role === "alt" ? (mainOf.get(v.agent.group!) ?? null) : null));
         } catch (e) {
           world.errors.push({ atMs: at.getTime(), agent: v.agent.name, action: "visit", message: e instanceof Error ? e.message : String(e) });
@@ -256,6 +282,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
     if (dayStart < end) {
       const cur = await snapshot(world);
       days.push(await sampleDay(world, days.length + 1, dayStart, end, prev, cur));
+      await probe.endDay(world, days.length, dayStart, end);
       prev = cur;
     }
     const last = await snapshot(world);
@@ -265,7 +292,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
         seed: cfg.seed,
         days: cfg.days,
         stables: world.agents.length,
-        cohorts: cfg.cohorts,
+        cohorts,
         altsPerMain: cfg.altsPerMain,
         detectedFarmerGroups: cfg.detectedFarmerGroups,
         start: start.toISOString(),
@@ -274,6 +301,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
         slotMs: RULES.slotMs,
         cardHorizonMs: RULES.cardHorizonMs,
         engineVersion: ENGINE_VERSION,
+        ...(beta ? { scenario: "beta" as const } : {}),
         runtimeMs: Date.now() - wallStart,
         timing,
         finishedAt: utcDay(new Date()),
@@ -284,6 +312,7 @@ export async function runSeason(cfg: HarnessConfig, log: (line: string) => void 
       farmers: await farmerReport(world),
       notables: await notables(world),
       runners: await runnerStates(world),
+      card: probe.report(),
       checks: await checks(world, last),
       activity: activity(world),
       errors: world.errors.slice(0, 200),

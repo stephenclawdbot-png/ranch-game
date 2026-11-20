@@ -13,6 +13,7 @@ import type { DaySample } from "./metrics";
 import type { RunResult } from "./run";
 import { pct, round1, sum } from "./stats";
 
+import { cardSummary } from "./cardMetrics";
 export const OUT_DIR = fileURLToPath(new URL("../out/", import.meta.url));
 
 export function readRun(tag: string): RunResult {
@@ -266,6 +267,7 @@ function summaryMd(r: RunResult, base: RunResult | null): string {
     row("Club", r.runners.club);
     for (const [k, g] of Object.entries(r.runners.clubByMark)) if (g.n) row(`Club, mark ${k}`, g);
   }
+  if (r.card) L.push(...cardSummary(r.card, base?.card ?? null, m.tag, base?.meta.tag ?? null));
   L.push("", "## Cohorts (share of stables that did it at least once)", "");
   L.push("| | stables | Live win | ran a Qualifier | qualified | ran Weekend Feature | bred | sold | licence 3+ | promoted | above start credits | Live starts | visits |");
   L.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");

@@ -34,6 +34,12 @@ export interface HarnessConfig {
   reportOnly: boolean;
   /** Print progress lines. */
   verbose: boolean;
+  /**
+   * Population shape. "season" (default): every stable is founded at the start and plays the
+   * whole run. "beta": the real week-one shape (src/beta.ts): sign-ups over the first two days,
+   * a steep drop-off, mostly casual players, a handful engaged, some Story only.
+   */
+  scenario?: "season" | "beta";
 }
 
 /** The start of the competition season after 2026-11-01 (a Monday 00:00 UTC). */
@@ -66,14 +72,19 @@ function int(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
  *   HARNESS_TAG (default "dev"), HARNESS_SEED, HARNESS_DAYS (28), HARNESS_STABLES (50),
  *   HARNESS_QUICK=1 (3 days, 12 stables), HARNESS_COHORTS="casual=20,grinder=12,...",
  *   HARNESS_ALTS (3), HARNESS_DETECTED_GROUPS (1), HARNESS_START (ISO date),
- *   HARNESS_STEP_MIN (one slot), HARNESS_COMPARE (tag), HARNESS_REPORT_ONLY=1, HARNESS_VERBOSE.
+ *   HARNESS_STEP_MIN (one slot), HARNESS_COMPARE (tag), HARNESS_REPORT_ONLY=1, HARNESS_VERBOSE,
+ *   HARNESS_SCENARIO=beta (the small real-beta population: 100 sign-ups, 14 days; src/beta.ts).
  */
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): HarnessConfig {
   const quick = env.HARNESS_QUICK === "1" || env.HARNESS_QUICK === "true";
-  const days = int(env, "HARNESS_DAYS", quick ? 3 : 28);
-  const stables = int(env, "HARNESS_STABLES", quick ? 12 : 50);
+  const beta = env.HARNESS_SCENARIO === "beta";
+  if (env.HARNESS_SCENARIO && !beta && env.HARNESS_SCENARIO !== "season") throw new Error(`HARNESS_SCENARIO must be "season" or "beta" (got ${env.HARNESS_SCENARIO})`);
+  const days = int(env, "HARNESS_DAYS", quick ? 3 : beta ? 14 : 28);
+  const stables = int(env, "HARNESS_STABLES", quick ? 12 : beta ? 100 : 50);
   const altsPerMain = int(env, "HARNESS_ALTS", quick ? 2 : 3);
-  const cohorts = defaultCohorts(stables, altsPerMain);
+  // The beta scenario draws each sign-up's cohort itself (src/beta.ts: casual or engaged); run.ts
+  // writes the counts it drew into the run's meta.
+  const cohorts = beta ? { casual: stables, grinder: 0, breeder: 0, farmer: 0 } : defaultCohorts(stables, altsPerMain);
   if (env.HARNESS_COHORTS) {
     for (const part of env.HARNESS_COHORTS.split(",")) {
       const [k, v] = part.split("=").map((s) => s.trim());
@@ -84,7 +95,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): HarnessConf
   if (cohorts.farmer % (altsPerMain + 1) !== 0) throw new Error(`farmer count ${cohorts.farmer} must be a multiple of ${altsPerMain + 1} (1 main + ${altsPerMain} alts)`);
   const stepMin = env.HARNESS_STEP_MIN ? Number(env.HARNESS_STEP_MIN) : null;
   return {
-    tag: (env.HARNESS_TAG ?? (quick ? "quick" : "dev")).replace(/[^A-Za-z0-9_.-]/g, "_"),
+    tag: (env.HARNESS_TAG ?? (quick ? "quick" : beta ? "beta" : "dev")).replace(/[^A-Za-z0-9_.-]/g, "_"),
     seed: env.HARNESS_SEED ?? "season-harness-1",
     days,
     startMs: env.HARNESS_START ? Date.parse(env.HARNESS_START) : defaultStartMs(),
@@ -95,5 +106,6 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): HarnessConf
     compareTo: env.HARNESS_COMPARE?.trim() || null,
     reportOnly: env.HARNESS_REPORT_ONLY === "1",
     verbose: env.HARNESS_VERBOSE !== "0",
+    ...(beta ? { scenario: "beta" as const } : {}),
   };
 }
