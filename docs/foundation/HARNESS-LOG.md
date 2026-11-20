@@ -31,6 +31,7 @@ regenerate).
 | clubfill10 | clubfill9 with [P − 4, P + 8] | 85.7 | 203 / 49 | 27 | 55.3% / 9.0%; purses 483k (-20%); grinder median 954; injuries 17 / 19.3 |
 | clubfill11 | **final**: [P − 2, P + 10], race-day parity with matched condition (Club 985 / players 978 overall; 975 / 985 by mark) | 86.5 | 191 / 40 | 22 | **players won 52.8% of their races, 8.6% of starts**; purses 426k (-29% vs courses1, -26% vs dev140); created 1.01M (-15%), destroyed 745k (-18%); winner-to-last 31.5 m (courses era 48.2), winning margin 3.3 m; median balances casual 8.7k, grinder 649, breeder 3.2k, farmer 6.0k; injuries 18 / 18.7 expected |
 | clubfill12 | clubfill11 with [P − 4, P + 8] | 83.9 | 222 / 55 | 25 | 57.1% / 9.1%; **purses 491k (-18%)**; created 1.08M, destroyed 778k; winner-to-last 32.8 m; grinder median 715; injuries 18 / 19.5 |
+| firstweek1 (2026-11-20) | first-week pacing: breed after one Live race, foals race after 8 care days, debut rating from the ability mark, chapter-1 Story fields (section below) | **87.7** | 234 / 62 | 26 | players won 57.0% of their races, 8.9% of starts; 640 Live races (the card has changed since October: not comparable race for race); purses 631k, entry fees 365k, upkeep 265k; 34 foals bred, 117 pack, 50 gift; injuries 36 / 33.8 expected; median OR casual 38.5, grinder 38, breeder 35, farmer 34 (debutants no longer bring 40 into the pool); median balances casual 7.8k, grinder 823, breeder 3.7k, farmer 8.7k |
 
 Injuries with Club fill (2026-10-31): over the six runs with runner states, Live injuries per player start
 match the risk model (`injuryRisk` at the off): Club fill runs 104 injuries vs 95.3 expected, dev140s 12 vs
@@ -136,7 +137,16 @@ day. That is why 1 and not the proposed 5 (day 5 at the earliest, about two week
 stable). The starter grant (3,000) and the covering fee (1,500) stay: a covering is affordable on
 day 1 and a covering, a pack and one upgrade cannot all be had in week one.
 
-**Season regression** (the standard 28 days, 50 stables, seed `season-harness-1`): SEASON_PLACEHOLDER
+**Season regression** (the standard 28 days, 50 stables, seed `season-harness-1`): the full run finished (58.8 minutes, all
+checks passed: ledger balanced, credits conserved, no unexpected exceptions). **87.7 credits
+destroyed per 100 created** (starter grants excluded), inside 85-115. 640 Live races, 98% with a
+player, players 64% of the runners, winning 57% of the races they ran in and 8.9% of their starts;
+Feature Qualifier runners 234 (62 in the first three), Weekend Feature runners 26; 34 foals bred,
+117 pack foals, 50 gift foals; Live injuries 36 in 4,029 player starts (the risk model: 33.8), no
+deaths; median balances casual 7.8k, grinder 0.8k, breeder 3.7k, farmer 8.7k. Sinks: entry fees
+365k, upkeep 265k, stalls 85k, race-day extras 82k, facilities 71k, coverings 59k. BASELINE_NOTE
+Player ratings now sit at the horses' real marks: median 34-38.5 by cohort, best 54 (the October
+runs: 44-46.5, when every horse entered at 40), so fewer player horses reach the 50-75 band.
 
 ### Decisions (2026-11-20)
 

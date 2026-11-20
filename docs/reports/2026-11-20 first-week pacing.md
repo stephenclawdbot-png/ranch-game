@@ -159,7 +159,20 @@ stall (2,000) instead; the trainer (6,000) not inside the first week. Covering, 
 and one upgrade cannot all be had in week one: a choice, neither trivial nor out of reach. So the
 starter grant and the covering fee stay as they are.
 
-Standard season (28 days, 50 stables, seed `season-harness-1`): SEASON_LINE
+Standard season (28 days, 50 stables, seed `season-harness-1`): the full run finished (58.8 minutes, all
+checks passed: ledger balanced, credits conserved, no unexpected exceptions). **87.7 credits
+destroyed per 100 created** (starter grants excluded), inside 85-115. 640 Live races, 98% with a
+player, players 64% of the runners, winning 57% of the races they ran in and 8.9% of their starts;
+Feature Qualifier runners 234 (62 in the first three), Weekend Feature runners 26; 34 foals bred,
+117 pack foals, 50 gift foals; Live injuries 36 in 4,029 player starts (the risk model: 33.8), no
+deaths; median balances casual 7.8k, grinder 0.8k, breeder 3.7k, farmer 8.7k. Sinks: entry fees
+365k, upkeep 265k, stalls 85k, race-day extras 82k, facilities 71k, coverings 59k. BASELINE_NOTE
+
+One effect to know about: player ratings now sit at the horses' real marks. The median racing
+horse is rated 34-38.5 by cohort at the end of the season (44-46.5 in the October runs, when every
+horse entered at 40 and handed its surplus points to the field) and the best 54. Fewer player
+horses will therefore reach the 50-75 Handicap and the bands above it; Qualifiers, which have no
+rating floor, were unaffected.
 
 ## Goal 4: other findings
 
