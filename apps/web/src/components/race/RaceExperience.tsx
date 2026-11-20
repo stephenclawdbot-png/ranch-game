@@ -175,7 +175,9 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
     const res = (await r.json()) as MyRaceResult;
     const x = res.runners.find((y) => y.horseId === mineHorseId) ?? res.runners[0];
     if (!x) throw new Error("no runner");
-    void refreshPlayer().catch(() => undefined);
+    // The first look at a result changes the player state (the inbox item is read, the reward
+    // shows); a later visit changes nothing, so it does not reload it.
+    if (res.firstView) void refreshPlayer().catch(() => undefined);
     return { prize: x.prize + x.storyReward, position: x.position, fresh: res.firstView, storyReward: x.storyReward, firstWin: x.firstWin, ratingBefore: x.ratingBefore, ratingAfter: x.ratingAfter, ratingWhy: x.ratingWhy ?? null, atOff: x.atOff ?? null, injury: x.injury ?? null, firstWinOf: x.firstWinOf ?? null };
   }, [card.id, mineHorseId]);
   const settled = useLoad(phase === "result" && replay && mine ? fetchSettlement : null, card.id, SETTLEMENT_RETRY);

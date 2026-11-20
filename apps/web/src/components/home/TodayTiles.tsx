@@ -27,8 +27,12 @@ interface Tile {
   done?: boolean;
 }
 
-/** Re-check the tiles this often while the player is on Home (visible and active: lib/attention), and when they come back. */
-const POLL_MS = 60_000;
+/**
+ * Re-check the tiles this often while the player is on Home (visible and active: lib/attention),
+ * and when they come back. Five minutes: the tiles also reload on every change of the player
+ * state, and one answer costs the server about 75 queries.
+ */
+const POLL_MS = 5 * 60_000;
 
 /**
  * "Today" on Home: the few things worth doing, in priority order (the Daily Cup, the gift foal,

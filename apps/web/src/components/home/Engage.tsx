@@ -15,7 +15,7 @@ import { PixelIcon, type IconName } from "../icons";
 import { Section } from "../ui/Page";
 
 /** Refresh the panel this often while the player is on the page (visible and active: lib/attention), and when they come back. */
-const POLL_MS = 120_000;
+const POLL_MS = 5 * 60_000;
 
 /** GET /api/engage, refreshed now and then. `undefined` while loading, `null` when it failed. */
 export function useEngage(refreshKey?: string): EngageView | null | undefined {

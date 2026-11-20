@@ -48,7 +48,7 @@ export interface LiveWaitData {
 }
 
 /** Refresh the wait card this often (entries and the race to watch move). */
-const REFRESH_MS = 60_000;
+const REFRESH_MS = 2 * 60_000;
 const cache = new Map<string, { at: number; data: Promise<LiveWaitData | null> }>();
 
 function fetchWait(raceId: string | null): Promise<LiveWaitData | null> {
@@ -63,7 +63,7 @@ function fetchWait(raceId: string | null): Promise<LiveWaitData | null> {
 }
 
 /**
- * The wait card's data, fetched after mount and every minute while the player is here (visible
+ * The wait card's data, fetched after mount and every two minutes while the player is here (visible
  * and active: lib/attention). Null until then, or signed out.
  */
 export function useLiveWait(raceId: string | null): LiveWaitData | null {
