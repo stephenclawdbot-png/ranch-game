@@ -1179,7 +1179,7 @@ export async function quickPickLive(db: Db, session: Session, now: Date): Promis
 export const STORY_INSTANT_BACKDATE_MS = 10 * 60_000;
 export const STORY_POST_DELAY_MS = 10_000;
 /** The first Story race's Club window starts this far below the horse's real ability mark (and runs gc.CLUB_ABOVE_MEDIAN_SPAN up from there). */
-export const FIRST_STORY_BELOW = gc.STORY_OPEN_BELOW;
+export const FIRST_STORY_BELOW = gc.STORY_FIRST_BELOW;
 const STORY_TRACKS = ["Ashcombe", "Kestrel Downs", "Saltmarsh", "Bellmont", "Larkspur", "Harrowgate"];
 /** Open Story races cover every trip a horse can prefer (1,000-3,200 m) on all three surfaces. */
 const STORY_DISTANCES = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2800, 3200];
@@ -1352,7 +1352,7 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
       name: `${track} ${chapterName} ${raceClass === "maiden" ? "Maiden" : raceClass === "novice" ? "Novice Stakes" : "Handicap"}`,
       raceClass,
       conditions: { distanceM, surface, going, weather, track, ...band, story: { chapter, rivals: gc.chapterRivals(chapter).map((r) => r.id), ...(open ? { field: { adjust: open.adjust, note } } : {}) } },
-      targetRunners: 8 + rand(3),
+      targetRunners: gc.storyOpenRunners({ club: firstRace || !!open, first: firstRace }, rand),
     },
     !!req.instant,
     now,

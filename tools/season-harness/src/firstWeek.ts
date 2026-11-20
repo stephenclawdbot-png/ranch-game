@@ -185,6 +185,11 @@ async function visit(run: Run, a: Agent, now: Date, firstOfDay: boolean): Promis
     }
   }
 
+  // Breeding first: the foal that is due (it is cared for in this same visit), then a covering
+  // as soon as the barn allows one.
+  await breeding(run, a, s, now, day);
+  view = (await run.act(a, "player_view", () => playerView(db, s, now))) ?? view;
+
   // Care (every horse, once a day), and a youngster that has grown up is welcomed to the yard.
   for (const h of view.horses) await run.act(a, "care", () => careAction(db, s, h.id, {}, now));
   const nursery = await run.act(a, "nursery", () => nurseryView(db, s, now));
@@ -194,9 +199,6 @@ async function visit(run: Run, a: Agent, now: Date, firstOfDay: boolean): Promis
   const cup = await run.act(a, "cup_view", () => cupView(db, s, now));
   const cupHorse = cup && !cup.mine ? cup.horses?.find((h) => !h.block) : undefined;
   if (cupHorse) await run.act(a, "cup_run", () => runCup(db, s, { horseId: cupHorse.id }, now));
-
-  // Breeding: the foal that is due, then a covering as soon as the barn allows one.
-  await breeding(run, a, s, now, day);
 
   // A home-bred or gift horse that has reached racing age runs in a Story race that day.
   const origins = await q<{ id: string; origin: string; care: number; starts: number }>(db, `select id, origin, care_sessions as care, starts from horses where owner_stable_id = '${a.stableId}' and origin in ('bred', 'gift')`);

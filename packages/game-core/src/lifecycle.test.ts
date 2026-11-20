@@ -58,8 +58,10 @@ describe("stages on the career clock", () => {
     expect(displayAge(makeHorse("a", { care: CARE_TO_YEARLING }))).toBe(1);
     expect(displayAge(makeHorse("a", { starts: 0 }))).toBe(2);
     expect(displayAge(makeHorse("a", { starts: CAREER_MAX_STARTS }))).toBe(7);
-    expect(sexLabel(makeHorse("a", { sex: "filly", starts: BREED_FROM_STARTS - 1 }))).toBe("filly");
-    expect(sexLabel(makeHorse("a", { sex: "filly", starts: BREED_FROM_STARTS }))).toBe("mare");
+    expect(sexLabel(makeHorse("a", { sex: "filly", starts: JUVENILE_MAX_STARTS }))).toBe("filly");
+    expect(sexLabel(makeHorse("a", { sex: "filly", starts: JUVENILE_MAX_STARTS + 1 }))).toBe("mare");
+    // A filly may breed long before she is called a mare.
+    expect(BREED_FROM_STARTS).toBeLessThanOrEqual(JUVENILE_MAX_STARTS);
     expect(sexLabel(makeHorse("a", { sex: "colt", retired: true }))).toBe("stallion");
   });
 });

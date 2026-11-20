@@ -57,7 +57,7 @@ export function BreedingBarn() {
       <SceneBand scene="stud-book" alt="The stud book open on the desk" eyebrow={`Season ${v.season} · ${formatCredits(v.credits)} credits`} title="Breeding" />
       <HowItWorks className="-mt-2">
         <p>
-          Each mare can be covered once a season, and every horse has {v.lifetime} breedings for life. Horses breed from {v.minStarts} starts, or once retired from racing.
+          Each mare can be covered once a season, and every horse has {v.lifetime} breedings for life. A racing horse breeds once it has run {liveRaces(v.minStarts)}, or once retired from racing.
         </p>
         <p>The foal&rsquo;s genes are sealed at the cover and revealed when it is born, 24 hours later. It goes to your nursery.</p>
       </HowItWorks>
@@ -107,6 +107,9 @@ function Barn({ v, onView, reload }: { v: BreedingView; onView: (v: BreedingView
     </>
   );
 }
+
+/** "a Live race" / "3 Live races": the starts a racing horse needs before it may breed. */
+const liveRaces = (n: number) => (n === 1 ? "a Live race" : `${n} Live races`);
 
 const SEEN_KEY = "thoroughbred:foals-seen";
 function seenFoals(): Set<string> {
@@ -458,7 +461,7 @@ function PlanCover({ v, onView, reload }: { v: BreedingView; onView: (v: Breedin
       )}
       {v.mares.length === 0 ? (
         <div className="surface grid gap-2 p-4">
-          <p className="text-cream-dim">No mares in your stable yet. Fillies grow into broodmares: they breed from {v.minStarts} starts, or once made a broodmare.</p>
+          <p className="text-cream-dim">No mares in your stable yet. Fillies grow into broodmares: they breed once they have run {liveRaces(v.minStarts)}, or once made a broodmare.</p>
           <Link href="/packs" className="btn w-fit">
             Find a foal in a pack
           </Link>
@@ -524,7 +527,7 @@ function PlanCover({ v, onView, reload }: { v: BreedingView; onView: (v: Breedin
                             <span style={{ width: `${Math.min(100, (dam.starts / v.minStarts) * 100)}%` }} />
                           </span>
                           <span className="caption">
-                            {dam.horse.name}: {dam.starts} of {v.minStarts} starts. Eligible from start {v.minStarts}, or once retired.
+                            {dam.horse.name}: {dam.starts} of {v.minStarts} Live {v.minStarts === 1 ? "race" : "races"} run. She can be covered after that, or once retired.
                           </span>
                         </div>
                       )}
@@ -763,7 +766,7 @@ function StudBook({ v, onView }: { v: BreedingView; onView: (v: BreedingView) =>
       <section aria-labelledby="mine-h">
         <SectionHeader id="mine-h" title="Your stallions" />
         <p className="t-meta mb-2">
-          Stand a stallion at stud and other stables can book him. You set the fee; the Club keeps 10% of it (burned) and you get the rest. Breeding still needs {v.minStarts} starts or
+          Stand a stallion at stud and other stables can book him. You set the fee; the Club keeps 10% of it (burned) and you get the rest. Breeding still needs {liveRaces(v.minStarts)} run or
           retirement, and every horse has {v.lifetime} breedings for life.
         </p>
         {v.stallions.length === 0 ? (

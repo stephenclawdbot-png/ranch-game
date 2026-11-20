@@ -193,7 +193,7 @@ export default function QuickStartPage() {
       <P>
         A filly can be covered once she has run <b>{count(gc.BREED_FROM_STARTS, "Live race")}</b> (Story races don&rsquo;t count), and she races on afterwards: she only rests while she is in
         foal, {Math.round(gc.PREGNANCY_MS / 3_600_000)} hours. The day one of your fillies gets there (or from your stable&rsquo;s {ordinal(gc.BLOODLINE_NUDGE_DAYS + 1)} day, whichever comes
-        first), {WILF} suggests a bloodline on Home and takes you straight to the stallion finder for her. If she still needs a Live race, he says how many. One of your own colts with{" "}
+        first), {WILF} suggests a bloodline on Home and takes you straight to the stallion finder for her. If she still needs a Live race, he says so. One of your own colts that has run{" "}
         {count(gc.BREED_FROM_STARTS, "Live race")} can be the sire for the covering fee alone ({formatCredits(gc.BREEDING_BASE_FEE)}); a Club stallion adds his stud fee. The foal is born a day later and races after{" "}
         {count(gc.CARE_TO_RACING, "day")} of care. <b>Not now</b> puts the suggestion away for good, and it never shows once you have bred. See <WikiLink slug="breeding-basics" />.
       </P>

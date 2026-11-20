@@ -6,7 +6,8 @@ import { MentorLine } from "./Mentor";
 import { sendOnboarding, useOnboarding } from "./guide";
 
 const PREGNANCY_HOURS = Math.round(gc.PREGNANCY_MS / 3_600_000);
-const liveRaces = (n: number) => `${n} Live ${n === 1 ? "race" : "races"}`;
+const N = gc.BREED_FROM_STARTS;
+const liveRaces = N === 1 ? "a Live race" : `${N} Live races`;
 
 /**
  * The bloodline nudge (owner-approved 2026-11-01; reworked 2026-11-20): Wilf suggests starting a
@@ -35,14 +36,14 @@ export function BloodlineNudge() {
           </p>
         ) : ready ? (
           <p>
-            <b>{b.name}</b> has run her {liveRaces(gc.BREED_FROM_STARTS)}: she can be covered today. Pick her a stallion (one of your own colts with {liveRaces(gc.BREED_FROM_STARTS)} costs only
-            the covering fee) and there&rsquo;s a foal of your own breeding in {PREGNANCY_HOURS} hours. She rests while she&rsquo;s in foal, then races on. That&rsquo;s how a stable becomes a
-            name.
+            <b>{b.name}</b> has run {liveRaces}: she can be covered today. Pick her a stallion (one of your own colts that has run {liveRaces} costs only the covering fee) and there&rsquo;s a
+            foal of your own breeding in {PREGNANCY_HOURS} hours. She rests while she&rsquo;s in foal, then races on. That&rsquo;s how a stable becomes a name.
           </p>
         ) : (
           <p>
-            Time to think about a bloodline. <b>{b.name}</b> can be covered once she has run {liveRaces(gc.BREED_FROM_STARTS)}: {toGo} to go (Story races don&rsquo;t count). No need to retire
-            her, she races on after the foal. Enter her on the Live card, and have a look at the stallions meanwhile.
+            Time to think about a bloodline. <b>{b.name}</b> can be covered once she has run {liveRaces}
+            {N > 1 ? `: ${toGo} to go` : ""} (Story races don&rsquo;t count). No need to retire her, she races on after the foal. Enter her on the Live card, and have a look at the stallions
+            meanwhile.
           </p>
         )}
       </MentorLine>

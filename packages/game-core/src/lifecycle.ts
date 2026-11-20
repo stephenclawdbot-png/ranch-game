@@ -29,13 +29,14 @@ import { clampInt } from "./rng";
  * from 16 starts (was 25), so a full generation fits a 4-week season at the game's normal pace.
  *
  * First-week pacing (2026-11-20): a foal races after 8 days of care (was 12; wean and yearling
- * scaled, 2 and 5) and a racing horse may breed from 2 starts (was 16). Week-one data: 1 tester of
- * 108 ever bred a horse. A start is a Live race (Story races never use the career clock) and a
- * horse runs one Live race a day, so 16 starts put a first covering more than two weeks away and a
- * home-bred runner a month away. Now (tools/season-harness firstWeek): an engaged new stable can
- * cover its filly on day 2-3, the foal is born a day later and races around day 10-11; the day-2
- * gift foal races on day 9. Existing horses only move forward: a youngster with 8-11 care sessions
- * is of racing age at once, a racing horse with 2-15 starts may breed.
+ * scaled, 2 and 5) and a racing horse may breed once it has run a Live race (BREED_FROM_STARTS 1,
+ * was 16). Week-one data: 1 tester of 108 ever bred a horse. A start is a Live race (Story races
+ * never use the career clock) and a horse runs one Live race a day, so 16 starts put a first
+ * covering more than two weeks away and a home-bred runner a month away; even 5 starts mean day 5
+ * at the earliest, and about two weeks for a stable that enters one Live race a day (its filly
+ * runs every third day). Measured (tools/season-harness firstWeek): see docs/foundation/HARNESS-LOG.md.
+ * Existing horses only move forward: a youngster with 8-11 care sessions is of racing age at
+ * once, a racing horse with 1-15 starts may breed.
  */
 export const CARE_TO_WEAN = 2;
 export const CARE_TO_YEARLING = 5;
@@ -45,7 +46,7 @@ export const CAREER_MAX_STARTS = 34;
 export const JUVENILE_MAX_STARTS = 5;
 export const PRIME_MAX_STARTS = 24;
 /** Racing horses may breed from this many starts (Live races); retired horses any time. */
-export const BREED_FROM_STARTS = 2;
+export const BREED_FROM_STARTS = 1;
 /** Hard cap on starts per horse per real day. */
 export const MAX_STARTS_PER_DAY = 3;
 /**
@@ -122,10 +123,14 @@ export function isFemale(sex: Sex): boolean {
   return sex === "filly" || sex === "mare";
 }
 
-/** Colt/filly become stallion/mare once breeding-eligible. Geldings stay geldings. */
+/**
+ * Colt/filly become stallion/mare once out of the juvenile stage (more than JUVENILE_MAX_STARTS
+ * starts) or retired from racing. Geldings stay geldings. Until 2026-11-20 the name changed with
+ * breeding eligibility (16 starts); a horse may now breed after one Live race, still a colt or filly.
+ */
 export function sexLabel(state: Pick<HorseState, "sex" | "career" | "care">): Sex {
   if (state.sex === "gelding") return "gelding";
-  const grown = state.career.racingRetired !== null || state.career.starts >= BREED_FROM_STARTS;
+  const grown = state.career.racingRetired !== null || state.career.starts > JUVENILE_MAX_STARTS;
   if (isFemale(state.sex)) return grown ? "mare" : "filly";
   return grown ? "stallion" : "colt";
 }

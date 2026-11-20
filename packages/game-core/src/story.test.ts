@@ -186,7 +186,11 @@ describe("choosing a chapter race's field (we choose the field, never the result
 
   it("open Story races in chapter 1 start their Club window just below the horse's real ability, eased and stiffened by the same runs", () => {
     expect(storyOpenFloor(33, [])).toEqual({ minRating: 33 - STORY_OPEN_BELOW, adjust: 0 });
-    expect(storyOpenFloor(33, [false, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW - 2 * STORY_OPEN_MARKS_PER_STEP);
+    // Eased from the first loss in a row (chapter races: from the second), at most three steps.
+    expect(storyOpenFloor(33, [false]).minRating).toBe(33 - STORY_OPEN_BELOW - STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, [false, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW - 3 * STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, Array(7).fill(false)).minRating).toBe(33 - STORY_OPEN_BELOW - 3 * STORY_OPEN_MARKS_PER_STEP);
+    expect(storyOpenFloor(33, [true, false, false]).minRating).toBe(33 - STORY_OPEN_BELOW);
     expect(storyOpenFloor(33, [true, true]).minRating).toBe(33 - STORY_OPEN_BELOW + STORY_OPEN_MARKS_PER_STEP);
     expect(storyOpenFloor(3, Array(9).fill(false)).minRating).toBe(0);
     expect(storyFieldNote(undefined, -1)).toBeNull();

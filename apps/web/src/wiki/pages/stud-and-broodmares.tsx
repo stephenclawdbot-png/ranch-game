@@ -1,6 +1,6 @@
 import * as gc from "@thoroughbred/game-core";
 import { formatCredits } from "@/lib/format";
-import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, pct, sampleGenome } from "../kit";
+import { Callout, Facts, Figure, GameLink, H2, HorseCard, HorseRow, Lead, List, P, Table, WikiLink, appearanceOfGenome, count, pct, sampleGenome } from "../kit";
 
 const HOURS = (ms: number) => Math.round(ms / 3_600_000);
 
@@ -66,7 +66,7 @@ export default function StudAndBroodmaresPage() {
         <HorseCard appearance={appearanceOfGenome(ex.dam)} name="Broodmare" line="A mare's second career" size="sm" />
       </HorseRow>
       <P>
-        A racing horse has to reach {gc.BREED_FROM_STARTS} starts before it can breed. A horse at stud or a broodmare can breed straight away, whatever its starts. Every horse has{" "}
+        A racing horse has to run {count(gc.BREED_FROM_STARTS, "Live race")} before it can breed. A horse at stud or a broodmare can breed straight away, whatever its starts. Every horse has{" "}
         {gc.BREEDINGS_LIFETIME} breedings in its life, counting any it used while still racing; the Career tab shows how many are left.
       </P>
       <List
@@ -98,7 +98,7 @@ export default function StudAndBroodmaresPage() {
           ["Breedings in a lifetime", gc.BREEDINGS_LIFETIME],
           ["Stallion: coverings per season", gc.STALLION_PER_SEASON],
           ["Mare: coverings per season", gc.MARE_PER_SEASON],
-          ["Racing horses may breed from", `${gc.BREED_FROM_STARTS} starts`],
+          ["Racing horses may breed after", count(gc.BREED_FROM_STARTS, "Live race")],
           ["At stud or broodmare: may breed from", "straight away"],
           ["Highest stud fee", `his appraisal, at least ${formatCredits(gc.STUD_FEE_MIN_CEILING)}`],
           ["Stallion's rest after a covering", `${HOURS(gc.STUD_COOLDOWN_MS)} hours`],
@@ -107,7 +107,7 @@ export default function StudAndBroodmaresPage() {
         ]}
       />
       <P>
-        The cap follows the horse&rsquo;s value: a real colt from the game&rsquo;s own code, after {gc.BREED_FROM_STARTS} starts without a win, is appraised at{" "}
+        The cap follows the horse&rsquo;s value: a real colt from the game&rsquo;s own code, after {count(gc.BREED_FROM_STARTS, "start")} without a win, is appraised at{" "}
         {formatCredits(fee.appraisal)} credits, so he can stand for at most {formatCredits(fee.ceiling)}. Wins, earnings and a higher rating raise his appraisal and the cap with it.
         Two accounts the game has linked to each other can&rsquo;t pay each other stud fees: a paid covering between them is refused, just like a sale on{" "}
         <WikiLink slug="the-market" />.

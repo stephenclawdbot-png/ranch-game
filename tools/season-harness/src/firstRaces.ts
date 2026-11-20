@@ -55,6 +55,10 @@ export interface FieldRunner {
   or: number;
   ratedRuns: number;
   position: number;
+  /** Its real ability mark at entry (a Club runner's: as it raced, race-day condition aside). */
+  mark: number;
+  /** Mean of its six current stats at entry (the engine's inputs before race-day condition). */
+  meanStat: number;
 }
 
 /** One Story race of a probed stable, read back from the database. */
@@ -143,7 +147,18 @@ async function readRuns(db: Db, stableIndex: (name: string) => number): Promise<
       ratingAfter: Number(mine.ra ?? mine.rb),
       mark: mine.state ? gc.abilityMark(mine.state) : Number(mine.rb),
       reward: rewards.get(mine.race_id) ?? 0,
-      runners: field.map((r) => ({ horseId: r.horse_id, house: r.is_house, or: Number(r.rb), ratedRuns: r.state?.rating.ratedRuns ?? 10, position: Number(r.pos) })),
+      runners: field.map((r) => {
+        const stats = r.state ? gc.currentStats(r.state) : null;
+        return {
+          horseId: r.horse_id,
+          house: r.is_house,
+          or: Number(r.rb),
+          ratedRuns: r.state?.rating.ratedRuns ?? 10,
+          position: Number(r.pos),
+          mark: r.state ? gc.abilityMark(r.state) : Number(r.rb),
+          meanStat: stats ? Math.round(gc.STAT_KEYS.reduce((a, k) => a + stats[k], 0) / gc.STAT_KEYS.length) : 0,
+        };
+      }),
     });
   }
   return out;

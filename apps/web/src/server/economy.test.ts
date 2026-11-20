@@ -54,7 +54,8 @@ describe("breeding barn", () => {
     // The preview shows even while the pairing is blocked.
     const blocked = await breedingPreview(h.db, p, { sireId: sire.id, damId: dam.id }, T0);
     expect(blocked.block).toBe("not_breeding_eligible");
-    expect(blocked.reason).toContain(`: Breeds from ${gc.BREED_FROM_STARTS} starts`);
+    expect(blocked.reason).toContain(": Breeds once it has run ");
+    expect(blocked.reason).toContain(`(0/${gc.BREED_FROM_STARTS})`);
     expect(blocked.looks).toHaveLength(gc.POSSIBLE_LOOKS);
     expect(Object.values(gc.OUTLOOK_SENTENCES).flatMap((t) => Object.values(t))).toContain(blocked.outlook.phrase);
     expect(blocked.fees.studFee).toBe(0);

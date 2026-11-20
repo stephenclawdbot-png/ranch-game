@@ -93,7 +93,7 @@ export const STEP_COPY: Record<string, { title: string; text: string }> = {
   quick_race: { title: "Try a quick race", text: "A short race on demand, settled straight away." },
   pin_target: { title: "Pin a target race", text: "Plan ahead: pin a coming race for a horse on This week and get a reminder." },
   breeding_preview: { title: "Look at the stallion finder", text: "See which stallions suit your filly and what a foal might look like: the start of a bloodline. Only a look, nothing is spent." },
-  first_foal: { title: "Breed your first foal", text: `A filly can be covered once she has run ${gc.BREED_FROM_STARTS} Live races, and races on afterwards. Pick her a stallion in the breeding barn: one of your own colts with ${gc.BREED_FROM_STARTS} Live races costs only the covering fee. The foal is born a day later.` },
+  first_foal: { title: "Breed your first foal", text: `A filly can be covered once she has run ${gc.BREED_FROM_STARTS === 1 ? "a Live race" : `${gc.BREED_FROM_STARTS} Live races`}, and races on afterwards. Pick her a stallion in the breeding barn: one of your own colts that has done the same costs only the covering fee. The foal is born a day later.` },
   // The first-week list's unpaid jobs (game-core FirstWeekExtraKey), ticked from the records.
   first_race: { title: "Run your first race", text: "Race any horse in a free Story race against the Club." },
   rename: { title: "Name a horse your way", text: "A horse can be renamed until its first start: give one of yours a name you like." },
