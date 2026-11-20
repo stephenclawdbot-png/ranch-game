@@ -5,7 +5,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import type { NextResponse } from "next/server";
-import { playtestConfig, track, type TelemetryEvent } from "@thoroughbred/db";
+import { isDbUnavailable, playtestConfig, track, trackMany, type TelemetryEvent, type TrackRow } from "@thoroughbred/db";
 import type { Db } from "./db";
 
 export { playtestConfig };
@@ -17,6 +17,61 @@ export async function trackEvent(db: Db, accountId: string | null, name: Telemet
   } catch (err) {
     console.error("telemetry", name, err);
   }
+}
+
+/**
+ * Events from visitors without a stable, waiting in this server instance's memory. A visitor
+ * (or a crawler) must never wake the database, so their `session_start` is not written when it
+ * arrives: it rides along with the next batch that goes to the database anyway (a signed-in
+ * player's events). If the instance is recycled first they are lost, which is fine for a
+ * visitor count. Capped, oldest dropped.
+ */
+const VISITOR_BUFFER_MAX = 200;
+const G = globalThis as typeof globalThis & { __tbVisitorEvents?: TrackRow[] };
+const visitorBuffer = (G.__tbVisitorEvents ??= []);
+
+/** Client events that are only ever written for a signed-in player (a visitor's are dropped). */
+const SIGNED_IN_ONLY: ReadonlySet<TelemetryEvent> = new Set<TelemetryEvent>(["page_view", "pool_claim"]);
+/** Visitor events that wait for the next write instead of causing one. */
+const VISITOR_DEFERRED: ReadonlySet<TelemetryEvent> = new Set<TelemetryEvent>(["session_start"]);
+
+/**
+ * Records one request's batch of client events (POST /api/events) with a single insert.
+ * Signed in: the whole batch, plus any visitor events waiting in memory. A visitor: page views
+ * are dropped, `session_start` waits in memory, and only a race watched or a perf report (the
+ * database is already serving that race) is written now. Never throws.
+ */
+export async function trackClientBatch(db: Db, accountId: string | null, events: TrackRow[], now = new Date()): Promise<{ written: number; deferred: number; dropped: number }> {
+  let deferred = 0;
+  let dropped = 0;
+  let rows: TrackRow[] = events;
+  if (!accountId) {
+    rows = [];
+    for (const e of events) {
+      if (SIGNED_IN_ONLY.has(e.name)) dropped++;
+      else if (VISITOR_DEFERRED.has(e.name)) {
+        visitorBuffer.push({ ...e, at: e.at ?? now, accountId: null });
+        if (visitorBuffer.length > VISITOR_BUFFER_MAX) visitorBuffer.splice(0, visitorBuffer.length - VISITOR_BUFFER_MAX);
+        deferred++;
+      } else rows.push(e);
+    }
+    if (rows.length === 0) return { written: 0, deferred, dropped };
+  }
+  const waiting = visitorBuffer.splice(0, visitorBuffer.length);
+  try {
+    const written = await trackMany(db, { accountId, events: [...rows, ...waiting], now });
+    return { written, deferred, dropped };
+  } catch (err) {
+    // Keep the visitors' events for the next batch; a telemetry failure never breaks the request.
+    visitorBuffer.unshift(...waiting.slice(0, VISITOR_BUFFER_MAX - visitorBuffer.length));
+    if (!isDbUnavailable(err)) console.error("telemetry batch", err);
+    return { written: 0, deferred, dropped };
+  }
+}
+
+/** Tests: visitor events waiting in memory. */
+export function visitorEventsWaiting(): number {
+  return visitorBuffer.length;
 }
 
 // ---------------------------------------------------------------------------

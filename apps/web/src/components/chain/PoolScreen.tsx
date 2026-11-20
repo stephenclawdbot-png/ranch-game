@@ -7,6 +7,7 @@
  */
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { usePoll } from "@/lib/attention";
 import type { Address, Hex } from "viem";
 import { prizePoolAbi } from "@/lib/chain/contracts.generated";
 import { addressUrl, txUrl } from "@/lib/chain/chains";
@@ -97,10 +98,10 @@ export function PoolScreen() {
   }, [signedIn]);
   useEffect(() => {
     void load();
-    if (!signedIn) return; // visitors see the public pool once; nothing here is theirs to claim
-    const t = setInterval(load, 60_000); // live balance and ≈USD every minute
-    return () => clearInterval(t);
-  }, [load, signedIn]);
+  }, [load]);
+  // Live balance and ≈USD every minute, for a signed-in player who is here (lib/attention).
+  // Visitors see the public pool once; nothing here is theirs to claim.
+  usePoll(load, 60_000, signedIn);
 
   if (err && !v) return <p className="surface p-3 text-negative">{err}</p>;
   if (!v) return <p className="surface p-3 caption" aria-busy>Loading the Prize Pool…</p>;

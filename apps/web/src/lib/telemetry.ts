@@ -87,15 +87,64 @@ export function trackRacePerf(r: PerfReport): void {
   });
 }
 
-export function trackClient(event: ClientEvent): void {
-  if (typeof window === "undefined") return;
+/** Events wait this long for company, so a page view is one request (and one insert), not several. */
+export const TELEMETRY_FLUSH_MS = 8_000;
+/** The server takes at most this many events per request. */
+const MAX_BATCH = 10;
+
+const queue: ClientEvent[] = [];
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let listening = false;
+/** Set by lib/player once the server has said whether this browser has a stable. */
+let signedIn: boolean | null = null;
+
+/** Tells telemetry whether this browser has a stable (lib/player.ts, on every /api/me answer). */
+export function setTelemetrySignedIn(value: boolean): void {
+  signedIn = value;
+}
+
+function send(events: ClientEvent[]): void {
+  if (events.length === 0) return;
   try {
-    const body = JSON.stringify({ events: [event] });
+    const body = JSON.stringify({ events });
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/events", new Blob([body], { type: "application/json" }));
       return;
     }
     void fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => undefined);
+  } catch {
+    // Telemetry never breaks the game.
+  }
+}
+
+/** Sends everything waiting (also on the way out of the page, so nothing is lost). */
+export function flushTelemetry(): void {
+  if (flushTimer) clearTimeout(flushTimer);
+  flushTimer = null;
+  // A visitor without a stable: page views are not recorded at all (the server would drop
+  // them), so a visitor's or crawler's page view costs no request beyond the session start.
+  const events = signedIn === false ? queue.filter((e) => e.name !== "page_view") : queue.slice();
+  queue.length = 0;
+  for (let i = 0; i < events.length; i += MAX_BATCH) send(events.slice(i, i + MAX_BATCH));
+}
+
+/**
+ * Queues an event; the queue goes out as one request after TELEMETRY_FLUSH_MS, when it is full,
+ * or when the page is hidden or left.
+ */
+export function trackClient(event: ClientEvent): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!listening) {
+      listening = true;
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") flushTelemetry();
+      });
+      window.addEventListener("pagehide", flushTelemetry);
+    }
+    queue.push(event);
+    if (queue.length >= MAX_BATCH) flushTelemetry();
+    else flushTimer ??= setTimeout(flushTelemetry, TELEMETRY_FLUSH_MS);
   } catch {
     // Telemetry never breaks the game.
   }

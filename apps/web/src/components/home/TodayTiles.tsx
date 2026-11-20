@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { HomeTiles } from "@/lib/homeTypes";
 import { formatCountdown, formatDistance, ordinal } from "@/lib/format";
 import { useNow } from "@/lib/clock";
+import { usePoll } from "@/lib/attention";
 import { PixelIcon, type IconName } from "../icons";
 import { Section } from "../ui/Page";
 
@@ -25,7 +26,7 @@ interface Tile {
   done?: boolean;
 }
 
-/** Re-check the tiles this often while Home is open (and whenever the tab regains focus). */
+/** Re-check the tiles this often while the player is on Home (visible and active: lib/attention), and when they come back. */
 const POLL_MS = 60_000;
 
 /**
@@ -48,14 +49,8 @@ export function TodayTiles({ refreshKey, hide, title = "Today" }: { refreshKey?:
 
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => void load(), POLL_MS);
-    const onFocus = () => void load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.clearInterval(id);
-      window.removeEventListener("focus", onFocus);
-    };
   }, [load, refreshKey]);
+  usePoll(load, POLL_MS);
 
   if (tiles === undefined) {
     // In the first week only a few tiles can show: no skeleton holding space for a list that may be empty.

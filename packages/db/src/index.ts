@@ -8,6 +8,8 @@ export type { Db, Executor, Schema, Tx } from "./types";
 export { createDb, getDb, getDbHandle, resetDbSingleton, defaultPgliteLocation, type CreateDbOptions, type DbDriver, type DbHandle } from "./client";
 export { migrate, type MigrateResult } from "./migrate";
 export { DomainError, isDomainError, httpStatusFor, translateDbError, type DomainErrorCode } from "./errors";
+export { DB_UNAVAILABLE, DbUnavailableError, isDbUnavailable, pingDb } from "./outage";
+export { queryMeterTotals, type QueryTotals } from "./queryMeter";
 export { commitSeed, hashToken, newDeviceToken, newSeed, utcDay, utcWeekStart } from "./crypto";
 export * from "./rules";
 export { defaultHooks } from "./hooks";

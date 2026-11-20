@@ -11,6 +11,7 @@
  */
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isAttentive } from "@/lib/attention";
 import { fetchTimed } from "@/lib/fetchTimed";
 import * as gc from "@thoroughbred/game-core";
 import type { MyToteBet, MyToteRace, ToteAuditRow, ToteBoard } from "@thoroughbred/db";
@@ -71,14 +72,16 @@ export function useTote(raceId: string, enabled = true) {
     if (!enabled) return;
     let t: ReturnType<typeof setTimeout>;
     let live = true;
-    const tick = async () => {
-      await load();
+    const tick = async (first = false) => {
+      // Odds are only refreshed for somebody looking (tab visible, active lately: lib/attention);
+      // the timer keeps ticking, so the board is current again a few seconds after they return.
+      if (first || isAttentive()) await load();
       if (!live) return;
       const s = status.current;
       if (s === "settled" || s === "abandoned") return;
       t = setTimeout(tick, s === "open" || s === null ? gc.TOTE_ODDS_POLL_MS : 10_000);
     };
-    void tick();
+    void tick(true);
     return () => {
       live = false;
       clearTimeout(t);

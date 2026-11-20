@@ -19,6 +19,7 @@
  */
 import * as schema from "./schema";
 import { migrate } from "./migrate";
+import { meterClient, queryMeterTarget } from "./queryMeter";
 import type { Db } from "./types";
 
 export type DbDriver = "neon" | "pglite";
@@ -82,6 +83,8 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
       neonConfig.webSocketConstructor = globalThis.WebSocket;
     }
     const pool = new Pool({ connectionString: url });
+    const meter = queryMeterTarget();
+    if (meter) meterClient(pool, meter);
     const db = drizzle({ client: pool, schema }) as unknown as Db;
     // On Vercel the build applies migrations (scripts/migrate.mjs via DATABASE_URL_UNPOOLED);
     // elsewhere migrate on first use. DB_AUTO_MIGRATE=1/0 forces either way.
@@ -103,6 +106,9 @@ export async function createDb(opts: CreateDbOptions = {}): Promise<DbHandle> {
   const client = location === "memory" ? await PGlite.create() : await PGlite.create(location);
   const db = drizzle({ client, schema }) as unknown as Db;
   if (opts.migrate ?? true) await migrate(db);
+  // Diagnostics (DB_QUERY_LOG): metered after the migrations, so only the app's own statements count.
+  const meter = queryMeterTarget();
+  if (meter) meterClient(client, meter);
   return { db, driver: "pglite", location, close: () => client.close() };
 }
 

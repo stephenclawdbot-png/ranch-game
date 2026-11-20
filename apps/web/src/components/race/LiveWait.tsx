@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { HomeTiles } from "@/lib/homeTypes";
 import type { WaitAction } from "@/lib/whileYouWait";
+import { usePoll } from "@/lib/attention";
 import { useNow } from "@/lib/clock";
 import { localClockText, utcClockText, waitText } from "@/lib/meetings";
 
@@ -61,19 +62,22 @@ function fetchWait(raceId: string | null): Promise<LiveWaitData | null> {
   return data;
 }
 
-/** The wait card's data, fetched after mount and every minute (null until then, or signed out). */
+/**
+ * The wait card's data, fetched after mount and every minute while the player is here (visible
+ * and active: lib/attention). Null until then, or signed out.
+ */
 export function useLiveWait(raceId: string | null): LiveWaitData | null {
   const [data, setData] = useState<LiveWaitData | null>(null);
+  const alive = useRef(true);
+  const load = useCallback(() => void fetchWait(raceId).then((d) => alive.current && d && setData(d)), [raceId]);
   useEffect(() => {
-    let alive = true;
-    const load = () => void fetchWait(raceId).then((d) => alive && d && setData(d));
+    alive.current = true;
     load();
-    const t = setInterval(load, REFRESH_MS);
     return () => {
-      alive = false;
-      clearInterval(t);
+      alive.current = false;
     };
-  }, [raceId]);
+  }, [load]);
+  usePoll(load, REFRESH_MS);
   return data;
 }
 

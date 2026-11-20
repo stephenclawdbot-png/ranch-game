@@ -118,7 +118,8 @@ export function RaceExperience({ card, serverNowMs, initialTimeSec, siteHost }: 
     if (card.fieldLocked) return;
     let t: ReturnType<typeof setTimeout>;
     const tick = () => {
-      router.refresh();
+      // A hidden tab waits: the card is re-read the moment it shows again (the next tick).
+      if (document.visibilityState !== "hidden") router.refresh();
       t = setTimeout(tick, 3000);
     };
     t = setTimeout(tick, Math.max(1000, localClose - Date.now() + 1500));

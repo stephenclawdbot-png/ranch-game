@@ -12,6 +12,7 @@
  * wallet sends the bet to the TotePools contract itself (the stake never touches our servers).
  */
 import { useEffect, useMemo, useState } from "react";
+import { isAttentive } from "@/lib/attention";
 import { fetchTimed } from "@/lib/fetchTimed";
 import { erc20Abi, type Address, type Hex } from "viem";
 import * as gc from "@thoroughbred/game-core";
@@ -51,7 +52,12 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const load = async () => {
+    const load = async (first = false) => {
+      // Refreshed only for somebody looking (lib/attention); the timer keeps its beat meanwhile.
+      if (!first && !isAttentive()) {
+        timer = setTimeout(load, gc.TOTE_ODDS_POLL_MS);
+        return;
+      }
       try {
         const r = (await (await fetch(`/api/races/${raceId}/tote/real`)).json()) as BoardRes;
         if (stop) return;
@@ -61,7 +67,7 @@ export function RealToteSlip({ raceId, runners }: { raceId: string; runners: Tot
         if (!stop) setRes({ available: false });
       }
     };
-    void load();
+    void load(true);
     return () => {
       stop = true;
       if (timer) clearTimeout(timer);

@@ -7,13 +7,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { EngageView, SaturdayFeatureCardView, TomorrowLineView, WeekBoardRowView, WeekBoardView } from "@/lib/engageTypes";
+import { usePoll } from "@/lib/attention";
 import { useNow } from "@/lib/clock";
 import { formatDistance } from "@/lib/format";
 import { localClockText, utcClockText } from "@/lib/meetings";
 import { PixelIcon, type IconName } from "../icons";
 import { Section } from "../ui/Page";
 
-/** Refresh the panel this often while the page is open (and when the tab regains focus). */
+/** Refresh the panel this often while the player is on the page (visible and active: lib/attention), and when they come back. */
 const POLL_MS = 120_000;
 
 /** GET /api/engage, refreshed now and then. `undefined` while loading, `null` when it failed. */
@@ -30,14 +31,8 @@ export function useEngage(refreshKey?: string): EngageView | null | undefined {
   }, []);
   useEffect(() => {
     void load();
-    const id = window.setInterval(() => void load(), POLL_MS);
-    const onFocus = () => void load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.clearInterval(id);
-      window.removeEventListener("focus", onFocus);
-    };
   }, [load, refreshKey]);
+  usePoll(load, POLL_MS);
   return view;
 }
 

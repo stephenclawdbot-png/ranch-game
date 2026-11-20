@@ -331,9 +331,35 @@ async function replayFor(db: Db, race: PublicRace, now: Date): Promise<RaceRepla
 // Driving the card (lazy on reads + cron backstop) and settlement
 // ---------------------------------------------------------------------------
 
+/** While a field is about to lock or a race is running, look again this often. */
 const TICK_EVERY_MS = 4_000;
-const G = globalThis as typeof globalThis & { __tbTick?: { at: number; inflight: Promise<unknown> | null } };
-const tickState = (G.__tbTick ??= { at: 0, inflight: null });
+/** With nothing due (no field to lock, no race running), the tick's backstop beat. */
+export const TICK_IDLE_MS = 60_000;
+const G = globalThis as typeof globalThis & { __tbTick?: { at: number; inflight: Promise<unknown> | null; nextDueAt?: number } };
+const tickState = (G.__tbTick ??= { at: 0, inflight: null, nextDueAt: 0 });
+
+/**
+ * When the tick next has real work, from what the last one saw: the next field to lock (an
+ * open race's entry close), the next locked field's post time (its broadcast then has to be
+ * watched for the finish), every TICK_EVERY_MS while a race is running or the tick just did
+ * something, and at the latest TICK_IDLE_MS from now (new card slots, time-driven notes).
+ * Until then driveCard returns at once, without a query: the lazy tick is a few comparisons on
+ * almost every request instead of eight queries every four seconds.
+ */
+export function nextTickDueMs(nowMs: number, card: readonly Pick<PublicRace, "status" | "entriesCloseAt" | "postTime">[], busy: boolean): number {
+  let due = nowMs + TICK_IDLE_MS;
+  if (busy) due = nowMs + TICK_EVERY_MS;
+  for (const r of card) {
+    if (r.status === "open") due = Math.min(due, r.entriesCloseAt.getTime());
+    else if (r.status === "locked") due = Math.min(due, r.postTime.getTime());
+  }
+  return Math.max(due, nowMs + TICK_EVERY_MS);
+}
+
+/** Something moved a race's times or filled a field: the next request ticks again (within the usual throttle). */
+export function cardChanged(): void {
+  tickState.nextDueAt = 0;
+}
 
 export interface DriveReport {
   locked: number;
@@ -361,9 +387,13 @@ export async function driveCard(db: Db, now: Date, opts: { force?: boolean; main
       await tickState.inflight.catch(() => undefined);
       return null;
     }
-    if (now.getTime() - tickState.at < TICK_EVERY_MS && now.getTime() >= tickState.at) return null;
+    // The cheap guard, before any query: not again within TICK_EVERY_MS, and not at all until
+    // something is due (a clock that went backwards, as in tests, always ticks).
+    const nowMs = now.getTime();
+    if (nowMs >= tickState.at && (nowMs - tickState.at < TICK_EVERY_MS || nowMs < (tickState.nextDueAt ?? 0))) return null;
   }
   tickState.at = now.getTime();
+  tickState.nextDueAt = 0;
   const run = (async (): Promise<DriveReport> => {
     const tick = await tickRaceCard(db, now, raceHooks, { maintenance: opts.maintenance });
     const settled: string[] = [];
@@ -386,6 +416,10 @@ export async function driveCard(db: Db, now: Date, opts: { force?: boolean; main
     }
     // Time-driven notifications (a horse back from injury, a new training week): throttled, idempotent.
     await maybeSweepNotifications(db, now);
+    // A race is running (locked, past its post time, not settled yet) or this tick did work: stay on the short beat.
+    const running = [...due.values()].some((r) => !settled.includes(r.id));
+    const busy = running || tick.locked.length > 0 || tick.calledOff.length > 0 || settled.length > 0;
+    tickState.nextDueAt = nextTickDueMs(now.getTime(), tick.card, busy);
     return { locked: tick.locked.length, settled, maintenance: tick.maintenance };
   })();
   tickState.inflight = run;
