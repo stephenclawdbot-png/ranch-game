@@ -116,7 +116,7 @@ first race before; it is the second and third race, each a different starter's d
 was over 8% and still is in the second (9.1%).
 
 The rating fix is the debut rating, not the fields: the same after-change races replayed from a
-flat 40 still lose 3.3 points over three starts. Races stay honest simulations: only the field
+flat 40 still lose 3.1 points over three starts. Races stay honest simulations: only the field
 (who the Club sends, how many) and the mark a horse starts on changed.
 
 What happens to horses already in the database (no migration):
