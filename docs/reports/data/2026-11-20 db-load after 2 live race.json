@@ -1,0 +1,320 @@
+[
+  {
+    "label": "POST /api/account (found a stable)",
+    "queries": 88,
+    "dbMs": 83.9,
+    "writes": 17,
+    "wallMs": 130,
+    "status": 201,
+    "cache": "no-store"
+  },
+  {
+    "label": "POST /api/races/quick (Story, instant)",
+    "queries": 188,
+    "dbMs": 195.1,
+    "writes": 54,
+    "wallMs": 334,
+    "status": 201,
+    "cache": "no-store"
+  },
+  {
+    "label": "POST /api/races/live-pick (enter a Live race)",
+    "queries": 148,
+    "dbMs": 168.2,
+    "writes": 16,
+    "wallMs": 204,
+    "status": 201,
+    "cache": "no-store"
+  },
+  {
+    "label": "GET /race/[id] (Live, entries open) [tick due]",
+    "queries": 13,
+    "dbMs": 23.3,
+    "writes": 0,
+    "wallMs": 317,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": true
+  },
+  {
+    "label": "GET /race/[id] (Live, entries open)",
+    "queries": 6,
+    "dbMs": 8.3,
+    "writes": 0,
+    "wallMs": 62,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": false
+  },
+  {
+    "label": "GET /api/races/[id] (Live, entries open) [tick due]",
+    "queries": 6,
+    "dbMs": 5.8,
+    "writes": 0,
+    "wallMs": 24,
+    "status": 200,
+    "cache": "no-store",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": true
+  },
+  {
+    "label": "GET /api/races/[id] (Live, entries open)",
+    "queries": 6,
+    "dbMs": 8.8,
+    "writes": 0,
+    "wallMs": 23,
+    "status": 200,
+    "cache": "no-store",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": false
+  },
+  {
+    "label": "GET /api/races/live-wait (entered) [tick due]",
+    "queries": 12,
+    "dbMs": 17.9,
+    "writes": 0,
+    "wallMs": 40,
+    "status": 200,
+    "cache": "no-store",
+    "path": "/api/races/live-wait?raceId=47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": true
+  },
+  {
+    "label": "GET /api/races/live-wait (entered)",
+    "queries": 12,
+    "dbMs": 17.1,
+    "writes": 0,
+    "wallMs": 37,
+    "status": 200,
+    "cache": "no-store",
+    "path": "/api/races/live-wait?raceId=47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": false
+  },
+  {
+    "label": "page view: /race/[id] (Live, entries open)",
+    "queries": 155,
+    "dbMs": 122.6,
+    "writes": 6,
+    "wallMs": 2976,
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "page": true,
+    "calls": {
+      "GET /race/[id]": 1,
+      "GET /api/me": 1,
+      "GET /api/races/[id]/pick": 2,
+      "GET /api/home": 1,
+      "GET /api/races/live-wait": 1
+    }
+  },
+  {
+    "label": "idle tab: / signed in, visible, race pending",
+    "queries": 233,
+    "perMinute": 77.7,
+    "minutes": 3,
+    "idle": true
+  },
+  {
+    "label": "GET /race/[id] (Live, field locked) [tick due]",
+    "queries": 19,
+    "dbMs": 140.6,
+    "writes": 0,
+    "wallMs": 214,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "tick": true
+  },
+  {
+    "label": "GET /api/races/[id]/live?w=0 (before the off)",
+    "queries": 2,
+    "dbMs": 4.1,
+    "writes": 0,
+    "wallMs": 12,
+    "status": 200,
+    "cache": "public, max-age=0, must-revalidate"
+  },
+  {
+    "label": "GET /race/[id] (Live, running) [tick due]",
+    "queries": 13,
+    "dbMs": 15.1,
+    "writes": 1,
+    "wallMs": 69,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "tick": true
+  },
+  {
+    "label": "GET /race/[id] (Live, running)",
+    "queries": 4,
+    "dbMs": 14.9,
+    "writes": 0,
+    "wallMs": 137,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate"
+  },
+  {
+    "label": "GET /api/races/[id]/live?w=0 (running, complete window)",
+    "queries": 1,
+    "dbMs": 1.5,
+    "writes": 0,
+    "wallMs": 9,
+    "status": 200,
+    "cache": "public, max-age=31536000, immutable"
+  },
+  {
+    "label": "GET /api/races/[id]/live?w=1 (running)",
+    "queries": 1,
+    "dbMs": 1.4,
+    "writes": 0,
+    "wallMs": 7,
+    "status": 200,
+    "cache": "public, max-age=31536000, immutable"
+  },
+  {
+    "label": "GET /api/races (a race is live)",
+    "queries": 50,
+    "dbMs": 42.6,
+    "writes": 0,
+    "wallMs": 19,
+    "status": 200,
+    "cache": "no-store"
+  },
+  {
+    "label": "page: /race/[id] live for 30 s (one viewer)",
+    "queries": 164,
+    "dbMs": 238.9,
+    "writes": 8,
+    "wallMs": 30212,
+    "page": true
+  },
+  {
+    "label": "GET /race/[id] (Live, finished) [tick due]",
+    "queries": 4,
+    "dbMs": 8.3,
+    "writes": 0,
+    "wallMs": 57,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": true
+  },
+  {
+    "label": "GET /race/[id] (Live, finished)",
+    "queries": 4,
+    "dbMs": 10.3,
+    "writes": 0,
+    "wallMs": 107,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": false
+  },
+  {
+    "label": "GET /api/races/[id] (Live, finished) [tick due]",
+    "queries": 4,
+    "dbMs": 9.5,
+    "writes": 0,
+    "wallMs": 22,
+    "status": 200,
+    "cache": "no-store",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": true
+  },
+  {
+    "label": "GET /api/races/[id] (Live, finished)",
+    "queries": 4,
+    "dbMs": 9.5,
+    "writes": 0,
+    "wallMs": 23,
+    "status": 200,
+    "cache": "no-store",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": false
+  },
+  {
+    "label": "GET /api/races/[id]/replay (Live, finished) [tick due]",
+    "queries": 1,
+    "dbMs": 2.6,
+    "writes": 0,
+    "wallMs": 11,
+    "status": 200,
+    "cache": "public, max-age=31536000, immutable",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6/replay",
+    "tick": true
+  },
+  {
+    "label": "GET /api/races/[id]/replay (Live, finished)",
+    "queries": 23,
+    "dbMs": 35.2,
+    "writes": 0,
+    "wallMs": 10,
+    "status": 200,
+    "cache": "public, max-age=31536000, immutable",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6/replay",
+    "tick": false
+  },
+  {
+    "label": "GET /api/races/[id]/live?w=0 (Live, finished) [tick due]",
+    "queries": 1,
+    "dbMs": 5.4,
+    "writes": 0,
+    "wallMs": 13,
+    "status": 200,
+    "cache": "public, max-age=31536000, immutable",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6/live?w=0",
+    "tick": true
+  },
+  {
+    "label": "GET /api/races/[id]/live?w=0 (Live, finished)",
+    "queries": 1,
+    "dbMs": 1.3,
+    "writes": 0,
+    "wallMs": 11,
+    "status": 200,
+    "cache": "public, max-age=31536000, immutable",
+    "path": "/api/races/47bca43c-f28b-41ea-ae69-9c57e88e29d6/live?w=0",
+    "tick": false
+  },
+  {
+    "label": "page view: /race/[id] (Live, finished)",
+    "queries": 151,
+    "dbMs": 174.8,
+    "writes": 1,
+    "wallMs": 3032,
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "page": true,
+    "calls": {
+      "GET /api/races/[id]/tote": 5,
+      "GET /api/races/[id]/tote/me": 2,
+      "GET /race/[id]": 1,
+      "GET /api/me": 2,
+      "GET /api/races/[id]/pick": 3,
+      "GET /api/races/[id]/live": 19,
+      "GET /api/races/[id]/tote/real": 1,
+      "GET /api/races/[id]/me": 1
+    }
+  },
+  {
+    "label": "GET /race/[id] (Live, finished, signed out) [tick due]",
+    "queries": 4,
+    "dbMs": 5.9,
+    "writes": 0,
+    "wallMs": 185,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": true
+  },
+  {
+    "label": "GET /race/[id] (Live, finished, signed out)",
+    "queries": 0,
+    "dbMs": 0,
+    "writes": 0,
+    "wallMs": 143,
+    "status": 200,
+    "cache": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "path": "/race/47bca43c-f28b-41ea-ae69-9c57e88e29d6",
+    "tick": false
+  }
+]
