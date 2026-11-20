@@ -8,10 +8,14 @@
  *        FIRST_RACES (9 open / 6 chapter), FIRST_PER_DAY (5), FIRST_BATCH (100),
  *        FIRST_OUT (a JSON file: summary and every run). To use several cores, run several seeds and merge
  *        the files (FIRST_MERGE=a.json,b.json prints the summary of the merged runs without simulating).
+ *        FIRST_TALLY (a .jsonl file) + FIRST_LABEL (default "run"): appends this chunk's counts as one line
+ *        (label, seed, policy, races; a seed already there under the label is not run again), so a big
+ *        measurement can be run a few hundred stables at a time and kept in the repository.
+ *        FIRST_TALLY_REPORT=1 with FIRST_TALLY: prints the added-up table per label, without simulating.
  *
  * Kept out of the default suites (a *.harness.ts file).
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { it } from "vitest";
 import { installDeterministicRandom } from "./src/determinism";
 import { defaultStartMs } from "./src/config";
@@ -22,7 +26,23 @@ it("first races", async () => {
   const policy = process.env.FIRST_POLICY === "chapter" ? "chapter" : "open";
   const races = Number(process.env.FIRST_RACES ?? (policy === "open" ? 9 : 6));
   installDeterministicRandom(seed);
-  const { probeFirstRaces, summariseFirstRaces, replayRatings } = await import("./src/firstRaces");
+  const { probeFirstRaces, summariseFirstRaces, replayRatings, tallyFirstRaces, mergeTallies, tallyReport } = await import("./src/firstRaces");
+  type Line = { label: string; seed: string; policy: string; races: number; tally: ReturnType<typeof tallyFirstRaces> };
+  const tallyFile = process.env.FIRST_TALLY;
+  const label = process.env.FIRST_LABEL ?? "run";
+  const lines: Line[] = tallyFile && existsSync(tallyFile) ? readFileSync(tallyFile, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Line) : [];
+  if (tallyFile && process.env.FIRST_TALLY_REPORT === "1") {
+    for (const l of [...new Set(lines.map((x) => x.label))]) {
+      const mine = lines.filter((x) => x.label === l);
+      console.log(tallyReport(`${l} (${mine.length} chunks: ${mine.map((x) => x.seed).join(", ")})`, mergeTallies(mine.map((x) => x.tally))));
+      console.log("");
+    }
+    return;
+  }
+  if (tallyFile && !process.env.FIRST_MERGE && lines.some((x) => x.label === label && x.seed === seed && x.policy === policy)) {
+    console.log(`tally: ${label} ${seed} is already in ${tallyFile}`);
+    return;
+  }
   const gc = await import("@thoroughbred/game-core");
   const t0 = Date.now();
   // Merge mode: the runs of several finished files (each stable renumbered so none collide).
@@ -39,6 +59,10 @@ it("first races", async () => {
     batch: Number(process.env.FIRST_BATCH ?? 100),
     log: (l) => console.log(l),
   });
+  if (tallyFile) {
+    const mergeSeed = process.env.FIRST_MERGE ? (process.env.FIRST_SEED ?? "merged") : seed;
+    if (!lines.some((x) => x.label === label && x.seed === mergeSeed && x.policy === policy)) appendFileSync(tallyFile, JSON.stringify({ label, seed: mergeSeed, policy, races, tally: tallyFirstRaces(runs) } satisfies Line) + "\n");
+  }
   const summary = summariseFirstRaces(policy, runs);
   console.log(JSON.stringify(summary, null, 1));
   // The same runs with every debutant seated at its real ability mark (what-if, no new simulation).

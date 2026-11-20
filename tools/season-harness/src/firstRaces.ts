@@ -300,3 +300,158 @@ export function replayRatings(races: readonly FirstRace[], seat: (mark: number) 
     return { start: k + 1, horses: s.length, meanDelta: mean2(s), downPct: pct1(s.filter((d) => d < 0).length, s.length), medianDelta: s.length ? s[s.length >> 1]! : 0 };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Tallies: a chunk's counts, small enough to keep in the repository and exact to add up
+// ---------------------------------------------------------------------------
+
+/** Counts of one group of runs (a race number or a horse's start number). */
+interface RunCounts {
+  runs: number;
+  wins: number;
+  top3: number;
+  last: number;
+  /** Sums: field size, rating after less rating before. */
+  field: number;
+  delta: number;
+  down: number;
+}
+
+/** A horse's rating after its k-th start less its rating before its debut. */
+interface StartCounts {
+  horses: number;
+  delta: number;
+  down: number;
+}
+
+/**
+ * The sufficient counts of a chunk of the probe: several chunks (seeds) add up exactly, so a
+ * 2,000-stable measurement can be run a few hundred stables at a time and kept as one line each.
+ */
+export interface FirstRacesTally {
+  stables: number;
+  /** By the stable's race number (index 0 = its first race). */
+  byRace: RunCounts[];
+  /** Stables that ran at least 3 / 5 races, and of those: a win within them, no top-3 in the first 3, Story credits over the first 5 (sum). */
+  ran3: number;
+  win3: number;
+  noTop3In3: number;
+  ran5: number;
+  win5: number;
+  reward5: number;
+  /** As raced, from the ability mark and from the flat 40 (the last two replayed; index 0 = after the first start). */
+  rating: StartCounts[];
+  ratingFromMark: StartCounts[];
+  ratingFrom40: StartCounts[];
+  /** Debuts: count, sum of the stored rating before, sum of the real ability mark. */
+  debuts: number;
+  debutRating: number;
+  debutMark: number;
+}
+
+const startCounts = (ds: readonly number[]): StartCounts => ({ horses: ds.length, delta: ds.reduce((a, b) => a + b, 0), down: ds.filter((d) => d < 0).length });
+
+/** The per-horse rating series (after start k less before the debut) under a debut rating, replayed through updateRatings. */
+function replaySeries(races: readonly FirstRace[], seat: ((mark: number) => number) | null): StartCounts[] {
+  const byHorse = new Map<string, FirstRace[]>();
+  for (const r of races) byHorse.set(r.horseId, [...(byHorse.get(r.horseId) ?? []), r]);
+  const series: number[][] = [[], [], []];
+  for (const rs of byHorse.values()) {
+    if (rs[0]!.start !== 1) continue;
+    const from = seat ? seat(rs[0]!.mark) : rs[0]!.ratingBefore;
+    let or = from;
+    rs.slice(0, 3).forEach((r, k) => {
+      if (seat) {
+        const field = r.runners.map((x) => (x.horseId === r.horseId ? { horseId: x.horseId, or, ratedRuns: k, position: x.position } : { horseId: x.horseId, or: x.or, ratedRuns: x.ratedRuns, position: x.position }));
+        or = gc.updateRatings(field).find((c) => c.horseId === r.horseId)!.after;
+      } else or = r.ratingAfter;
+      series[k]!.push(or - from);
+    });
+  }
+  return series.map(startCounts);
+}
+
+export function tallyFirstRaces(races: readonly FirstRace[]): FirstRacesTally {
+  const byStable = new Map<number, FirstRace[]>();
+  for (const r of races) byStable.set(r.stable, [...(byStable.get(r.stable) ?? []), r]);
+  const byRace: RunCounts[] = [];
+  for (const r of races) {
+    const c = (byRace[r.n - 1] ??= { runs: 0, wins: 0, top3: 0, last: 0, field: 0, delta: 0, down: 0 });
+    c.runs++;
+    if (r.position === 1) c.wins++;
+    if (r.position <= 3) c.top3++;
+    if (r.position === r.field) c.last++;
+    c.field += r.field;
+    c.delta += r.ratingAfter - r.ratingBefore;
+    if (r.ratingAfter < r.ratingBefore) c.down++;
+  }
+  const ran = (k: number) => [...byStable.values()].filter((rs) => rs.length >= k);
+  const debuts = races.filter((r) => r.start === 1);
+  const withRunners = races.every((r) => r.runners.length > 0);
+  return {
+    stables: byStable.size,
+    byRace: Array.from(byRace, (c) => c ?? { runs: 0, wins: 0, top3: 0, last: 0, field: 0, delta: 0, down: 0 }),
+    ran3: ran(3).length,
+    win3: ran(3).filter((rs) => rs.slice(0, 3).some((r) => r.position === 1)).length,
+    noTop3In3: ran(3).filter((rs) => !rs.slice(0, 3).some((r) => r.position <= 3)).length,
+    ran5: ran(5).length,
+    win5: ran(5).filter((rs) => rs.slice(0, 5).some((r) => r.position === 1)).length,
+    reward5: ran(5).reduce((n, rs) => n + rs.slice(0, 5).reduce((a, r) => a + r.reward, 0), 0),
+    rating: replaySeries(races, null),
+    ratingFromMark: withRunners ? replaySeries(races, (m) => m) : [],
+    ratingFrom40: withRunners ? replaySeries(races, () => gc.INITIAL_OR) : [],
+    debuts: debuts.length,
+    debutRating: debuts.reduce((a, r) => a + r.ratingBefore, 0),
+    debutMark: debuts.reduce((a, r) => a + r.mark, 0),
+  };
+}
+
+const addCounts = <T extends object>(a: T | undefined, b: T): T => {
+  const out = { ...(a ?? {}) } as Record<string, number>;
+  for (const [k, v] of Object.entries(b as Record<string, number>)) out[k] = (out[k] ?? 0) + v;
+  return out as T;
+};
+const addLists = <T extends object>(a: readonly T[], b: readonly T[]): T[] => Array.from({ length: Math.max(a.length, b.length) }, (_, i) => (b[i] ? addCounts(a[i], b[i]!) : a[i]!));
+
+export function mergeTallies(ts: readonly FirstRacesTally[]): FirstRacesTally {
+  let out: FirstRacesTally | null = null;
+  for (const t of ts) {
+    if (!out) {
+      out = JSON.parse(JSON.stringify(t)) as FirstRacesTally;
+      continue;
+    }
+    const o: FirstRacesTally = out;
+    out = {
+      stables: o.stables + t.stables,
+      byRace: addLists(o.byRace, t.byRace),
+      ran3: o.ran3 + t.ran3,
+      win3: o.win3 + t.win3,
+      noTop3In3: o.noTop3In3 + t.noTop3In3,
+      ran5: o.ran5 + t.ran5,
+      win5: o.win5 + t.win5,
+      reward5: o.reward5 + t.reward5,
+      rating: addLists(o.rating, t.rating),
+      ratingFromMark: addLists(o.ratingFromMark, t.ratingFromMark),
+      ratingFrom40: addLists(o.ratingFrom40, t.ratingFrom40),
+      debuts: o.debuts + t.debuts,
+      debutRating: o.debutRating + t.debutRating,
+      debutMark: o.debutMark + t.debutMark,
+    };
+  }
+  if (!out) throw new Error("no tallies to merge");
+  return out;
+}
+
+/** A plain-text table of a (merged) tally. */
+export function tallyReport(label: string, t: FirstRacesTally): string {
+  const p = (n: number, d: number) => (d ? `${(Math.round((1000 * n) / d) / 10).toFixed(1)}%` : "-");
+  const m = (n: number, d: number) => (d ? (Math.round((100 * n) / d) / 100).toFixed(2) : "-");
+  const lines = [`${label}: ${t.stables} stables`, "| Story race | Runs | Win | Top 3 | Last | Field | Mean rating change | Rating down |", "|---:|---:|---:|---:|---:|---:|---:|---:|"];
+  t.byRace.forEach((c, i) => lines.push(`| ${i + 1} | ${c.runs} | ${p(c.wins, c.runs)} | ${p(c.top3, c.runs)} | ${p(c.last, c.runs)} | ${m(c.field, c.runs)} | ${m(c.delta, c.runs)} | ${p(c.down, c.runs)} |`));
+  lines.push(`A win within the first 3: ${p(t.win3, t.ran3)} of ${t.ran3}; within the first 5: ${p(t.win5, t.ran5)} of ${t.ran5}. No top-3 finish in the first 3: ${p(t.noTop3In3, t.ran3)}. Story credits over the first 5: mean ${m(t.reward5, t.ran5)}.`);
+  const series = (name: string, s: readonly StartCounts[]) => (s.length ? `${name}: ${s.map((c, k) => `after start ${k + 1} ${m(c.delta, c.horses)} (${c.horses} horses, ${p(c.down, c.horses)} lower)`).join("; ")}` : "");
+  lines.push(series("Rating against the rating before the debut, as raced", t.rating));
+  if (t.ratingFromMark.length) lines.push(series("Replayed from the ability mark", t.ratingFromMark), series(`Replayed from ${gc.INITIAL_OR}`, t.ratingFrom40));
+  lines.push(`Debut: mean stored rating ${m(t.debutRating, t.debuts)}, mean real ability mark ${m(t.debutMark, t.debuts)}.`);
+  return lines.filter(Boolean).join("\n");
+}
