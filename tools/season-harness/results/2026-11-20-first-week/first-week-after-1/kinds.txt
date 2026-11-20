@@ -1,0 +1,8 @@
+casual spent days 1-7 by kind (mean per stable): {'breeding_fee': 1250, 'upkeep': 900, 'entry_fee': 408}
+casual earned days 1-7 by kind (mean per stable): {'starter_grant': 3000, 'story_reward': 1337, 'daily_goal': 945, 'daily_cup': 560, 'purse': 523, 'stable_step': 310}
+casual refused {}
+casual stables with an injured horse on some day 1-7: 0 of 6 ; injured horse-days 0
+engaged spent days 1-7 by kind (mean per stable): {'facility': 3000, 'breeding_fee': 1500, 'entry_fee': 1214, 'pack': 1200, 'upkeep': 883}
+engaged earned days 1-7 by kind (mean per stable): {'story_reward': 3390, 'starter_grant': 3000, 'purse': 2062, 'daily_goal': 945, 'daily_cup': 560, 'stable_step': 560}
+engaged refused {'live_quick_pick:NOT_ELIGIBLE': 43}
+engaged stables with an injured horse on some day 1-7: 2 of 6 ; injured horse-days 9
