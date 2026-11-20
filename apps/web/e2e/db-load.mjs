@@ -15,7 +15,7 @@
  * or one page view in a real browser (page rows: the document plus everything the page fetches
  * until the network is quiet). Each API row is measured twice: once when the lazy card tick is
  * due (TICK column) and once right after (the tick is throttled per instance).
- * LIVE=0 skips the Live race (it takes about 8 minutes of real time); IDLE_MIN sets how long
+ * SECTIONS=visitor,player,pages,live,idle,cron runs only those parts. LIVE=0 skips the Live race (it takes about 8 minutes of real time); IDLE_MIN sets how long
  * the idle-tab rows watch an open tab (default 3 minutes each).
  */
 import { createRequire } from "node:module";
@@ -34,6 +34,14 @@ const IDLE_MIN = Number(process.env.IDLE_MIN ?? 3);
 /** Longer than the lazy tick's throttle, so the next request finds the tick due. */
 const TICK_GAP_MS = Number(process.env.TICK_GAP_MS ?? 4300);
 if (!LOG) throw new Error("DB_QUERY_LOG must name the file the server writes its query log to");
+
+/** SECTIONS=visitor,player,pages,live,idle,cron runs only those parts (default: all), so a long run can be done in pieces. */
+const SECTIONS = new Set((process.env.SECTIONS ?? "visitor,player,pages,live,idle,cron").split(",").map((x) => x.trim()));
+const on = (section) => SECTIONS.has(section);
+/** Results are written after every row, so an interrupted run keeps what it measured. */
+const save = () => {
+  if (OUT) writeFileSync(OUT, JSON.stringify(rows, null, 2));
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(`[db-load ${new Date().toISOString().slice(11, 19)}]`, ...a);
@@ -69,6 +77,7 @@ async function measure(label, fn, extra = {}) {
     ...extra,
   };
   rows.push(row);
+  save();
   log(`${label}: ${row.queries} q (${row.writes} writes), ${row.dbMs} ms db${row.status ? `, HTTP ${row.status}` : ""}${row.cache ? `, ${row.cache}` : ""}`);
   return res;
 }
@@ -108,6 +117,7 @@ async function idleTab(page, label, minutes) {
   await sleep(minutes * 60_000);
   const n = lines().length - before;
   rows.push({ label: `idle tab: ${label}`, queries: n, perMinute: Math.round((n / minutes) * 10) / 10, minutes, idle: true });
+  save();
   log(`idle tab: ${label}: ${n} q in ${minutes} min`);
 }
 
@@ -129,6 +139,7 @@ async function main() {
     await anon.request.get(`${BASE}/`, { timeout: 300_000 });
     await anon.request.get(`${BASE}/api/races`);
     await settle(1000);
+    if (on("visitor")) {
     const zero = "00000000-0000-4000-8000-000000000000";
     for (const [label, path] of [
       ["GET / (signed out)", "/"],
@@ -158,6 +169,7 @@ async function main() {
     await anonPage.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await idleTab(anonPage, "/ signed out, visible", Math.min(IDLE_MIN, 2));
     await anonPage.close();
+    }
 
     // ------------------------------------------------------------ signed in
     const ctx = patient(await browser.newContext({ viewport: { width: 1280, height: 800 } }));
@@ -167,6 +179,7 @@ async function main() {
     if (founded.status() !== 201) throw new Error(`founding failed: HTTP ${founded.status()} ${await founded.text()}`);
     const player = (await founded.json()).player;
     const horseId = player.horses[0].id;
+    if (on("player")) {
     for (const [label, path] of [
       ["GET / (signed in)", "/"],
       ["GET /api/me", "/api/me"],
@@ -187,11 +200,12 @@ async function main() {
       await both(ctx, label, path);
     }
     await both(ctx, "POST /api/events (signed in, 1 page_view)", "/api/events", { method: "POST", data: { events: [{ name: "page_view", route: "/" }] } });
+    }
 
     // Story race, skipped to the result: a finished race page.
     const story = await measure("POST /api/races/quick (Story, instant)", () => ctx.request.post(`${BASE}/api/races/quick`, { data: { pick: "auto", instant: true } }));
     const storyId = story.status() === 201 ? (await story.json()).raceId : null;
-    if (storyId) {
+    if (storyId && on("player")) {
       await sleep(1500);
       for (const [label, path] of [
         ["GET /race/[id] (Story, finished)", `/race/${storyId}`],
@@ -205,16 +219,18 @@ async function main() {
     } else log("story race not created:", story.status(), (await story.text()).slice(0, 200));
 
     const page = await ctx.newPage();
+    if (on("pages")) {
     await pageView(page, "/ (signed in)", "/");
     await pageView(page, "/races (signed in)", "/races");
     await pageView(page, "/stable", "/stable");
     await pageView(page, "/horse/[id]", `/horse/${horseId}`);
     await pageView(page, "/me", "/me");
     if (storyId) await pageView(page, "/race/[id] (Story, finished)", `/race/${storyId}`);
+    }
 
     // ------------------------------------------------------------ a Live race, in real time
     let liveId = null;
-    if (WITH_LIVE && ADMIN) {
+    if (WITH_LIVE && ADMIN && on("live")) {
       const pick = await measure("POST /api/races/live-pick (enter a Live race)", () => ctx.request.post(`${BASE}/api/races/live-pick`, { data: {} }));
       if (pick.status() === 201) {
         liveId = (await pick.json()).pick?.raceId ?? null;
@@ -267,6 +283,7 @@ async function main() {
     // ------------------------------------------------------------ idle tabs
     // Nobody touches the page: the first minutes after a load, then the minutes after that
     // (pollers stop for an idle tab), then the same tab hidden, then /races.
+    if (on("idle")) {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await idleTab(page, "/ signed in, visible, minutes 0-3 after the load", IDLE_MIN);
     await idleTab(page, "/ signed in, visible, minutes 3-6 (no input)", IDLE_MIN);
@@ -284,9 +301,10 @@ async function main() {
     await racesPage.goto(`${BASE}/races`, { waitUntil: "networkidle" });
     await idleTab(racesPage, "/races signed in, visible", IDLE_MIN);
     await racesPage.close();
+    }
 
     // ------------------------------------------------------------ crons
-    if (CRON) {
+    if (CRON && on("cron")) {
       await measure("GET /api/cron/race-card", () => ctx.request.get(`${BASE}/api/cron/race-card`, { headers: { authorization: `Bearer ${CRON}` } }));
       await measure("GET /api/cron/chain", () => ctx.request.get(`${BASE}/api/cron/chain`, { headers: { authorization: `Bearer ${CRON}` } }));
     }
