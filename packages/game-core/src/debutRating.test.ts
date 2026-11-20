@@ -1,8 +1,8 @@
 /**
  * The debut rating (2026-11-20): a horse makes its debut on its real ability mark, not a flat 40.
  * Every debutant used to start on INITIAL_OR while a starter's real mark is about 31, so its first
- * results read "Rating 40 -> 37, down 3" (tools/season-harness firstRaces: mean -2.9 over the
- * first three starts on 40).
+ * results read "Rating 40 -> 37, down 3" (tools/season-harness firstRaces: mean -3.4 over the
+ * first three starts on 40, +0.3 from the mark).
  */
 import { describe, expect, it } from "vitest";
 import { createStarterStable } from "./onboarding";

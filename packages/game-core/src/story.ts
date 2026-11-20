@@ -537,12 +537,13 @@ export function storyFieldNote(rival: Pick<RivalStable, "name"> | undefined, adj
  * race starts STORY_FIRST_BELOW below.
  *
  * 2026-11-20 (first races probe, tools/season-harness firstRaces, 2,000 new stables): at 8 below
- * with 8-10 runners a new stable finished in the first three of its first race 47% of the time and
- * last 11%, and 71% had a win within five races. A Club runner is a seasoned horse: at the same
+ * with 8-10 runners a new stable finished in the first three of its first race 50% of the time
+ * (39% and 42% in its second and third, last 11% and 9%), and 65% had a win within five races. A Club runner is a seasoned horse: at the same
  * ability mark it out-runs a debutant (its temperament, soundness and adaptability are a grown
  * horse's; the mark counts speed, stamina and burst only), so "level" on the marks was not level.
  * Now 10 below (12 for the first race), fields of 7-8 (STORY_CLUB_OPEN_RUNNERS), 3 marks a step (was 2), and the field
- * eases from the first loss (STORY_OPEN_EASE_FROM_LOSSES). The races stay honest simulations.
+ * eases from the first loss (STORY_OPEN_EASE_FROM_LOSSES): 67% in the first three of the first
+ * race, 6% last, a win within five for 89%. The races stay honest simulations.
  */
 export const STORY_OPEN_BELOW = 10;
 export const STORY_FIRST_BELOW = 12;

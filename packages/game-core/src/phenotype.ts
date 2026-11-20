@@ -91,8 +91,8 @@ export function abilityMark(state: HorseState): number {
  * The rating a horse makes its debut on (2026-11-20): its real ability mark today, not a flat
  * INITIAL_OR. Every debutant used to start on 40 while a starter's real mark is about 31, so on the
  * ratings it was expected to beat fields it couldn't, and the first results read "Rating 40 -> 37,
- * down 3" (first races probe, tools/season-harness: mean -2.9 over the first three starts on 40,
- * about +1 from the mark). Club runners have been rated at their mark since clubFill.ts; now a
+ * down 3" (first races probe, tools/season-harness, 2,000 new stables: mean -3.4 over the first
+ * three starts on 40, +0.3 from the mark). Club runners have been rated at their mark since clubFill.ts; now a
  * rating means the same thing on both sides from the first race.
  */
 export function debutRating(state: HorseState): number {
