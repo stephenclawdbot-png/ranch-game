@@ -348,6 +348,13 @@ must supply real segregation variance, or A-grade horses never appear.
 - So a generation takes ~3–4 weeks: first A-grade horses ~4–6 months after launch, S-grade much
   later.
 
+**Pace as shipped (2026-11-20; the lines above are the Milestone A proposal).** Pregnancy 24 h; a
+foal races after 8 counted care days (`CARE_TO_RACING`; 19 at first, 12 from 2026-11-01); a racing
+horse may breed once it has run one Live race (`BREED_FROM_STARTS` 1; 25, then 16). A mare still
+covers once a season, so a line still advances one generation a season; what changed is the first
+one: a new stable can cover its filly in its first days and race the foal around day 9-11
+(`docs/reports/2026-11-20 first-week pacing.md`, measured with `tools/season-harness`).
+
 ### Foal care (user decision)
 - A foal grows only through **daily care sessions**: one counted per real day per horse.
 - A missed day **pauses** growth and never harms the foal.
