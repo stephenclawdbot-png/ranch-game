@@ -52,6 +52,12 @@ export interface CardDay {
   coveredInTwo: number;
   /** Minutes each free horse waits for the next race it may enter (first visit of the day). */
   waitsMin: number[];
+  /**
+   * The same counts by why the race is on the card (`conditions.card.reason` of the demand-aware
+   * card: demand, cover, sponsor, claiming; "pattern" for a race of the fixed card). Absent in runs
+   * before 2026-11-20.
+   */
+  byReason?: Record<string, { published: number; ranWithPlayers: number; calledOff: number; stableStarts: number }>;
 }
 
 export interface CardTotals {
@@ -78,6 +84,8 @@ export interface CardTotals {
   waitP90Min: number;
   /** % of those horses with no race to enter on the whole published card. */
   noRacePct: number;
+  /** By why the race is on the card (CardDay.byReason): published, % called off, real stables per race run. */
+  byReason?: Record<string, { published: number; calledOffPct: number; stablesPerRace: number }>;
 }
 
 export interface CardReport {
@@ -90,7 +98,7 @@ export interface CardReport {
 export const STEADY_FROM_DAY = 3;
 
 const blankDay = (day: number): CardDay => ({
-  day, activeStables: 0, published: 0, sisters: 0, ran: 0, ranWithPlayers: 0, calledOff: 0, stableStarts: 0, twoPlus: 0, fourPlus: 0, meetings: 0, meetingRaces: 0, horses: 0, covered: 0, coveredInTwo: 0, waitsMin: [],
+  day, activeStables: 0, published: 0, sisters: 0, ran: 0, ranWithPlayers: 0, calledOff: 0, stableStarts: 0, twoPlus: 0, fourPlus: 0, meetings: 0, meetingRaces: 0, horses: 0, covered: 0, coveredInTwo: 0, waitsMin: [], byReason: {},
 });
 
 /** A horse that could race today if a race suited it (racing age, in training, sound). */
@@ -157,9 +165,9 @@ export class CardProbe {
 
   /** Call when a simulated day ends: closes the day's sample with its race counts. */
   async endDay(world: World, day: number, fromMs: number, toMs: number): Promise<void> {
-    const rows = await q<{ status: string; sister: boolean; st: number }>(
+    const rows = await q<{ status: string; sister: boolean; st: number; reason: string | null }>(
       world.db,
-      `select r.status, (r.slot_key ~ ':[0-9]+:[0-9]+$') sister,
+      `select r.status, (r.slot_key ~ ':[0-9]+:[0-9]+$') sister, r.conditions->'card'->>'reason' reason,
               count(distinct e.stable_id) filter (where e.status = 'entered' and e.stable_id is not null)::int st
          from races r left join race_entries e on e.race_id = r.id
         where r.slot_key like 'live%:%' and r.kind in ('scheduled','feature') and (r.conditions->'calendar') is null
@@ -173,10 +181,17 @@ export class CardProbe {
       const st = Number(r.st);
       if (r.sister) d.sisters++;
       else d.published++;
-      if (r.status === "cancelled") d.calledOff++;
+      const why = (d.byReason![r.reason ?? "pattern"] ??= { published: 0, ranWithPlayers: 0, calledOff: 0, stableStarts: 0 });
+      why.published++;
+      if (r.status === "cancelled") {
+        d.calledOff++;
+        why.calledOff++;
+      }
       if (r.status !== "settled") continue;
       d.ran++;
       if (st > 0) {
+        why.ranWithPlayers++;
+        why.stableStarts += st;
         d.ranWithPlayers++;
         d.stableStarts += st;
         if (st >= 2) d.twoPlus++;
@@ -199,6 +214,14 @@ export function cardTotals(days: readonly CardDay[]): CardTotals {
   const all = s((d) => d.published) + s((d) => d.sisters);
   const waits = days.flatMap((d) => d.waitsMin).sort((a, b) => a - b);
   const withPlayers = s((d) => d.ranWithPlayers);
+  const reasons = [...new Set(days.flatMap((d) => Object.keys(d.byReason ?? {})))].sort();
+  const byReason = Object.fromEntries(
+    reasons.map((k) => {
+      const of = (f: (x: NonNullable<CardDay["byReason"]>[string]) => number) => sum(days.map((d) => (d.byReason?.[k] ? f(d.byReason[k]!) : 0)));
+      const ran = of((x) => x.ranWithPlayers);
+      return [k, { published: of((x) => x.published), calledOffPct: pct(of((x) => x.calledOff), of((x) => x.published)), stablesPerRace: ran ? Math.round((100 * of((x) => x.stableStarts)) / ran) / 100 : 0 }];
+    }),
+  );
   return {
     days: days.length,
     activeStablesPerDay: round1(s((d) => d.activeStables) / Math.max(1, days.length)),
@@ -218,6 +241,7 @@ export function cardTotals(days: readonly CardDay[]): CardTotals {
     waitMedianMin: median(waits),
     waitP90Min: waits.length ? waits[Math.min(waits.length - 1, Math.floor(waits.length * 0.9))]! : 0,
     noRacePct: pct(waits.filter((w) => w >= NO_RACE_MIN).length, waits.length),
+    ...(reasons.length ? { byReason } : {}),
   };
 }
 
@@ -245,6 +269,9 @@ export function cardSummary(c: CardReport, base: CardReport | null, tag: string,
   }
   L.push(`| | ${cols.map(([h]) => h).join(" | ")} |`, `|---|${cols.map(() => "---:").join("|")}|`);
   for (const [label, f] of rows) L.push(`| ${label} | ${cols.map(([, t]) => f(t)).join(" | ")} |`);
+  if (c.totals.byReason) {
+    L.push("", `By why the race is on the card (${tag}, all days; "pattern" is the fixed card): ` + Object.entries(c.totals.byReason).map(([k, v]) => `${k} ${v.published} published, ${v.calledOffPct}% called off, ${v.stablesPerRace} real stables per race run`).join("; ") + ".");
+  }
   L.push("", "| day | stables playing | published | ran with a player | called off | stables per race | races per meeting | horses with a race in the meeting | median wait (min) |", "|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const d of c.days) {
     const t = cardTotals([d]);
