@@ -69,6 +69,8 @@ FW_STABLES=10 FW_OUT=/tmp/first-week npx vitest run --config tools/season-harnes
 | `FIRST_POLICY` | `open` | `open`: Quick Pick every time, `FIRST_PER_DAY` (5) races a day; `chapter`: the first race, then Story chapter races (storyProbe.ts) |
 | `FIRST_RACES` | 9 (`open`), 6 (`chapter`) | Story races per stable (9 gives each starter three starts) |
 | `FIRST_SEED` / `FIRST_OUT` / `FIRST_MERGE` | `first-1` / – / – | Seed; a JSON file with every run; files to summarise without simulating |
+| `FIRST_TALLY` / `FIRST_LABEL` | – / `run` | A `.jsonl` file: the chunk's counts are appended as one line under the label (a seed already there is not run again). Chunks add up exactly, so 2,000 stables can be run 200-400 at a time (about 5 minutes each) and kept in the repository: `results/2026-11-20-first-week/first-races.jsonl` |
+| `FIRST_TALLY_REPORT` | – | `1` with `FIRST_TALLY`: prints the added-up table per label without simulating |
 | `FW_STABLES` | 10 | Stables per persona (casual, engaged) |
 | `FW_DAYS` / `FW_SEED` / `FW_OUT` | 12 / `first-week-1` / – | Days; seed; a folder for `result.json` and `report.md` |
 

@@ -9,3 +9,7 @@ day 8 2026-11-16: 19 Live races (avg field 9.4, players 47.8%), 43 Story, create
 day 9 2026-11-17: 19 Live races (avg field 10.8, players 55.6%), 39 Story, created 27,062 / destroyed 21,592, 0 errors
 day 10 2026-11-18: 22 Live races (avg field 9.6, players 55.7%), 35 Story, created 34,576 / destroyed 27,611, 0 errors
 day 11 2026-11-19: 24 Live races (avg field 9.1, players 52.1%), 38 Story, created 37,579 / destroyed 29,746, 0 errors
+day 12 2026-11-20: 21 Live races (avg field 9.9, players 66.8%), 39 Story, created 47,189 / destroyed 23,532, 0 errors
+day 13 2026-11-21: 24 Live races (avg field 10, players 67.2%), 33 Story, created 55,066 / destroyed 30,892, 0 errors
+day 14 2026-11-22: 23 Live races (avg field 10.1, players 68.5%), 37 Story, created 32,739 / destroyed 97,540, 0 errors
+day 15 2026-11-23: 26 Live races (avg field 9.5, players 66.5%), 32 Story, created 46,862 / destroyed 26,779, 0 errors
