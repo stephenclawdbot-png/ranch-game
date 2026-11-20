@@ -112,6 +112,11 @@ describe("phone alerts API", () => {
       posts.push({ url, headers: init.headers as Record<string, string> });
       return new Response(null, { status: 201 });
     });
+    // Phone alerts are held from 22:00 to 08:00 in the account's own timezone: put the account where it
+    // is midday right now, so the test passes at any hour (it failed between 22:00 and 08:00 UTC).
+    const offset = 12 - new Date().getUTCHours();
+    const midday = offset === 0 ? "UTC" : `Etc/GMT${offset > 0 ? "-" : "+"}${Math.abs(offset)}`;
+    await h.db.execute(`update accounts set timezone = '${midday}' where id = '${me.accountId}'`);
     const id = await notify(h.db, { accountId: me.accountId, kind: "back_in_race", dedupeKey: `back:web:${randomBytes(3).toString("hex")}`, title: "Sea Lavender is over the sore shin and can race again", now: new Date() });
     // Not during the write: the sender runs after (here on the fallback timer, no request scope).
     expect(posts).toHaveLength(0);

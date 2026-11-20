@@ -60,7 +60,9 @@ async function postAt(db: Db, accountId: string, kind: string, amount: number, c
  * Reads run ahead of the fixture clock: the ledger rows get wall-clock timestamps (before
  * T0), while races and upkeep settle at T0-based times, so "now" has to cover both.
  */
-const FIN_NOW = () => at(8 * DAY);
+// The later of the two: once the real date passed T0 + 8 days (2026-11-10) the fixed time left the
+// wall-clock rows out and three tests read 0.
+const FIN_NOW = () => new Date(Math.max(at(8 * DAY).getTime(), Date.now() + 60_000));
 
 // ---------------------------------------------------------------------------
 // 1. Period boundaries
