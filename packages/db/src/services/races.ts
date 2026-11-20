@@ -17,7 +17,7 @@ import { commitSeed, newSeed, seededUniform, sha256Hex } from "../crypto";
 import { DomainError } from "../errors";
 import { horses, pregnancies, raceEntries, raceResults, races, stables, type HorseRow, type RaceEntryRow, type RaceRow } from "../schema";
 import { placeholderHooks, RULES, seasonNumberAt, stageFor, type GameHooks } from "../rules";
-import { bandRatingOf, gc, genomeOf, isGenome, statePatch, toHorseState, type HorseState } from "../gameCore";
+import { bandRatingOf, gc, genomeOf, isDebutantRow, isGenome, ratingOf, statePatch, toHorseState, type HorseState } from "../gameCore";
 import { checkMove } from "../machines";
 import { defaultHooks } from "../hooks";
 import type { Db, Executor, Tx } from "../types";
@@ -356,7 +356,11 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
     const [race] = await tx.select().from(races).where(eq(races.id, input.raceId)).for("update");
     if (!race) throw new DomainError("NOT_FOUND", "race not found");
     const stable = await lockStableOf(tx, input.accountId);
-    const horse = await lockHorse(tx, input.horseId);
+    const lockedHorse = await lockHorse(tx, input.horseId);
+    // A debutant races off its real ability mark (game-core debutRating), written with the entry
+    // below: the band checks, the snapshot and the rating the result is measured from all use it.
+    const debutSeat = isDebutantRow(lockedHorse) ? ratingOf(lockedHorse) : null;
+    const horse = debutSeat !== null ? { ...lockedHorse, rating: debutSeat, dynamics: { ...((lockedHorse.dynamics ?? {}) as Record<string, unknown>), peakOr: debutSeat } } : lockedHorse;
     // The keeper enters: the lessee while the horse is on lease (leasing.ts), else the owner.
     if (keeperOf(horse) !== stable.id) {
       throw new DomainError(horse.ownerStableId === stable.id ? "HORSE_ON_LEASE" : "NOT_OWNER", horse.ownerStableId === stable.id ? "this horse is away on lease" : "not your horse");
@@ -443,7 +447,10 @@ export async function enterRace(db: Db, input: EnterRaceInput, hooks: GameHooks 
         enteredAt: input.now,
       })
       .returning();
-    await tx.update(horses).set({ lockKind: "race", lockRef: race.id, updatedAt: input.now }).where(eq(horses.id, horse.id));
+    await tx
+      .update(horses)
+      .set({ lockKind: "race", lockRef: race.id, updatedAt: input.now, ...(debutSeat !== null ? { rating: horse.rating, dynamics: horse.dynamics } : {}) })
+      .where(eq(horses.id, horse.id));
     // The tote: a bet by anyone with an interest in this runner (own, lease partner, linked) is void.
     await voidConflictedToteBetsTx(tx, { raceId: race.id, horseId: horse.id, stableId: stable.id, ownerStableId: horse.ownerStableId, now: input.now });
     await recordPlayDay(tx, input.accountId, input.now);

@@ -11,7 +11,7 @@ export { DomainError, isDomainError, httpStatusFor, translateDbError, type Domai
 export { commitSeed, hashToken, newDeviceToken, newSeed, utcDay, utcWeekStart } from "./crypto";
 export * from "./rules";
 export { defaultHooks } from "./hooks";
-export { gameCoreHooks, bandRatingOf, toHorseState, statePatch, specFromGenome, clubRunnerSpec, CLUB_MARK_KEY, isGenome, genomeOf, isInjury, dayNumber, entryBankOf, type HorseDynamics } from "./gameCore";
+export { gameCoreHooks, bandRatingOf, ratingOf, isDebutantRow, toHorseState, statePatch, specFromGenome, clubRunnerSpec, CLUB_MARK_KEY, isGenome, genomeOf, isInjury, dayNumber, entryBankOf, type HorseDynamics } from "./gameCore";
 export * from "./services/tx";
 export * from "./services/ledger";
 export * from "./services/accounts";

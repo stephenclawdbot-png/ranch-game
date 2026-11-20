@@ -45,6 +45,36 @@ HARNESS_TAG=purses-up HARNESS_COMPARE=baseline HARNESS_REPORT_ONLY=1 npx vitest 
 npx vitest run --config tools/season-harness/vitest.config.ts smoke
 ```
 
+### New stables: the first races and the first week (2026-11-20)
+
+Two smaller probes look only at brand-new stables, through the same server code:
+
+```sh
+# First races: N new stables run their first Story races ("Race now" every time; FIRST_POLICY=chapter
+# follows the Story screen instead). Finishing positions in race 1, 2, 3 ..., a win within the
+# first five, and the rating over a horse's first three starts. About 0.25 s a race.
+FIRST_STABLES=250 FIRST_SEED=first-a FIRST_OUT=/tmp/first-a.json npx vitest run --config tools/season-harness/vitest.config.ts firstRaces
+# several seeds can run side by side (about 1 GB of memory each); merge the files for one summary
+FIRST_MERGE=/tmp/first-a.json,/tmp/first-b.json npx vitest run --config tools/season-harness/vitest.config.ts firstRaces
+
+# First week: a casual and an engaged new player through FW_DAYS days (default 12) with the Live
+# card driven as the cron does: credits earned and spent per day, when a first covering is possible
+# and paid for, when the foal is born and a home-bred horse races. About a minute a simulated day.
+FW_STABLES=10 FW_OUT=/tmp/first-week npx vitest run --config tools/season-harness/vitest.config.ts firstWeek
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FIRST_STABLES` | 200 | New stables (a fresh in-memory database every `FIRST_BATCH`, 100) |
+| `FIRST_POLICY` | `open` | `open`: Quick Pick every time, `FIRST_PER_DAY` (5) races a day; `chapter`: the first race, then Story chapter races (storyProbe.ts) |
+| `FIRST_RACES` | 9 (`open`), 6 (`chapter`) | Story races per stable (9 gives each starter three starts) |
+| `FIRST_SEED` / `FIRST_OUT` / `FIRST_MERGE` | `first-1` / – / – | Seed; a JSON file with every run; files to summarise without simulating |
+| `FW_STABLES` | 10 | Stables per persona (casual, engaged) |
+| `FW_DAYS` / `FW_SEED` / `FW_OUT` | 12 / `first-week-1` / – | Days; seed; a folder for `result.json` and `report.md` |
+
+The first-races summary also replays every horse's runs through game-core `updateRatings` from a
+different debut rating (its ability mark, and the old flat 40), against the same fields and results.
+
 `pnpm exec vitest ...` works the same. Nothing here runs in `pnpm -r test` or the web app's
 suite: the files are `*.harness.ts` under `tools/`, which no package's vitest config includes.
 The smoke test takes longer than the 20 s budget for the default suites, so it stays here.
@@ -136,6 +166,9 @@ House and Club runners fill fields exactly as the game does at field lock.
 | `src/run.ts` | The clock loop |
 | `src/metrics.ts` | Daily samples, outcomes, farmer channels, checks |
 | `src/report.ts` | `summary.md` and `report.html` (charts, compare mode) |
+| `firstRaces.harness.ts`, `src/firstRaces.ts` | New stables' first Story races: positions, a first win, the debut rating |
+| `firstWeek.harness.ts`, `src/firstWeek.ts` | A casual and an engaged new player's first days: credits, breeding milestones |
+| `storyCurve.harness.ts` | The Story curve probe (apps/web/src/server/storyProbe.ts): chapter 1 and the step into chapter 2 |
 
 ## Notes and limits
 

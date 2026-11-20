@@ -5,7 +5,7 @@
 import type { Horse, Silks } from "@thoroughbred/shared";
 import { SilksSchema } from "@thoroughbred/shared";
 import * as gc from "@thoroughbred/game-core";
-import { isGenome, isInjury, storedRaceDay, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
+import { isGenome, isInjury, ratingOf, storedRaceDay, toHorseState, type HorseRow, type PublicRace, type RaceConditions } from "@thoroughbred/db";
 import type { InjuryCard, RacePlan, RiskView, StableHorse } from "@/lib/types";
 import { houseOwnerFor, storyHouseHorse } from "./storyField";
 
@@ -183,7 +183,7 @@ export function stableHorseView(row: HorseRow, silks: Silks, nowMs: number, opts
     careerStatus: row.careerStatus,
     starts: row.starts,
     maxStarts: gc.CAREER_MAX_STARTS,
-    rating: row.rating,
+    rating: ratingOf(row),
     injury:
       row.injury && row.injuredUntil && row.injuredUntil.getTime() > nowMs
         ? {

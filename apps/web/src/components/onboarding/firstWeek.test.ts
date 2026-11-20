@@ -36,6 +36,7 @@ function week(done: Set<string>, facts: Partial<gc.FirstWeekFacts> = {}): FirstW
     canRename: true,
     qualifier: false,
     careerStory: false,
+    bred: false,
     ...facts,
   });
   return { ...l, endsAtMs: 0 };
@@ -50,16 +51,16 @@ const goals: DailyGoalView[] = [
 describe("the first-week card", () => {
   it("shows the next three jobs in order, each a tap to the right place, with today's goals folded in", () => {
     const w = week(new Set(["read_why", "care", "train_plan", "enter_live", "watch_live"]));
-    expect(w.next).toEqual(["rename", "daily_cup", "qualifier"]);
+    expect(w.next).toEqual(["rename", "daily_cup", "breeding_preview"]);
     const html = renderToStaticMarkup(React.createElement(StableSteps, { week: w, steps: null, state, plain: false, goals }));
     expect(html).toContain("Your first week");
     expect(html).toContain(`${w.done} of ${w.total} done`);
     const todo = html.slice(html.indexOf('data-testid="steps-todo"'), html.indexOf('data-testid="daily-goals"'));
     expect(todo.indexOf(STEP_COPY.rename!.title)).toBeLessThan(todo.indexOf(STEP_COPY.daily_cup!.title));
-    expect(todo.indexOf(STEP_COPY.daily_cup!.title)).toBeLessThan(todo.indexOf(STEP_COPY.qualifier!.title));
+    expect(todo.indexOf(STEP_COPY.daily_cup!.title)).toBeLessThan(todo.indexOf(STEP_COPY.breeding_preview!.title));
     expect(todo).toContain('href="/horse/unraced/career"');
     expect(todo).toContain('href="/cup"');
-    expect(todo).toContain('href="/week"');
+    expect(todo).toContain('href="/breeding#finder"');
     expect(todo).toContain('data-testid="steps-next"');
     // Wilf says what the next job is for.
     expect(html).toContain(STEP_COPY.rename!.text.replace(/'/g, "&#x27;"));
@@ -86,6 +87,7 @@ describe("the first-week card", () => {
     expect(stepHref("career_story", state)).toBe("/horse/raced#story-h");
     expect(stepHref("rename", state)).toBe("/horse/unraced/career");
     expect(stepHref("breeding_preview", state)).toBe("/breeding#finder");
+    expect(stepHref("first_foal", state)).toBe("/breeding");
   });
 });
 

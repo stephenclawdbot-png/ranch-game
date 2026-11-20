@@ -378,8 +378,8 @@ export interface OnboardingView {
   /** The first-week list on Home (the Stable steps and a few unpaid jobs, ticked from the records); null for existing stables. */
   firstWeek?: FirstWeekView | null;
   welcomeBack: WelcomeBackView | null;
-  /** Wilf's day-3 suggestion to start a bloodline: the mare (to retire, or already retired), or null. */
-  bloodline?: { horseId: string; name: string; retired: boolean } | null;
+  /** Wilf's suggestion to start a bloodline: the mare, whether she can be covered today (`ready`) and the starts she still needs, or null. */
+  bloodline?: { horseId: string; name: string; retired: boolean; ready?: boolean; startsToGo?: number } | null;
 }
 
 export interface StableStepsView {

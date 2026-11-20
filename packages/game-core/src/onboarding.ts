@@ -6,7 +6,7 @@
 import type { Horse, RaceConfig, RaceEntry, Silks } from "@thoroughbred/shared";
 import type { Breed, HorseState, Rarity } from "./types";
 import { generateFoundationGenome, preferredDistanceM, preferredSurface } from "./genome";
-import { CARE_TO_RACING, createHorseState } from "./lifecycle";
+import { BREED_FROM_STARTS, CARE_TO_RACING, createHorseState } from "./lifecycle";
 import { clubRunner, meanStat } from "./field";
 import { dayIndex } from "./time";
 import { Rng, seedFrom } from "./rng";
@@ -208,7 +208,7 @@ export function stableStepsProgress(done: ReadonlySet<string>, features: GuideFe
  * rewards (and the daily goals pay for racing, care and the Cup), so these only point the way.
  * Each is ticked from the stable's own records, never from a click on the list.
  */
-export type FirstWeekExtraKey = "first_race" | "rename" | "qualifier" | "career_story";
+export type FirstWeekExtraKey = "first_race" | "rename" | "qualifier" | "career_story" | "first_foal";
 export type FirstWeekKey = StableStepKey | FirstWeekExtraKey;
 
 /** The list shows from founding day until this many days later (day 0 to day 6), then hides for good. */
@@ -219,7 +219,12 @@ export const FIRST_WEEK_SHOWN = 3;
 /**
  * The order a new trainer meets things: the first race and its "why" (both usually done in the
  * first minutes), care and training, a Live race and its result, naming a horse while it still
- * can be, the daily and weekly tools, a Feature Qualifier, a look at breeding, a career story.
+ * can be, the Daily Cup, then breeding (a look at the stallion finder and the first foal of the
+ * stable's own), the weekly tools, a Feature Qualifier, a career story.
+ *
+ * Breeding moved up on 2026-11-20 (it was second to last, behind a Feature Qualifier most new
+ * stables never enter, so the list's three open jobs never reached it): in week one 1 tester of
+ * 108 bred a horse. A filly may breed after BREED_FROM_STARTS starts, so it belongs to the first days.
  */
 export const FIRST_WEEK_ORDER: readonly FirstWeekKey[] = [
   "first_race",
@@ -230,11 +235,12 @@ export const FIRST_WEEK_ORDER: readonly FirstWeekKey[] = [
   "watch_live",
   "rename",
   "daily_cup",
-  "qualifier",
+  "breeding_preview",
+  "first_foal",
   "pick",
   "quick_race",
   "pin_target",
-  "breeding_preview",
+  "qualifier",
   "career_story",
 ];
 
@@ -253,6 +259,8 @@ export interface FirstWeekFacts {
   qualifier: boolean;
   /** The player has read one of their horses' career stories. */
   careerStory: boolean;
+  /** The stable has had a mare covered (any breeding event it requested). Absent = not known: the job is left off. */
+  bred?: boolean;
 }
 
 export interface FirstWeekItem {
@@ -290,6 +298,7 @@ export function firstWeekList(steps: StableStepsProgress, f: FirstWeekFacts, sho
     rename: { offered: f.renamed || f.canRename, done: f.renamed },
     qualifier: { offered: true, done: f.qualifier },
     career_story: { offered: true, done: f.careerStory },
+    first_foal: { offered: f.bred !== undefined, done: !!f.bred },
   };
   const items: FirstWeekItem[] = [];
   for (const key of FIRST_WEEK_ORDER) {
@@ -405,9 +414,23 @@ export const BLOODLINE_NUDGE_DAYS = 2;
 export interface BloodlineMare {
   id: string;
   name: string;
-  /** Still racing (retiring her first is the suggestion) or already retired (she can breed now). */
+  /** Still racing (she may breed from BREED_FROM_STARTS starts) or already retired (she can breed now). */
   racing: boolean;
   rating: number;
+  /** Career starts so far (absent: none). */
+  starts?: number;
+}
+
+/** Wilf's suggestion: the mare, whether she can be covered today, and how many starts she still needs. */
+export interface BloodlineSuggestion {
+  horseId: string;
+  name: string;
+  /** She is retired from racing (a broodmare). */
+  retired: boolean;
+  /** She can be covered today (retired, or racing with BREED_FROM_STARTS starts). */
+  ready: boolean;
+  /** Starts she still needs before she may breed while racing (0 when ready). */
+  startsToGo: number;
 }
 
 export interface BloodlineFacts {
@@ -421,15 +444,21 @@ export interface BloodlineFacts {
 }
 
 /**
- * Wilf's day-3 suggestion: start a bloodline. Shown once to a guided stable from its third day,
- * until dismissed, and never to a stable that has already bred. A retired mare comes first (she
- * can breed straight away); otherwise the starter to retire is the lowest-rated racing filly, so
- * the best racers keep racing. Null when there is no mare to suggest.
+ * Wilf's suggestion: start a bloodline. Shown once to a guided stable, until dismissed, and never
+ * to a stable that has already bred: from its third day, or sooner, the day a racing mare has the
+ * starts to breed (BREED_FROM_STARTS). A mare that can be covered today comes first (a retired one
+ * before a racing one, then the lower-rated); otherwise the racing filly closest to her starts,
+ * with how many she still needs. Nobody is told to retire a starter any more (2026-11-20: a racing
+ * mare breeds from BREED_FROM_STARTS starts and races on after the foal). Null without a mare.
  */
-export function bloodlineNudge(f: BloodlineFacts): { horseId: string; name: string; retired: boolean } | null {
-  if (!f.guided || f.dismissed || f.hasBred || f.daysSinceFounding < BLOODLINE_NUDGE_DAYS) return null;
-  const pick = [...f.mares].sort((a, b) => Number(a.racing) - Number(b.racing) || a.rating - b.rating || a.id.localeCompare(b.id))[0];
-  return pick ? { horseId: pick.id, name: pick.name, retired: !pick.racing } : null;
+export function bloodlineNudge(f: BloodlineFacts): BloodlineSuggestion | null {
+  if (!f.guided || f.dismissed || f.hasBred) return null;
+  const toGo = (m: BloodlineMare) => (m.racing ? Math.max(0, BREED_FROM_STARTS - (m.starts ?? 0)) : 0);
+  const pick = [...f.mares].sort((a, b) => toGo(a) - toGo(b) || Number(a.racing) - Number(b.racing) || a.rating - b.rating || a.id.localeCompare(b.id))[0];
+  if (!pick) return null;
+  const startsToGo = toGo(pick);
+  if (f.daysSinceFounding < BLOODLINE_NUDGE_DAYS && !(pick.racing && startsToGo === 0)) return null;
+  return { horseId: pick.id, name: pick.name, retired: !pick.racing, ready: startsToGo === 0, startsToGo };
 }
 
 /** The mentor who welcomes a new stable and runs the first-week guide. */

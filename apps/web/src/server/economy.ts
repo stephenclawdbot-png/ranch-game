@@ -103,7 +103,7 @@ const BREED_REASON: Record<string, (s: { starts: number; minStarts: number; used
   dam_not_female: () => "The dam must be a mare.",
   gelding: () => "Geldings can't breed.",
   not_racing_age: () => "Still growing: not yet of breeding age.",
-  not_breeding_eligible: (s) => `Breeds from ${s.minStarts} starts, or once sent to stud (${s.starts}/${s.minStarts} starts).`,
+  not_breeding_eligible: (s) => `Breeds from ${s.minStarts} starts (Live races), or once sent to stud (${s.starts}/${s.minStarts} starts).`,
   pastured: () => "Retired for good: retired horses don't breed.",
   lifetime_limit: (s) => `All ${s.lifetime} lifetime breedings used.`,
   season_limit: () => "Already covered this season. Free again next season.",
