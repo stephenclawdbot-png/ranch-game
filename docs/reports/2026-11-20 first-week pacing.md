@@ -205,8 +205,12 @@ are small. A race or a training session costs
 - **Listed: stalls fill in week one.** Three starters, the gift foal, a pack foal and the first
   home-bred foal make six. The free Paddock Pack every third play day then needs a seventh stall
   (2,000): the next natural purchase.
-- **Listed: three `finances.test.ts` cases fail on any date after 2026-11-10** (they compare ledger
-  rows stamped with the wall clock against a fixed "now"). They fail the same way at 396ab71.
+- **Listed: tests that fail without this change too.** Three `finances.test.ts` cases (packages/db)
+  fail on any date after 2026-11-10: they compare ledger rows stamped with the wall clock against
+  a fixed "now". `push.test.ts` (apps/web, "a new push-kind note goes out") fails between 22:00
+  and 08:00 UTC: it sends with the real time and quiet hours hold the alert back. The harness's
+  smoke test fails its "same seed, same season" check: two runs of the same code differ (also at
+  396ab71), so season runs carry about 0.5% of noise a day.
 - Daily goals (race, care, the Daily Cup: 3 × 45) can all be done on day 1. Story rewards do not
   stall in week one (casual about 1,400 over seven days, engaged about 3,000).
 
