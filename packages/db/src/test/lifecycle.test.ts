@@ -168,9 +168,10 @@ describe("care", () => {
     await expect(recordCare(h.db, { accountId: p.accountId, horseId: foalRow.id, now: at(11 * 60 * MIN), actions: {} })).rejects.toMatchObject({
       code: "ALREADY_CARED_TODAY",
     });
-    for (let d = 1; d < 5; d++) await recordCare(h.db, { accountId: p.accountId, horseId: foalRow.id, now: at(d * DAY), actions: {} });
-    expect(await getHorseRow(h.db, foalRow.id)).toMatchObject({ careSessions: 5, stage: "weanling" });
-    expect(await count(h.db, "care_log", `horse_id = '${foalRow.id}'`)).toBe(5);
+    const sessions = RULES.careToYearling - 1; // the last care day as a weanling
+    for (let d = 1; d < sessions; d++) await recordCare(h.db, { accountId: p.accountId, horseId: foalRow.id, now: at(d * DAY), actions: {} });
+    expect(await getHorseRow(h.db, foalRow.id)).toMatchObject({ careSessions: sessions, stage: "weanling" });
+    expect(await count(h.db, "care_log", `horse_id = '${foalRow.id}'`)).toBe(sessions);
   });
 
   it("only the owner can care for a horse", async () => {

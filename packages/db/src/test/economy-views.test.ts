@@ -39,7 +39,7 @@ const key = () => `ev-${++k}`;
 describe("economy views: breeding", () => {
   it("explains eligibility with the same rules breed uses", async () => {
     const p = await newPlayer(h.db, { credits: 20_000 });
-    const young = await makeHorse(h.db, p.stableId, { sex: "male", starts: 3 });
+    const young = await makeHorse(h.db, p.stableId, { sex: "male", starts: RULES.breedingMinStarts - 1 });
     const veteran = await makeHorse(h.db, p.stableId, { sex: "male", starts: 25 });
     const retiredMare = await makeHorse(h.db, p.stableId, { sex: "female", ...retired });
     const spent = await makeHorse(h.db, p.stableId, { sex: "female", ...retired, breedingCount: 4 });

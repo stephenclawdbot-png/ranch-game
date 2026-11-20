@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RaceBroadcastChunkSchema, type RaceBroadcastChunk } from "@thoroughbred/shared";
-import { DAILY_GOAL_CREDITS } from "@thoroughbred/game-core";
+import { DAILY_GOAL_CREDITS, STORY_CLUB_OPEN_RUNNERS } from "@thoroughbred/game-core";
 import { createAccount, createDb, getBalance, getEntryBank, getRace, listInbox, schema, stableOf, type DbHandle } from "@thoroughbred/db";
 import {
   createStoryRace,
@@ -89,7 +89,7 @@ describe("Story mode", () => {
     const card = await raceCard(h.db, created.raceId, T0, p.stable.id);
     expect(card.kind).toBe("story");
     expect(card.status).toBe("finished");
-    expect(card.field.length).toBeGreaterThanOrEqual(8);
+    expect(card.field.length).toBe(STORY_CLUB_OPEN_RUNNERS[0]); // a stable's first race: the smallest Club field
     expect(card.field.filter((f) => f.mine)).toHaveLength(1);
     const credits = await getBalance(h.db, p.accountId);
     const mine = await myRaceResult(h.db, p, created.raceId, T0);

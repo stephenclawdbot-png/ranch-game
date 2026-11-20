@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 import { BREED_FROM_STARTS } from "./lifecycle";
 import { BLOODLINE_NUDGE_DAYS, UNLOCK_MARKET_DAYS, bloodlineNudge, type BloodlineFacts } from "./onboarding";
 
+/** Two racing fillies that haven't run a Live race yet: neither can breed. */
 const facts = (over: Partial<BloodlineFacts> = {}): BloodlineFacts => ({
   guided: true,
   daysSinceFounding: BLOODLINE_NUDGE_DAYS,
   dismissed: false,
   hasBred: false,
   mares: [
-    { id: "a", name: "Lucky Penny", racing: true, rating: 44, starts: 1 },
-    { id: "b", name: "Paper Moon", racing: true, rating: 38, starts: 1 },
+    { id: "a", name: "Lucky Penny", racing: true, rating: 44, starts: 0 },
+    { id: "b", name: "Paper Moon", racing: true, rating: 38, starts: 0 },
   ],
   ...over,
 });
@@ -24,21 +25,16 @@ describe("the bloodline nudge", () => {
   });
 
   it("opens sooner, the day a racing filly has the starts to breed", () => {
-    const ready = facts({ daysSinceFounding: 1, mares: [{ id: "a", name: "Lucky Penny", racing: true, rating: 44, starts: BREED_FROM_STARTS }] });
-    expect(bloodlineNudge(ready)).toEqual({ horseId: "a", name: "Lucky Penny", retired: false, ready: true, startsToGo: 0 });
+    const ready = (day: number) => facts({ daysSinceFounding: day, mares: [{ id: "a", name: "Lucky Penny", racing: true, rating: 44, starts: BREED_FROM_STARTS }] });
+    expect(bloodlineNudge(ready(0))).toEqual({ horseId: "a", name: "Lucky Penny", retired: false, ready: true, startsToGo: 0 });
+    expect(bloodlineNudge(ready(1))).toEqual({ horseId: "a", name: "Lucky Penny", retired: false, ready: true, startsToGo: 0 });
     expect(bloodlineNudge(facts({ daysSinceFounding: 0, mares: [{ id: "a", name: "Lucky Penny", racing: true, rating: 44, starts: BREED_FROM_STARTS - 1 }] }))).toBeNull();
   });
 
-  it("never asks to retire: a filly short of her starts is told how many she needs, the closest first", () => {
-    const f = facts({
-      mares: [
-        { id: "a", name: "Lucky Penny", racing: true, rating: 44, starts: BREED_FROM_STARTS - 1 },
-        { id: "b", name: "Paper Moon", racing: true, rating: 38, starts: 0 },
-      ],
-    });
-    expect(bloodlineNudge(f)).toEqual({ horseId: "a", name: "Lucky Penny", retired: false, ready: false, startsToGo: 1 });
-    // Level on starts: the lower-rated one, so the better racer is the one kept busy.
-    expect(bloodlineNudge(facts())).toEqual({ horseId: "b", name: "Paper Moon", retired: false, ready: false, startsToGo: BREED_FROM_STARTS - 1 });
+  it("never asks to retire: a filly short of her starts is told how many she needs, the lower-rated one first", () => {
+    expect(bloodlineNudge(facts())).toEqual({ horseId: "b", name: "Paper Moon", retired: false, ready: false, startsToGo: BREED_FROM_STARTS });
+    // A mare whose starts aren't known counts as unraced.
+    expect(bloodlineNudge(facts({ mares: [{ id: "a", name: "Lucky Penny", racing: true, rating: 44 }] }))!.startsToGo).toBe(BREED_FROM_STARTS);
   });
 
   it("a mare that can be covered today comes first: a retired one before a racing one", () => {

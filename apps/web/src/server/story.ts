@@ -10,7 +10,7 @@ import { conditionRating, lossGrade } from "@/lib/aptitude";
 import type { ChapterView, RivalStableView, StoryRaceCreated, StoryRaceView, StoryView } from "@/lib/competitionTypes";
 import type { RacePlan } from "@/lib/types";
 import { runSoloRace } from "./game";
-import { parseSilks, stableHorseView } from "./horseView";
+import { parseSilks, stableHorseView, withoutMaresInFoal } from "./horseView";
 import type { Session } from "./session";
 import { storyMetaOf } from "./storyField";
 
@@ -81,7 +81,7 @@ export async function storyView(db: Db, session: Session | null, now: Date): Pro
   const current = gc.currentChapter(st.licenceLevel, won);
   const earnings = session ? await storyChapterEarnings(db, session.accountId) : {};
   const silks = parseSilks(session?.stable.silks);
-  const rows = session ? await listStableHorses(db, session.stable.id) : [];
+  const rows = session ? await withoutMaresInFoal(db, await listStableHorses(db, session.stable.id)) : [];
 
   const chapters: ChapterView[] = progress.map((p) => {
     const c = p.chapter;
@@ -217,7 +217,7 @@ export async function followUpChapterRace(db: Db, session: Session, fromKey: str
   const row = opts.horseId ? rows.find((r) => r.id === opts.horseId) : undefined;
   if (opts.suited && row) return suitedChapterRace(stableHorseView(row, silks, now.getTime()).horse, open).key;
   if (open.some((r) => r.key === fromKey)) return fromKey;
-  return (suggestedChapterRace(rows, silks, now.getTime(), open) ?? open[0]!).key;
+  return (suggestedChapterRace(await withoutMaresInFoal(db, rows), silks, now.getTime(), open) ?? open[0]!).key;
 }
 
 export interface ChapterRaceRequest {
@@ -244,7 +244,7 @@ export async function createChapterRace(db: Db, session: Session, req: ChapterRa
     row = rows.find((r) => r.id === req.horseId);
     if (!row) throw new DomainError("NOT_OWNER", "that horse isn't in your stable");
   } else {
-    const best = candidates(rows, silks, nowMs, def)[0];
+    const best = candidates(await withoutMaresInFoal(db, rows), silks, nowMs, def)[0];
     if (!best) throw new DomainError("NOT_ELIGIBLE", "none of your horses can race right now");
     row = best.row;
     pick = { horseId: row.id, horseName: best.name, reason: `${best.name}: ${best.loss <= 25 ? "a good fit" : "your best fit"} for ${def.distanceM.toLocaleString("en-GB")} m on ${def.surface}` };

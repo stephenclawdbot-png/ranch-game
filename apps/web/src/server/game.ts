@@ -132,7 +132,7 @@ import { houseOwnerFor, settleStoryRace, storyMetaOf } from "./storyField";
 import { afterResultWatched, onboardingView } from "./guide";
 import { stableNews } from "./moments";
 import { maybeSweepNotifications, unreadCount } from "./notifications";
-import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView } from "./horseView";
+import { DEFAULT_SILKS, bigCrowd, engineHorseFromSnapshot, geneticsView, horseFromRow, inFoalText, injuryCard, parsePlan, parseSilks, raceConds, raceRisk, raceTier, stableHorseView, withoutMaresInFoal } from "./horseView";
 import { broadcastEndsAtMs, broadcastStartMs, isBroadcastOver, sliceBroadcast } from "./live";
 import type { Session } from "./session";
 import { maybeSweepLeases } from "./leasing";
@@ -1301,7 +1301,7 @@ export async function createStoryRace(db: Db, session: Session, req: StoryReques
     row = rows.find((r) => r.id === req.horseId);
     if (!row) throw new DomainError("NOT_OWNER", "that horse isn't in your stable");
   } else {
-    const p = storyPick(rows, silks, nowMs);
+    const p = storyPick(await withoutMaresInFoal(db, rows), silks, nowMs);
     if (!p) throw new DomainError("NOT_ELIGIBLE", "none of your horses can race right now");
     row = p.row;
     const h = p.view.horse;

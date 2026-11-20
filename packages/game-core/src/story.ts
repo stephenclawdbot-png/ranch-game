@@ -541,12 +541,12 @@ export function storyFieldNote(rival: Pick<RivalStable, "name"> | undefined, adj
  * last 11%, and 71% had a win within five races. A Club runner is a seasoned horse: at the same
  * ability mark it out-runs a debutant (its temperament, soundness and adaptability are a grown
  * horse's; the mark counts speed, stamina and burst only), so "level" on the marks was not level.
- * Now 10 below (12 for the first race), fields of 7-8 (STORY_CLUB_OPEN_RUNNERS), and the field
+ * Now 10 below (12 for the first race), fields of 7-8 (STORY_CLUB_OPEN_RUNNERS), 3 marks a step (was 2), and the field
  * eases from the first loss (STORY_OPEN_EASE_FROM_LOSSES). The races stay honest simulations.
  */
 export const STORY_OPEN_BELOW = 10;
 export const STORY_FIRST_BELOW = 12;
-export const STORY_OPEN_MARKS_PER_STEP = 2;
+export const STORY_OPEN_MARKS_PER_STEP = 3;
 /** Open Story races in chapter 1 ease from this many losses in a row (chapter races: from 2). */
 export const STORY_OPEN_EASE_FROM_LOSSES = 1;
 
