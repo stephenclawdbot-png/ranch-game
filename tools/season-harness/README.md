@@ -134,6 +134,17 @@ settlements, about 15%), so a 7-day run is about 10 minutes and a full season ab
   meeting (class and licence, the entry sheet's own check), and in a meeting or the one before;
   and how long a free horse waits for the next race it may enter (median, p90).
 
+  The summary also splits the races by why they are on the card (`byReason`: demand, cover,
+  sponsor, claiming; `pattern` on the fixed card).
+
+`out/` is not committed. `out-notes/<name>.json` keeps the comparable part of the runs behind the
+demand-aware card (2026-11-20): the beta scenario for 14 days on the fixed and the demand-aware
+card, 50 stables for 4 days on the fixed card and 10 days on the demand-aware card. The runs were
+kept short (the machine restarted under longer ones); the standard 28-day 50-stable season on the
+demand-aware card has not been run. The smoke test's determinism check fails on this date on the
+fixed card and on the commit before the card change too, so two runs of one seed differ a little
+in race results: read differences of a few percent between runs as noise.
+
 ### Checks
 
 `checks.ok` needs the game's `ledgerHealth` clean (postings sum to zero, no drifted or
