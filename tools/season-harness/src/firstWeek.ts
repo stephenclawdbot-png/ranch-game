@@ -203,6 +203,8 @@ async function visit(run: Run, a: Agent, now: Date, firstOfDay: boolean): Promis
   // A home-bred or gift horse that has reached racing age runs in a Story race that day.
   const origins = await q<{ id: string; origin: string; care: number; starts: number }>(db, `select id, origin, care_sessions as care, starts from horses where owner_stable_id = '${a.stableId}' and origin in ('bred', 'gift')`);
   for (const o of origins) {
+    // A home-bred foal in the yard: born (whoever delivered it: this visit, or the card's upkeep run).
+    if (o.origin === "bred") m.foalBorn = first(m.foalBorn, day);
     if (Number(o.care) < gc.CARE_TO_RACING) continue;
     if (o.origin === "gift") m.giftFoalRacingAge = first(m.giftFoalRacingAge, day);
     else {
