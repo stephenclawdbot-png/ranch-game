@@ -6,6 +6,7 @@ import type { HomeTiles } from "@/lib/homeTypes";
 import { formatCountdown, formatDistance, ordinal } from "@/lib/format";
 import { useNow } from "@/lib/clock";
 import { usePoll } from "@/lib/attention";
+import { fetchHomeTiles } from "@/lib/homeTiles";
 import { PixelIcon, type IconName } from "../icons";
 import { Section } from "../ui/Page";
 
@@ -38,13 +39,10 @@ export function TodayTiles({ refreshKey, hide, title = "Today" }: { refreshKey?:
   const now = useNow(1000);
 
   const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/home", { cache: "no-store" });
-      if (!res.ok) throw new Error(String(res.status));
-      setTiles(((await res.json()) as { tiles: HomeTiles }).tiles);
-    } catch {
-      setTiles((t) => (t === undefined ? null : t));
-    }
+    // One request for everything on the page that reads the tiles (lib/homeTiles).
+    const next = await fetchHomeTiles();
+    if (next) setTiles(next);
+    else setTiles((t) => (t === undefined ? null : t));
   }, []);
 
   useEffect(() => {

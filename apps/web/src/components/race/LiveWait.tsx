@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { HomeTiles } from "@/lib/homeTypes";
 import type { WaitAction } from "@/lib/whileYouWait";
 import { usePoll } from "@/lib/attention";
+import { fetchHomeTiles } from "@/lib/homeTiles";
 import { useNow } from "@/lib/clock";
 import { localClockText, utcClockText, waitText } from "@/lib/meetings";
 
@@ -97,9 +97,7 @@ function useCupOpen(): boolean {
     if (!cupCache || Date.now() - cupCache.at > 60_000) {
       cupCache = {
         at: Date.now(),
-        canRun: fetch("/api/home", { cache: "no-store" })
-          .then(async (r) => (r.ok ? (((await r.json()) as { tiles: HomeTiles }).tiles.cup?.canRun ?? false) : false))
-          .catch(() => false),
+        canRun: fetchHomeTiles().then((tiles) => tiles?.cup?.canRun ?? false),
       };
     }
     void cupCache.canRun.then((v) => alive && setOpen(v));
