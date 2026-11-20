@@ -123,7 +123,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
 ### 4a amendments (user-approved)
 
 - **Career length:** 34 starts (owner, 2026-11-01; was 40). Juvenile 0–5, prime 6–24, veteran 25–34.
-  Mandatory racing retirement at 34. Breeding is available from start 16 or after retirement.
+  Mandatory racing retirement at 34. Breeding is available after one Live race, or after retirement (16 starts until 2026-11-20: nobody reached it in the weeks people actually play; docs/reports/2026-11-20 first-week pacing.md).
 - **Rest:** freshness recovers in real time. A horse can race again whenever the owner
   chooses, but racing it tired lowers performance and raises injury risk. Hard cap: 3 starts
   per horse per day.
@@ -137,7 +137,7 @@ age, decline or die. Seasons exist only for competitions: leagues, finals, title
   up to 24. A player can never own more horses than stalls, so foaling uses a nursery
   overflow slot and the foal is never lost. The active population is therefore at most
   players × stalls.
-- **Packs produce foals,** which need 12 care days before they can race.
+- **Packs produce foals,** which need 8 care days before they can race (12 until 2026-11-20). Premium Packs give a juvenile ready to race.
 - **Pack limits:**
   - Paddock Pack: 1 free every 3rd play day, plus up to 3 bought with credits per week.
   - Premium Pack: up to 5 per week per account in the closed beta, and at most $50 of
