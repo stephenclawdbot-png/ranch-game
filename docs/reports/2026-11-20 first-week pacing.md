@@ -166,11 +166,16 @@ player, players 64% of the runners, winning 57% of the races they ran in and 8.9
 Feature Qualifier runners 234 (62 in the first three), Weekend Feature runners 26; 34 foals bred,
 117 pack foals, 50 gift foals; Live injuries 36 in 4,029 player starts (the risk model: 33.8), no
 deaths; median balances casual 7.8k, grinder 0.8k, breeder 3.7k, farmer 8.7k. Sinks: entry fees
-365k, upkeep 265k, stalls 85k, race-day extras 82k, facilities 71k, coverings 59k. BASELINE_NOTE
+365k, upkeep 265k, stalls 85k, race-day extras 82k, facilities 71k, coverings 59k. The baseline
+(396ab71) could only be run for the first 14 days (the machine restarted three times): over those
+days spending per 100 earned went from 81.5 to 84.4, player runners from 1,379 to 1,656 (foals
+race four days sooner), purses +14%, entry fees +15%, upkeep +24%, injuries 11 and 11. A 28-day
+baseline is a follow-up; details in
+`tools/season-harness/results/2026-11-20-first-week/season.md`.
 
 One effect to know about: player ratings now sit at the horses' real marks. The median racing
-horse is rated 34-38.5 by cohort at the end of the season (44-46.5 in the October runs, when every
-horse entered at 40 and handed its surplus points to the field) and the best 54. Fewer player
+horse is rated 34-38.5 by cohort at the end of the season (on day 14: 34-37 against 39.5-43 at
+396ab71, when every horse entered at 40 and handed its surplus points to the field) and the best 54. Fewer player
 horses will therefore reach the 50-75 Handicap and the bands above it; Qualifiers, which have no
 rating floor, were unaffected.
 
