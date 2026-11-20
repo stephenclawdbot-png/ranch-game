@@ -1,0 +1,283 @@
+{
+ "tag": "season-50-4d-fixed",
+ "meta": {
+  "days": 4,
+  "start": "2026-11-09T00:00:00.000Z",
+  "season": 12,
+  "stables": 50,
+  "cohorts": {
+   "casual": 20,
+   "grinder": 12,
+   "breeder": 10,
+   "farmer": 8
+  },
+  "seed": "season-harness-1",
+  "engineVersion": "1.4.0",
+  "scenario": null,
+  "runtimeMs": 312149
+ },
+ "cardPlan": "fixed",
+ "checks": {
+  "ok": true,
+  "conservationOk": true,
+  "unexpectedErrors": 0
+ },
+ "card": {
+  "days": [
+   {
+    "day": 1,
+    "activeStables": 49,
+    "published": 33,
+    "sisters": 2,
+    "ran": 19,
+    "ranWithPlayers": 19,
+    "calledOff": 16,
+    "stableStarts": 113,
+    "twoPlus": 18,
+    "fourPlus": 10,
+    "meetings": 8,
+    "meetingRaces": 30,
+    "horses": 697,
+    "covered": 697,
+    "coveredInTwo": 697,
+    "byReason": {
+     "pattern": {
+      "published": 35,
+      "ranWithPlayers": 19,
+      "calledOff": 16,
+      "stableStarts": 113
+     }
+    },
+    "waits": 147,
+    "waitMedianMin": 60
+   },
+   {
+    "day": 2,
+    "activeStables": 48,
+    "published": 30,
+    "sisters": 4,
+    "ran": 18,
+    "ranWithPlayers": 18,
+    "calledOff": 16,
+    "stableStarts": 103,
+    "twoPlus": 14,
+    "fourPlus": 11,
+    "meetings": 8,
+    "meetingRaces": 28,
+    "horses": 1045,
+    "covered": 1025,
+    "coveredInTwo": 1028,
+    "byReason": {
+     "pattern": {
+      "published": 34,
+      "ranWithPlayers": 18,
+      "calledOff": 16,
+      "stableStarts": 103
+     }
+    },
+    "waits": 125,
+    "waitMedianMin": 40
+   },
+   {
+    "day": 3,
+    "activeStables": 48,
+    "published": 31,
+    "sisters": 4,
+    "ran": 19,
+    "ranWithPlayers": 19,
+    "calledOff": 16,
+    "stableStarts": 110,
+    "twoPlus": 17,
+    "fourPlus": 12,
+    "meetings": 8,
+    "meetingRaces": 29,
+    "horses": 1050,
+    "covered": 1003,
+    "coveredInTwo": 1012,
+    "byReason": {
+     "pattern": {
+      "published": 35,
+      "ranWithPlayers": 19,
+      "calledOff": 16,
+      "stableStarts": 110
+     }
+    },
+    "waits": 123,
+    "waitMedianMin": 58
+   },
+   {
+    "day": 4,
+    "activeStables": 48,
+    "published": 31,
+    "sisters": 4,
+    "ran": 16,
+    "ranWithPlayers": 16,
+    "calledOff": 19,
+    "stableStarts": 112,
+    "twoPlus": 16,
+    "fourPlus": 13,
+    "meetings": 8,
+    "meetingRaces": 29,
+    "horses": 1048,
+    "covered": 1011,
+    "coveredInTwo": 1017,
+    "byReason": {
+     "pattern": {
+      "published": 35,
+      "ranWithPlayers": 16,
+      "calledOff": 19,
+      "stableStarts": 112
+     }
+    },
+    "waits": 122,
+    "waitMedianMin": 62
+   }
+  ],
+  "totals": {
+   "days": 4,
+   "activeStablesPerDay": 48.3,
+   "published": 139,
+   "publishedPerDay": 34.8,
+   "ran": 72,
+   "ranWithPlayers": 72,
+   "calledOff": 67,
+   "ranWithPlayersPct": 51.8,
+   "calledOffPct": 48.2,
+   "stablesPerRace": 6.08,
+   "twoPlusPct": 90.3,
+   "fourPlusPct": 63.9,
+   "racesPerMeeting": 3.63,
+   "coveredPct": 97.3,
+   "coveredInTwoPct": 97.8,
+   "waitMedianMin": 58,
+   "waitP90Min": 137,
+   "noRacePct": 0,
+   "byReason": {
+    "pattern": {
+     "published": 139,
+     "calledOffPct": 48.2,
+     "stablesPerRace": 6.08
+    }
+   }
+  },
+  "steady": {
+   "days": 2,
+   "activeStablesPerDay": 48,
+   "published": 70,
+   "publishedPerDay": 35,
+   "ran": 35,
+   "ranWithPlayers": 35,
+   "calledOff": 35,
+   "ranWithPlayersPct": 50,
+   "calledOffPct": 50,
+   "stablesPerRace": 6.34,
+   "twoPlusPct": 94.3,
+   "fourPlusPct": 71.4,
+   "racesPerMeeting": 3.63,
+   "coveredPct": 96,
+   "coveredInTwoPct": 96.7,
+   "waitMedianMin": 62,
+   "waitP90Min": 141,
+   "noRacePct": 0,
+   "byReason": {
+    "pattern": {
+     "published": 70,
+     "calledOffPct": 50,
+     "stablesPerRace": 6.34
+    }
+   }
+  }
+ },
+ "totals": {
+  "liveRaces": 76,
+  "liveRacesCalledOff": 67,
+  "created": {
+   "starter_grant": 150000,
+   "daily_goal": 26280,
+   "stable_step": 25580,
+   "purse": 48958,
+   "daily_cup": 14240,
+   "story_reward": 25920
+  },
+  "destroyed": {
+   "tote_settlement": -2151,
+   "entry_fee": 27927,
+   "jockey_signing": 250,
+   "race_extras": 960,
+   "facility": 12500,
+   "pack": 2400,
+   "breeding_fee": 27962,
+   "upkeep": 600,
+   "training": 5340,
+   "stall_slot": 12000,
+   "tote_stake": 2330,
+   "vet": 150
+  }
+ },
+ "liveStartsPerStable": {
+  "casual": 7.5,
+  "grinder": 8.0,
+  "breeder": 11.3,
+  "farmer": 9.8
+ },
+ "playerRunners": 438,
+ "playerWins": 39,
+ "outcomes": {
+  "casual": {
+   "stables": 20,
+   "wonLive": 40,
+   "ranFeatureQualifier": 0,
+   "qualified": 0,
+   "ranWeekendFeature": 0,
+   "bredFoal": 0,
+   "soldHorse": 0,
+   "licence3": 0,
+   "promoted": 0,
+   "endedAboveStart": 100,
+   "avgLiveStarts": 7.5,
+   "avgVisits": 3.8
+  },
+  "grinder": {
+   "stables": 12,
+   "wonLive": 100,
+   "ranFeatureQualifier": 0,
+   "qualified": 0,
+   "ranWeekendFeature": 0,
+   "bredFoal": 0,
+   "soldHorse": 0,
+   "licence3": 0,
+   "promoted": 0,
+   "endedAboveStart": 100,
+   "avgLiveStarts": 8,
+   "avgVisits": 36
+  },
+  "breeder": {
+   "stables": 10,
+   "wonLive": 40,
+   "ranFeatureQualifier": 0,
+   "qualified": 0,
+   "ranWeekendFeature": 0,
+   "bredFoal": 100,
+   "soldHorse": 0,
+   "licence3": 0,
+   "promoted": 0,
+   "endedAboveStart": 50,
+   "avgLiveStarts": 11.3,
+   "avgVisits": 11.4
+  },
+  "farmer": {
+   "stables": 8,
+   "wonLive": 50,
+   "ranFeatureQualifier": 0,
+   "qualified": 0,
+   "ranWeekendFeature": 0,
+   "bredFoal": 75,
+   "soldHorse": 0,
+   "licence3": 0,
+   "promoted": 0,
+   "endedAboveStart": 75,
+   "avgLiveStarts": 9.9,
+   "avgVisits": 15
+  }
+ }
+}
